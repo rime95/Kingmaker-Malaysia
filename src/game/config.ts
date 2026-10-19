@@ -206,3 +206,97 @@ export const AI = {
   /** Allies turn hostile when your coalition trust falls below this. */
   allyTrustFloor: 40,
 };
+
+// ---------------------------------------------------------------------------------------------
+// Milestone 7: state elections (PRN) and dissolution. All values TEMPORARY; dates approximate.
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Each assembly's automatic dissolution date (five years after its first sitting) and whether it
+ * traditionally dissolves together with Parliament.
+ */
+export const ASSEMBLY_TERMS: Record<string, { autoDissolve: string; syncWithGE: boolean }> = {
+  PLS: { autoDissolve: "2027-12-19", syncWithGE: true },
+  KDH: { autoDissolve: "2028-09-01", syncWithGE: false },
+  KTN: { autoDissolve: "2028-09-01", syncWithGE: false },
+  TRG: { autoDissolve: "2028-09-01", syncWithGE: false },
+  PNG: { autoDissolve: "2028-09-01", syncWithGE: false },
+  PRK: { autoDissolve: "2027-12-19", syncWithGE: true },
+  PHG: { autoDissolve: "2027-12-19", syncWithGE: true },
+  SGR: { autoDissolve: "2028-09-01", syncWithGE: false },
+  NSN: { autoDissolve: "2028-09-01", syncWithGE: false },
+  MLK: { autoDissolve: "2026-12-20", syncWithGE: false },
+  JHR: { autoDissolve: "2027-04-21", syncWithGE: false },
+  SBH: { autoDissolve: "2030-12-01", syncWithGE: false },
+  SWK: { autoDissolve: "2027-02-14", syncWithGE: false },
+};
+
+/**
+ * Seats per coalition in each assembly at the start (approximate, from the latest state elections).
+ * Starting state seats are assigned to match these, so each state begins with its real government.
+ */
+export const ASSEMBLY_START: Record<string, Partial<Record<CoalitionId, number>>> = {
+  PLS: { PN: 14, PH: 1 },
+  KDH: { PN: 33, PH: 3 },
+  KTN: { PN: 43, BN: 2 },
+  TRG: { PN: 32 },
+  PNG: { PH: 27, BN: 2, PN: 11 },
+  PRK: { PN: 26, PH: 24, BN: 9 },
+  PHG: { BN: 16, PN: 17, PH: 9 },
+  SGR: { PH: 32, BN: 2, PN: 22 },
+  NSN: { PH: 17, BN: 14, PN: 5 },
+  MLK: { BN: 21, PH: 5, PN: 2 },
+  JHR: { BN: 40, PH: 12, PN: 3, MUDA: 1 },
+  SBH: { GRS: 29, WARISAN: 25, BN: 6, PH: 2, PN: 1, OTHERS: 10 },
+  SWK: { GPS: 76, PH: 2, OTHERS: 4 },
+};
+
+export const PRN = {
+  /** Weeks from dissolution to polling day (the law allows up to 60 days). */
+  campaignWeeks: 4,
+  /** A state government pays its ruling coalition this per assembly seat per week. */
+  stateIncomePerSeat: 2_000,
+  /** And builds service in its parliamentary seats each week. */
+  stateServicePerWeek: 0.1,
+  /** Momentum: national buzz per share of the assembly gained (e.g. +10% of seats → +2). */
+  momentum: 20,
+  /** Winning or losing a state government. */
+  win: { capital: 10, unity: 5, nationalBuzz: 8 },
+  lose: { capital: -10, unity: -8 },
+  /** AI rulers may call early elections in the last weeks of a term when they look safe. */
+  aiEarlyWindow: 20,
+  aiEarlyChance: 0.05,
+  /** Rivals put this much more effort into seats in a state that is campaigning. */
+  aiFocus: 2,
+  noise: { state: 0.08, seat: 0.12 },
+};
+
+export const GE = {
+  /** Weeks from dissolving Parliament to polling day. */
+  campaignWeeks: 5,
+  /** Term length in weeks after polling day before automatic dissolution. */
+  termWeeks: 260,
+  /** An AI prime minister may dissolve early in the last weeks of a term if the government bloc looks this far above 112. */
+  aiWindow: 26,
+  aiLead: 8,
+  aiChance: 0.12,
+};
+
+// ---------------------------------------------------------------------------------------------
+// Milestone 10: scenarios and difficulty.
+// ---------------------------------------------------------------------------------------------
+
+export type Difficulty = "easy" | "normal" | "hard";
+export type ScenarioId = "present" | "snap" | "underdog";
+
+export const DIFFICULTY: Record<Difficulty, { label: string; aiAggression: number; funds: number; text: string }> = {
+  easy: { label: "Easy", aiAggression: 0.7, funds: 1.5, text: "Rivals campaign less and you start richer." },
+  normal: { label: "Normal", aiAggression: 1, funds: 1, text: "As designed." },
+  hard: { label: "Hard", aiAggression: 1.35, funds: 0.75, text: "Rivals campaign harder and money is tight." },
+};
+
+export const SCENARIOS: Record<ScenarioId, { label: string; text: string }> = {
+  present: { label: "Present day (Oct 2026)", text: "The real situation: the unity government, a year before Parliament's term ends." },
+  snap: { label: "Snap election", text: "Parliament dissolves in three weeks. Straight to the campaign and Election Night." },
+  underdog: { label: "Underdog", text: "Your party is broke and divided: a quarter of the money, low unity and partners who doubt you." },
+};

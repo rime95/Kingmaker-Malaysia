@@ -30,15 +30,15 @@ export function SeatBars() {
         </span>
       </div>
       {rows.map((r) => (
-        <Bar key={r.label} {...r} player={game.player} />
+        <Bar key={r.label} {...r} player={game.player} government={game.government} />
       ))}
     </div>
   );
 }
 
-function Bar({ label, counts, player }: { label: string; counts: Record<CoalitionId, number>; player: CoalitionId }) {
+function Bar({ label, counts, player, government }: { label: string; counts: Record<CoalitionId, number>; player: CoalitionId; government: CoalitionId[] }) {
   const [hover, setHover] = useState<CoalitionId | null>(null);
-  const gov = CHART_ORDER.filter((c) => COALITION_INFO[c].inGovernment).reduce((s, c) => s + counts[c], 0);
+  const gov = CHART_ORDER.filter((c) => government.includes(c)).reduce((s, c) => s + counts[c], 0);
   return (
     <div className="grid grid-cols-[96px_1fr_auto] sm:grid-cols-[110px_1fr_160px] items-center gap-3">
       <span className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>

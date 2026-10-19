@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AI } from "./config";
-import { newGame, projectAllFor, type GameState } from "./state";
+import { START_GOVERNMENT, newGame, projectAllFor, type GameState } from "./state";
+import { campaignStates, stateRulers, weeksToElection } from "./systems/assemblies";
 import { isHostile, rivalIds, rivalsWeek } from "./systems/rivals";
 import { advanceWeek } from "./week";
 import { SEATS } from "./world";
@@ -11,7 +12,20 @@ function weeks(g: GameState, n: number) {
   return g;
 }
 const step = (g: GameState) =>
-  rivalsWeek({ rivals: g.rivals, player: g.player, playerTrust: g.me.trust, playerBuzz: g.me.buzz, holders: g.holders, week: g.week, seed: g.seed, projections: projectAllFor(g) });
+  rivalsWeek({
+    rivals: g.rivals,
+    player: g.player,
+    playerTrust: g.me.trust,
+    playerBuzz: g.me.buzz,
+    holders: g.holders,
+    week: g.week,
+    seed: g.seed,
+    projections: projectAllFor(g),
+    weeksToElection: weeksToElection(g),
+    campaignStates: campaignStates(g),
+    rulers: stateRulers(g.dunHolders, g.government),
+    government: g.government,
+  });
 
 describe("rival parties", () => {
   it("every coalition except yours and the independents has an AI", () => {
@@ -40,9 +54,9 @@ describe("rival parties", () => {
   });
 
   it("allies stay friendly until coalition trust collapses", () => {
-    expect(isHostile("BN", "PH", 60)).toBe(false);
-    expect(isHostile("BN", "PH", AI.allyTrustFloor - 1)).toBe(true);
-    expect(isHostile("PN", "PH", 100)).toBe(true);
+    expect(isHostile("BN", "PH", 60, START_GOVERNMENT)).toBe(false);
+    expect(isHostile("BN", "PH", AI.allyTrustFloor - 1, START_GOVERNMENT)).toBe(true);
+    expect(isHostile("PN", "PH", 100, START_GOVERNMENT)).toBe(true);
   });
 
   it("defend a seat where you are campaigning hard", () => {

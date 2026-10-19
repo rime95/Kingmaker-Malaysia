@@ -1,7 +1,12 @@
 // The saved game state. Plain data only, so it can be saved and reloaded exactly.
 
 import { machineryBase, serviceBase } from "./bases";
-import { AP_PER_WEEK, ECONOMY_REST, EFFECT, FORTRESS, START } from "./config";
+import { AP_PER_WEEK, AUTO_DISSOLUTION, DIFFICULTY, ECONOMY_REST, EFFECT, FORTRESS, START, type Difficulty, type ScenarioId } from "./config";
+import { initAssemblies, initParliament, type Assembly, type Parliament } from "./systems/assemblies";
+import { DUN_START } from "./systems/dun";
+import type { Formation, WinTier } from "./systems/formation";
+import { AP_BY_RUNG, initCareer, type Career } from "./systems/career";
+import { newObjectives, type Objective } from "./systems/goals";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
 import { policyVoters } from "./systems/policies";
@@ -13,6 +18,9 @@ import { COALITIONS, COALITION_INFO, SEATS, type CoalitionId } from "./world";
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
 export const SAVE_VERSION = 3;
+
+/** The unity government as of the October 2026 snapshot. */
+export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
 
 /** One line of the weekly report. */
 export interface ReportLine {
@@ -110,9 +118,36 @@ export interface GameState {
   budgetYear: number | null;
   /** AI rival parties. */
   rivals: Rivals;
+  /** Holder of each of the 600 state assembly seats. */
+  dunHolders: CoalitionId[];
+  assemblies: Record<string, Assembly>;
+  parliament: Parliament;
+  /** Coalitions in the federal government (the Prime Minister is parliament.pm). */
+  government: CoalitionId[];
+  /** Talks to form a government after a general election (null when none are under way). */
+  formation: Formation | null;
+  /** Election Night to show: the week it happened and who held the seats before. */
+  night: { week: number; prevHolders: CoalitionId[] } | null;
+  /** Your result tier at each general election. */
+  tiers: WinTier[];
+  /** Your own career: rung, points, age, faction and successors. */
+  career: Career;
+  /** This term's objectives. */
+  objectives: Objective[];
+  /** Achievement id → week earned. */
+  achievements: Record<string, number>;
+  settings: { scenario: ScenarioId; difficulty: Difficulty };
 }
 
-export function newGame(player: CoalitionId, seed = Date.now() % 2147483647): GameState {
+export interface NewGameOptions {
+  scenario?: ScenarioId;
+  difficulty?: Difficulty;
+  mode?: "career" | "leader";
+  name?: string;
+  homeSeat?: number;
+}
+
+export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opts: NewGameOptions = {}): GameState {
   const start = START[player];
   const service = SEATS.map((s) => serviceBase(player, s.index));
   const machinery = SEATS.map((s) => machineryBase(player, s.index));
@@ -160,14 +195,33 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647): Ga
     budgetDue: null,
     budgetYear: null,
     rivals: initRivals(player),
+    dunHolders: [...DUN_START],
+    assemblies: initAssemblies(),
+    parliament: initParliament(AUTO_DISSOLUTION),
+    government: START_GOVERNMENT,
+    formation: null,
+    night: null,
+    tiers: [],
+    career: initCareer(player, seed, opts.mode ?? "leader", opts.name, opts.homeSeat),
+    objectives: [],
+    achievements: {},
+    settings: { scenario: opts.scenario ?? "present", difficulty: opts.difficulty ?? "normal" },
   };
-  state.history.push({ week: 0, funds: start.funds, seats: projectedSeats(state) });
+  state.me.apMax = state.me.ap = AP_BY_RUNG[state.career.rung];
+  // Difficulty and scenario
+  state.me.funds = Math.round(state.me.funds * DIFFICULTY[state.settings.difficulty].funds);
+  if (state.settings.scenario === "snap") state.parliament = { ...state.parliament, deadlineWeek: 3 };
+  if (state.settings.scenario === "underdog") {
+    state.me = { ...state.me, funds: Math.round(state.me.funds * 0.25), members: Math.round(state.me.members * 0.6), unity: 40, trust: 40 };
+  }
+  state.history.push({ week: 0, funds: state.me.funds, seats: projectedSeats(state) });
+  state.objectives = newObjectives(state);
   return state;
 }
 
 /** Fills fields added after a save was made, so older saves keep working. */
 export function migrateGame(g: GameState): GameState {
-  return {
+  const migrated: GameState = {
     ...g,
     version: SAVE_VERSION,
     me: { ...g.me, policies: g.me.policies ?? {}, mood: g.me.mood ?? {}, budget: g.me.budget ?? {}, favours: g.me.favours ?? 0 },
@@ -178,7 +232,20 @@ export function migrateGame(g: GameState): GameState {
     budgetDue: g.budgetDue ?? null,
     budgetYear: g.budgetYear ?? null,
     rivals: g.rivals ?? initRivals(g.player),
+    dunHolders: g.dunHolders ?? [...DUN_START],
+    assemblies: g.assemblies ?? initAssemblies(),
+    parliament: g.parliament ?? initParliament(AUTO_DISSOLUTION),
+    government: g.government ?? START_GOVERNMENT,
+    formation: g.formation ?? null,
+    night: g.night ?? null,
+    tiers: g.tiers ?? [],
+    career: g.career ?? initCareer(g.player, g.seed, "leader"),
+    objectives: g.objectives ?? [],
+    achievements: g.achievements ?? {},
+    settings: g.settings ?? { scenario: "present", difficulty: "normal" },
   };
+  if (!migrated.objectives.length) migrated.objectives = newObjectives(migrated);
+  return migrated;
 }
 
 /** Your national swing from messaging, scandal, integrity, coalition trust and the economy. */
@@ -187,14 +254,14 @@ export function playerNationalEffect(state: GameState): number {
   let v = me.nationalBuzz * EFFECT.nationalBuzz - me.scandal * EFFECT.scandal + (me.integrity - 60) * EFFECT.integrity;
   if (me.trust < EFFECT.trustFloor) v -= EFFECT.trustPenalty;
   // The government gets the credit and the blame for the economy; the opposition gains a little from bad times.
-  v += (state.economy - ECONOMY_REST) * (isGovernment(state.player) ? EFFECT.economyGov : -EFFECT.economyOpp);
+  v += (state.economy - ECONOMY_REST) * (isGovernment(state) ? EFFECT.economyGov : -EFFECT.economyOpp);
   return v;
 }
 
 /** Your extra log-odds in one seat from service, buzz, machinery, policies, budget and the public mood. */
 export function playerSeatEffect(state: GameState, i: number, policy?: SegEffects): number {
   const me = state.me;
-  const pol = policy ?? policyVoters(me.policies, isGovernment(state.player));
+  const pol = policy ?? policyVoters(me.policies, isGovernment(state));
   return (
     (me.service[i] - serviceBase(state.player, i)) * EFFECT.service +
     me.buzz[i] * EFFECT.buzz +
@@ -211,7 +278,7 @@ export function voterInputs(state: GameState): VoterInputs {
   const swing = { ...state.swing, [state.player]: state.swing[state.player] + playerNationalEffect(state) };
   const rivals = Object.entries(state.rivals) as [CoalitionId, NonNullable<Rivals[CoalitionId]>][];
   for (const [c, r] of rivals) swing[c] += rivalNationalEffect(r);
-  const policy = policyVoters(state.me.policies, isGovernment(state.player));
+  const policy = policyVoters(state.me.policies, isGovernment(state));
   const seatOffsets = state.seatOffsets.map((row, i) => {
     const out = [...row];
     out[p] += playerSeatEffect(state, i, policy);
@@ -235,8 +302,9 @@ export function simulateElection(state: GameState): GameState {
   return { ...state, rng: rngState, lastElection: result };
 }
 
-export function isGovernment(c: CoalitionId): boolean {
-  return COALITION_INFO[c].inGovernment;
+/** Is a coalition (you, by default) in the federal government right now? */
+export function isGovernment(state: GameState, c: CoalitionId = state.player): boolean {
+  return state.government.includes(c);
 }
 
 export function seatCounts(holders: CoalitionId[]): Record<CoalitionId, number> {

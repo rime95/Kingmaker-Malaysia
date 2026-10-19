@@ -9,6 +9,7 @@ import { hash01 } from "../rng";
 import { isGovernment, voterInputs, weekDate, type CardInstance, type GameState, type ReportLine } from "../state";
 import { COALITION_INFO, SEATS, STATE_BY_ID, contestingIn } from "../world";
 import { MULTIRACIAL } from "./policies";
+import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, addPoints, contestChance, factionSize, promote, succession } from "./career";
 import { addSeg, describeSeg, type SegEffects } from "./segments";
 
 export interface Effect {
@@ -32,6 +33,11 @@ export interface Effect {
   seatBuzz?: number;
   /** Hold the card's by-election now. */
   byElection?: boolean;
+  /** Party AGM outcomes. */
+  careerContest?: boolean;
+  careerChallenge?: boolean;
+  careerStepAside?: boolean;
+  careerPoints?: number;
 }
 
 export interface Choice {
@@ -54,7 +60,7 @@ export interface CardDef {
   defaultChoice: number;
 }
 
-const gov = (s: GameState) => isGovernment(s.player);
+const gov = (s: GameState) => isGovernment(s);
 const multiracial = (s: GameState) => MULTIRACIAL.includes(s.player);
 const EAST_COAST = ["KTN", "TRG", "PHG"];
 
@@ -263,8 +269,54 @@ export const FESTIVALS: { kind: string; title: string; date: string; segment: Se
   { kind: "deepavali", title: "Deepavali open house", date: "10-29", segment: { indian: 0.06 }, text: "Happy Deepavali! An open house for Indian voters." },
 ];
 
+/** The annual party AGM (mid-June): contest the next post, defend the presidency, or rally the party. */
+export const AGM_CARD: CardDef = {
+  kind: "agm",
+  title: "Party AGM",
+  text: (s) => {
+    const c = s.career;
+    if (c.rung >= PRESIDENT) return c.challenge ? "A rival faction is challenging your leadership. Delegates are counting heads." : "Delegates gather for the annual assembly. A chance to rally the party.";
+    if (c.rung === MP - 1) return `To rise further you must win your home seat, ${SEATS[c.homeSeat].name}, at the next general election. Until then, work the ground.`;
+    const need = CONTEST_POINTS[c.rung];
+    return c.points >= need
+      ? `You have the support (${c.points} career points) to contest for ${RUNGS[c.rung + 1]}.`
+      : `You need ${need} career points to contest for ${RUNGS[c.rung + 1]} (you have ${c.points}). Win seats, pass reforms and build your faction.`;
+  },
+  choices: (s) => {
+    const c = s.career;
+    if (c.rung >= PRESIDENT)
+      return c.challenge
+        ? [
+            { label: "Fight the challenge", effect: { careerChallenge: true }, note: `About ${Math.round(challengeChance(s) * 100)}% chance to survive.` },
+            { label: `Step aside for ${c.protege}`, effect: { careerStepAside: true, unity: 10 } },
+          ]
+        : [
+            { label: "Rally the party", effect: { unity: 6, capital: 5, funds: -200_000 } },
+            { label: "Keep it short", effect: {} },
+          ];
+    if (c.rung === MP - 1 || c.points < CONTEST_POINTS[c.rung])
+      return [
+        { label: "Work the delegates", effect: { careerPoints: 3, funds: -50_000 } },
+        { label: "Keep your head down", effect: {} },
+      ];
+    const chance = contestChance(c, s.me.unity, factionSize(c, s.holders, s.player), s.holders.filter((h) => h === s.player).length);
+    return [
+      { label: `Contest for ${RUNGS[c.rung + 1]}`, effect: { careerContest: true }, note: `About ${Math.round(chance * 100)}% chance. Losing costs unity and support.` },
+      { label: "Wait another year", effect: {} },
+    ];
+  },
+  defaultChoice: 1,
+};
+
+function challengeChance(s: GameState): number {
+  const seats = s.holders.filter((h) => h === s.player).length;
+  const share = seats ? factionSize(s.career, s.holders, s.player) / seats : 0;
+  return Math.max(0.1, Math.min(0.9, 0.3 + s.me.unity / 150 + share * 0.5));
+}
+
 export const CARD_BY_KIND: Record<string, CardDef> = Object.fromEntries([
   ...CARD_DEFS.map((d) => [d.kind, d]),
+  [AGM_CARD.kind, AGM_CARD],
   ...FESTIVALS.map((f) => [
     f.kind,
     {
@@ -299,6 +351,8 @@ export function describeEffect(e: Effect): string {
   if (e.seatBuzz) parts.push(`Local buzz +${e.seatBuzz}`);
   if (e.mood) parts.push(describeSeg(e.mood));
   if (e.byElection) parts.push("Polls open now");
+  if (e.careerPoints) parts.push(`Career points +${e.careerPoints}`);
+  if (e.careerContest) parts.push("Delegates vote");
   return parts.join(" · ") || "No effect";
 }
 
@@ -338,13 +392,49 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
     const won = result.winner === s.player;
     const name = SEATS[i].name;
     state.me = { ...state.me, capital: clamp(state.me.capital + (won ? 10 : -3), 0, 200), unity: clamp(state.me.unity + (won ? 4 : -2)) };
+    if (won) state.career = addPoints(state.career, s.week, 8, `won the ${name} by-election`);
     const flip = result.winner !== before ? `, a gain from ${COALITION_INFO[before].short}` : "";
     lines.push({
       text: `${name} by-election: ${result.winnerParty} (${COALITION_INFO[result.winner].short}) wins by ${result.majority.toLocaleString("en-MY")} votes${flip}.`,
       tone: won ? "good" : result.winner !== before && before === s.player ? "bad" : "info",
     });
   }
+  state = applyCareerEffect(state, e, lines);
   return { state, lines };
+}
+
+/** AGM outcomes: contests are decided with hash01, so no game-RNG draws. */
+function applyCareerEffect(s: GameState, e: Effect, lines: ReportLine[]): GameState {
+  let c = s.career;
+  if (e.careerPoints) c = addPoints(c, s.week, e.careerPoints, "worked the party delegates");
+  if (e.careerContest) {
+    const chance = contestChance(c, s.me.unity, factionSize(c, s.holders, s.player), s.holders.filter((h) => h === s.player).length);
+    const post = RUNGS[c.rung + 1];
+    if (hash01("agm", s.seed, s.week) < chance) {
+      c = promote(c, s.week, `${c.name} wins the AGM vote: now ${post}.`);
+      lines.push({ text: `You win the party vote and become ${post}.`, tone: "good" });
+    } else {
+      c = { ...addPoints(c, s.week, -Math.round(c.points * 0.2), `lost the contest for ${post}`) };
+      s = { ...s, me: { ...s.me, unity: clamp(s.me.unity - 6) } };
+      lines.push({ text: `You lose the party vote for ${post}. Try again next year.`, tone: "bad" });
+    }
+  }
+  if (e.careerChallenge) {
+    if (hash01("challenge", s.seed, s.week) < challengeChance(s)) {
+      c = { ...c, challenge: false, log: [{ week: s.week, text: `${c.name} survives a leadership challenge.` }, ...c.log].slice(0, 30) };
+      s = { ...s, me: { ...s.me, unity: clamp(s.me.unity + 10) } };
+      lines.push({ text: "You survive the leadership challenge. The party closes ranks.", tone: "good" });
+    } else {
+      c = { ...c, rung: PRESIDENT - 1, challenge: false, log: [{ week: s.week, text: `${c.name} is ousted as party president.` }, ...c.log].slice(0, 30) };
+      lines.push({ text: "You lose the leadership challenge and drop back to Vice President. Win it back at a future AGM.", tone: "bad" });
+    }
+  }
+  if (e.careerStepAside) {
+    const old = c.name;
+    c = succession(c, s.seed, s.week);
+    lines.push({ text: `${old} steps aside. ${c.name} becomes party president.`, tone: "info" });
+  }
+  return c === s.career ? s : { ...s, career: c };
 }
 
 /** Answers a waiting card with one of its choices. */
@@ -389,7 +479,9 @@ export function cardsWeek(s: GameState): { state: GameState; lines: ReportLine[]
     lines.push({ text: `Needs you: ${CARD_BY_KIND[kind].title}.`, tone: "info" });
   };
 
-  const fest = festivalOn(weekDate(s.week));
+  const date = weekDate(s.week);
+  if (date.getMonth() === 5 && date.getDate() >= 8 && date.getDate() <= 14 && !state.cards.some((c) => c.kind === "agm")) add("agm");
+  const fest = festivalOn(date);
   if (fest) add(fest.kind);
 
   if (s.week >= CARDS.firstWeek && state.cards.length < CARDS.maxPending && hash01("card", s.seed, s.week) < CARDS.chance) {

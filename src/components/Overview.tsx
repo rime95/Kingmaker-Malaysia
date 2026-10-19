@@ -7,6 +7,8 @@ import { useGame } from "@/store/gameStore";
 import { STATES } from "@/game/world";
 import { ActionCard } from "./ActionCard";
 import { DecisionCards } from "./DecisionCards";
+import { Advisor } from "./Advisor";
+import { useT } from "./i18n";
 import { isGovernment } from "@/game/state";
 import { ReportBody } from "./ReportModal";
 import { fmt, fmtRM } from "./common";
@@ -20,6 +22,7 @@ const GROUPS: { id: ActionGroup; title: string; hint: string }[] = [
 export function Overview() {
   const game = useGame((s) => s.game)!;
   const setView = useGame((s) => s.setView);
+  const t = useT();
   const me = game.me;
   const [tourState, setTourState] = useState(STATES[0].id);
   const maccChance = Math.max(0, me.risk - MACC.threshold) / MACC.divisor;
@@ -28,11 +31,11 @@ export function Overview() {
     <div className="flex flex-col gap-4">
       {(game.cards.length > 0 || game.budgetDue !== null) && (
         <section className="flex flex-col gap-3">
-          <h2 className="font-semibold">Needs you</h2>
+          <h2 className="font-semibold">{t("needsYou")}</h2>
           {game.budgetDue !== null && (
             <div className="panel p-4 flex flex-wrap items-center gap-3" style={{ borderLeft: "4px solid var(--accent)" }}>
               <span className="flex-1 text-sm">
-                {isGovernment(game.player) ? "This year's Budget is due in the Dewan." : "The Budget is being tabled. Answer it with a shadow budget?"}
+                {isGovernment(game) ? "This year's Budget is due in the Dewan." : "The Budget is being tabled. Answer it with a shadow budget?"}
               </span>
               <button className="btn" onClick={() => setView("policy")}>
                 Open the Budget
@@ -42,6 +45,7 @@ export function Overview() {
           <DecisionCards />
         </section>
       )}
+      <Advisor />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Meter label="Political capital" value={me.capital} max={200} note="Spent on announcements and, later, policies" />
         <Meter label="Party unity" value={me.unity} note="Multiplies every action" />

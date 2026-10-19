@@ -1,16 +1,19 @@
 // Skip 1 Week: the only place time moves. Skip 1 Month is exactly four of these (see month.ts).
 
-import { DECAY, ECONOMY, ECONOMY_DRIFT, ECONOMY_REST, MACC, MOOD_DECAY, SEAT_SERVICE_PER_WEEK } from "./config";
-import { tableBudget } from "./actions";
+import { DECAY, DIFFICULTY, ECONOMY, ECONOMY_DRIFT, ECONOMY_REST, MACC, MOOD_DECAY, PRN, SEAT_SERVICE_PER_WEEK } from "./config";
+import { assembliesWeek, campaignStates, stateRulers, weeksToElection } from "./systems/assemblies";
+import { DUNS_BY_STATE } from "./systems/dun";
+import { autoResolveFormation, tableBudget } from "./actions";
+import { careerAfterGE, careerWeek, goalsWeek } from "./progress";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
 import { rivalsWeek } from "./systems/rivals";
 import { decaySeg } from "./systems/segments";
 import { fmtRM } from "./money";
 import { Rng, hash01 } from "./rng";
-import { isGovernment, machineryBase, projectAllFor, serviceBase, weekDate, type GameState, type ReportLine, type WeekReport } from "./state";
+import { isGovernment, machineryBase, projectAllFor, serviceBase, voterInputs, weekDate, type GameState, type ReportLine, type WeekReport } from "./state";
 import { ASSETS, CEO, assetIncome, assetRisk, marketWeek } from "./systems/business";
-import { SEATS, contestingIn } from "./world";
+import { SEATS, STATE_BY_ID, contestingIn } from "./world";
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 const HISTORY_LIMIT = 520;
@@ -18,12 +21,14 @@ const HISTORY_LIMIT = 520;
 /** This week's money in and out at the current state. Machinery upkeep is separate: it goes unpaid when money runs out. */
 export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; expenses: WeekReport["expenses"]; upkeep: number } {
   const me = s.me;
-  const gov = isGovernment(s.player);
+  const gov = isGovernment(s);
   const held = s.holders.filter((h) => h === s.player).length;
   const income: WeekReport["income"] = [
     { label: "Party dues", amount: Math.round(me.members * ECONOMY.duesPerMember) },
     { label: `Seat allocations (${held} seats)`, amount: held * (gov ? ECONOMY.seatIncomeGov : ECONOMY.seatIncomeOpp) },
   ];
+  for (const [id, ruler] of Object.entries(stateRulers(s.dunHolders, s.government)))
+    if (ruler === s.player) income.push({ label: `State government (${STATE_BY_ID[id].name})`, amount: DUNS_BY_STATE[id].length * PRN.stateIncomePerSeat });
   for (const a of me.assets) income.push({ label: ASSETS[a.type].name, amount: assetIncome(a, gov, me.market) });
   const expenses: WeekReport["expenses"] = [{ label: "HQ & staff", amount: Math.round(ECONOMY.hqFixed + me.members * ECONOMY.hqPerMember) }];
   const salaries = me.assets.reduce((sum, a) => sum + CEO[a.ceo].salary, 0);
@@ -34,9 +39,11 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
   return { income, expenses, upkeep };
 }
 
-export function advanceWeek(s: GameState): GameState {
+export function advanceWeek(input: GameState): GameState {
+  // Unfinished government talks resolve before time moves on.
+  const s = input.formation ? autoResolveFormation(input) : input;
   const before = projectAllFor(s);
-  const gov = isGovernment(s.player);
+  const gov = isGovernment(s);
   const me = { ...s.me, service: [...s.me.service], buzz: [...s.me.buzz], machinery: [...s.me.machinery], assets: s.me.assets.map((a) => ({ ...a })), policies: { ...s.me.policies } };
   const lines: ReportLine[] = [];
   const contested = SEATS.filter((seat) => contestingIn(seat).includes(s.player)).map((seat) => seat.index);
@@ -67,6 +74,9 @@ export function advanceWeek(s: GameState): GameState {
   for (const i of held) {
     me.service[i] = clamp(me.service[i] + perHeld + (plantation && SEATS[i].demo.urbanity < 0.4 ? 0.1 * plantation.level : 0));
   }
+  // States you govern build service in their parliamentary seats
+  for (const [id, ruler] of Object.entries(stateRulers(s.dunHolders, s.government)))
+    if (ruler === s.player) for (const seat of SEATS) if (seat.state === id) me.service[seat.index] = clamp(me.service[seat.index] + PRN.stateServicePerWeek);
   const foundation = me.assets.find((a) => a.type === "foundation");
   if (foundation) for (const i of contested) me.buzz[i] = clamp(me.buzz[i] + 0.4 * foundation.level * (SEATS[i].demo.youth / 0.3));
 
@@ -111,7 +121,21 @@ export function advanceWeek(s: GameState): GameState {
   const fiscal = clamp(s.fiscal + (50 - s.fiscal) * ECONOMY_DRIFT.fiscal);
 
   // Rival parties campaign, defend and attack, using this week's starting projections
-  const ai = rivalsWeek({ rivals: s.rivals, player: s.player, playerTrust: me.trust, playerBuzz: s.me.buzz, holders: s.holders, week: s.week, seed: s.seed, projections: before });
+  const ai = rivalsWeek({
+    rivals: s.rivals,
+    player: s.player,
+    playerTrust: me.trust,
+    playerBuzz: s.me.buzz,
+    holders: s.holders,
+    week: s.week,
+    seed: s.seed,
+    projections: before,
+    weeksToElection: weeksToElection(s),
+    campaignStates: campaignStates(s),
+    rulers: stateRulers(s.dunHolders, s.government),
+    government: s.government,
+    aggression: DIFFICULTY[s.settings.difficulty].aiAggression,
+  });
   me.nationalBuzz = clamp(me.nationalBuzz + ai.playerBuzzHit);
   me.scandal = clamp(me.scandal + ai.playerScandalHit);
   lines.push(...ai.lines);
@@ -142,6 +166,25 @@ export function advanceWeek(s: GameState): GameState {
   const cards = cardsWeek(next);
   next = cards.state;
   lines.push(...cards.lines);
+
+  // Dissolutions and polling days for Parliament and the state assemblies
+  const polls = assembliesWeek(next, voterInputs(next));
+  next = polls.state;
+  lines.push(...polls.lines);
+  if (next.night && next.night.week === next.week) {
+    const ge = careerAfterGE(next, next.night.prevHolders);
+    next = ge.state;
+    lines.push(...ge.lines);
+  }
+
+  // Your career, term objectives and achievements
+  const career = careerWeek(next);
+  next = career.state;
+  next = { ...next, me: { ...next.me, ap: next.me.apMax } };
+  lines.push(...career.lines);
+  const goals = goalsWeek(next);
+  next = goals.state;
+  lines.push(...goals.lines);
 
   // Report
   const after = projectAllFor(next);

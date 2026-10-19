@@ -4,12 +4,12 @@
 // Allies in the government bloc leave your seats mostly alone unless coalition trust collapses.
 // Draws only from hash01, so the weekly random sequence is unchanged. All numbers TEMPORARY.
 
-import { AI, DECAY, ECONOMY, EFFECT, START } from "../config";
-import { serviceBase, weeksToDissolution } from "../bases";
+import { AI, DECAY, ECONOMY, EFFECT, PRN, START } from "../config";
+import { serviceBase } from "../bases";
 
 import { hash01 } from "../rng";
 import type { Projection } from "../voter";
-import { COALITIONS, COALITION_INFO, SEATS, contestingIn, type CoalitionId } from "../world";
+import { COALITIONS, COALITION_INFO, SEATS, STATE_BY_ID, contestingIn, type CoalitionId } from "../world";
 
 export type Mood = "confident" | "rattled" | "desperate";
 
@@ -65,8 +65,8 @@ export function rivalNationalEffect(r: Rival): number {
 }
 
 /** Is this rival out to get you? Opposition rivals always are; government partners only when trust collapses. */
-export function isHostile(c: CoalitionId, player: CoalitionId, trust: number): boolean {
-  const sameSide = COALITION_INFO[c].inGovernment === COALITION_INFO[player].inGovernment;
+export function isHostile(c: CoalitionId, player: CoalitionId, trust: number, government: CoalitionId[]): boolean {
+  const sameSide = government.includes(c) === government.includes(player);
   return !sameSide || trust < AI.allyTrustFloor;
 }
 
@@ -82,6 +82,16 @@ export interface RivalsWeekInput {
   week: number;
   seed: number;
   projections: Projection[];
+  /** Weeks until the next general election polling day. */
+  weeksToElection: number;
+  /** States holding a state election campaign right now. */
+  campaignStates: string[];
+  /** Ruling coalition of each state. */
+  rulers: Record<string, CoalitionId>;
+  /** Coalitions in the federal government. */
+  government: CoalitionId[];
+  /** Difficulty multiplier on rival moves. */
+  aggression?: number;
 }
 
 export interface RivalsWeekResult {
@@ -100,20 +110,22 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
   const lines: RivalsWeekResult["lines"] = [];
   let playerBuzzHit = 0;
   let playerScandalHit = 0;
-  const toGo = weeksToDissolution(week);
+  const toGo = input.weeksToElection;
   const phase = toGo <= AI.lateWeeks ? "late" : toGo <= AI.midWeeks ? "mid" : "early";
-  const moves = Math.round((phase === "late" ? AI.movesLate : phase === "mid" ? AI.movesMid : AI.movesEarly) * AI.aggression);
+  const moves = Math.round((phase === "late" ? AI.movesLate : phase === "mid" ? AI.movesMid : AI.movesEarly) * AI.aggression * (input.aggression ?? 1));
 
   for (const c of rivalIds(player)) {
     const prev = input.rivals[c];
     if (!prev) continue;
     const r: Rival = { ...prev, buzz: [...prev.buzz], service: [...prev.service], targets: [], recent: [...prev.recent] };
-    const hostile = isHostile(c, player, input.playerTrust);
-    const gov = COALITION_INFO[c].inGovernment;
+    const hostile = isHostile(c, player, input.playerTrust, input.government);
+    const gov = input.government.includes(c);
 
     // Money: dues and seat allocations in, HQ out
     const held = holders.filter((h) => h === c).length;
     r.funds += r.members * ECONOMY.duesPerMember + held * (gov ? ECONOMY.seatIncomeGov : ECONOMY.seatIncomeOpp) - (ECONOMY.hqFixed + r.members * ECONOMY.hqPerMember);
+    const governs = Object.entries(input.rulers).filter(([, ruler]) => ruler === c).map(([id]) => id);
+    for (const id of governs) r.funds += STATE_BY_ID[id].dunSeats * PRN.stateIncomePerSeat;
 
     // Fading, as for the player
     for (let i = 0; i < SEATS.length; i++) {
@@ -122,6 +134,7 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
       if (r.service[i] > base) r.service[i] -= (r.service[i] - base) * DECAY.service;
     }
     r.nationalBuzz *= 1 - DECAY.nationalBuzz;
+    for (const seat of SEATS) if (governs.includes(seat.state)) r.service[seat.index] = clamp(r.service[seat.index] + PRN.stateServicePerWeek);
 
     // Which seats are worth fighting for?
     const scored: { i: number; u: number; defend: boolean }[] = [];
@@ -148,6 +161,7 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
           u = (AI.attackGap - gap) * 10 * weight;
         }
       }
+      if (input.campaignStates.includes(seat.state)) u *= PRN.aiFocus;
       if (u > 0) scored.push({ i, u: u + hash01("ai", seed, week, c, i) * 0.05, defend });
     }
     scored.sort((a, b) => b.u - a.u);
@@ -160,7 +174,7 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
       if (r.mood === "desperate" && phase !== "early" && can(AI.handout.cost)) {
         r.funds -= AI.handout.cost;
         r.buzz[t.i] = addBuzz(r.buzz[t.i], AI.handout.buzz * (1 - 0.6 * SEATS[t.i].demo.urbanity));
-      } else if (phase === "early" && can(AI.service.cost)) {
+      } else if (phase === "early" && !input.campaignStates.includes(SEATS[t.i].state) && can(AI.service.cost)) {
         r.funds -= AI.service.cost;
         r.service[t.i] = clamp(r.service[t.i] + AI.service.gain);
       } else if (can(AI.ceramah.cost)) {

@@ -3,13 +3,9 @@
 import { useMemo, useState } from "react";
 import { useGame } from "@/store/gameStore";
 import { COALITION_INFO, MAJORITY, SEATS, STATE_BY_ID, TOTAL_SEATS, type CoalitionId } from "@/game/world";
+import { CHART_ORDER } from "./common";
 import { coalColor } from "./common";
 
-/** Left-to-right in the hemicycle: opposition first, the leading government party at the far right. */
-const HEMI_ORDER: CoalitionId[] = ["PN", "MUDA", "WARISAN", "OTHERS", "GRS", "GPS", "BN", "PH"];
-/** Front bench first on each side of the chamber. */
-const GOV_ORDER: CoalitionId[] = ["PH", "BN", "GPS", "GRS", "OTHERS"];
-const OPP_ORDER: CoalitionId[] = ["PN", "WARISAN", "MUDA"];
 
 type Layout = "hemicycle" | "benches";
 interface Geo {
@@ -26,26 +22,32 @@ interface Dot {
   y: number;
 }
 
-function hemicycle(order: number[]): Geo {
-  const rows = 8;
+/** Parliament-chart layout for any number of seats: rows of a half circle, filled left to right in `order`. */
+export function hemicycle(order: number[]): Geo {
+  const n = order.length;
+  const rows = Math.max(2, Math.min(8, Math.round(Math.sqrt(n / 3.5))));
   const r0 = 0.38;
   const radii = Array.from({ length: rows }, (_, k) => r0 + ((1 - r0) * k) / (rows - 1));
   const sum = radii.reduce((a, b) => a + b, 0);
-  const counts = radii.map((r) => Math.round((TOTAL_SEATS * r) / sum));
-  counts[rows - 1] += TOTAL_SEATS - counts.reduce((a, b) => a + b, 0);
+  const counts = radii.map((r) => Math.max(2, Math.round((n * r) / sum)));
+  counts[rows - 1] += n - counts.reduce((a, b) => a + b, 0);
   const pos: { a: number; r: number }[] = [];
   radii.forEach((r, k) => {
-    const n = counts[k];
-    for (let j = 0; j < n; j++) pos.push({ a: Math.PI - (j * Math.PI) / (n - 1), r });
+    const m = counts[k];
+    for (let j = 0; j < m; j++) pos.push({ a: Math.PI - (j * Math.PI) / Math.max(1, m - 1), r });
   });
   pos.sort((p, q) => q.a - p.a || p.r - q.r);
   const R = 300;
+  // Dots as big as the tighter of row spacing and spacing along the outer row allows.
+  const rowGap = ((1 - r0) * R) / (rows - 1);
+  const arcGap = (Math.PI * R) / Math.max(1, counts[rows - 1] - 1);
+  const size = Math.min(16, Math.min(rowGap, arcGap) * 0.42);
   const dots = order.map((seatIndex, i) => ({
     seatIndex,
     x: R + 14 + pos[i].r * R * Math.cos(pos[i].a),
     y: R + 14 - pos[i].r * R * Math.sin(pos[i].a),
   }));
-  return { dots, size: 7.5, w: 2 * R + 28, h: R + 40 };
+  return { dots, size, w: 2 * R + 28, h: R + 40 };
 }
 
 /**
@@ -86,12 +88,16 @@ export function Dewan() {
       SEATS.map((s) => s.index)
         .filter((i) => order.includes(holders[i]))
         .sort((a, b) => order.indexOf(holders[a]) - order.indexOf(holders[b]) || parties[a].localeCompare(parties[b]) || a - b);
-    if (layout === "hemicycle") return hemicycle(byOrder(HEMI_ORDER));
-    return benches(byOrder(GOV_ORDER), byOrder(OPP_ORDER));
-  }, [layout, holders, parties]);
+    // Front bench first on each side: the PM's coalition leads the government, the biggest party the opposition.
+    const govOrder = [game!.parliament.pm, ...CHART_ORDER.filter((c) => c !== game!.parliament.pm && game!.government.includes(c))];
+    const oppOrder = CHART_ORDER.filter((c) => !game!.government.includes(c)).reverse();
+    // Hemicycle, left to right: opposition first, the PM's coalition at the far right.
+    if (layout === "hemicycle") return hemicycle(byOrder([...oppOrder, ...[...govOrder].reverse()]));
+    return benches(byOrder(govOrder), byOrder(oppOrder));
+  }, [layout, holders, parties, game]);
 
   if (!game) return null;
-  const gov = holders.filter((c) => COALITION_INFO[c].inGovernment).length;
+  const gov = holders.filter((c) => game.government.includes(c)).length;
 
   return (
     <div className="flex flex-col gap-3">
@@ -131,7 +137,7 @@ export function Dewan() {
           </g>
         )}
         {layout === "hemicycle" && (
-          <text x={geo.w / 2} y={geo.h - 8} textAnchor="middle" className="map-label" style={{ fontSize: 22 }}>
+          <text x={geo.w / 2} y={geo.h - 42} textAnchor="middle" className="map-label" style={{ fontSize: 22 }}>
             {gov} / {TOTAL_SEATS}
           </text>
         )}
@@ -163,7 +169,7 @@ export function Dewan() {
           <div className="mt-1">
             {parties[hover.i]} · {COALITION_INFO[holders[hover.i]].name}
           </div>
-          <div style={{ color: "var(--muted)" }}>{COALITION_INFO[holders[hover.i]].inGovernment ? "Government bench" : "Opposition bench"}</div>
+          <div style={{ color: "var(--muted)" }}>{game.government.includes(holders[hover.i]) ? "Government bench" : "Opposition bench"}</div>
         </div>
       )}
     </div>

@@ -173,7 +173,7 @@ function Legend({ lens, player }: { lens: Lens; player: keyof typeof COALITION_I
 function rivalPressure(game: GameState, i: number): number {
   let max = 0;
   for (const [c, r] of Object.entries(game.rivals) as [CoalitionId, Rival][]) {
-    if (!isHostile(c, game.player, game.me.trust)) continue;
+    if (!isHostile(c, game.player, game.me.trust, game.government)) continue;
     max = Math.max(max, r.buzz[i] + Math.max(0, r.service[i] - serviceBase(c, i)));
   }
   return max;

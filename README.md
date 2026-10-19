@@ -1,9 +1,11 @@
 # Malam Pilihan Raya
 
-A turn-based Malaysian politics strategy game: build your power base, hold your seats and win election night.
-The full design lives in [docs/GAME_SPEC.md](docs/GAME_SPEC.md).
+A turn-based Malaysian politics strategy game. Build your power base, hold what you have, and win election night: from branch chief
+to Prime Minister, through state elections, Budgets, scandals, rival parties and coalition talks. The design lives in
+[docs/GAME_SPEC.md](docs/GAME_SPEC.md).
 
-Stack: Next.js · React · TypeScript · Tailwind · Zustand · Vitest (same as Grounds Up).
+Stack: Next.js · React · TypeScript · Tailwind · Zustand · Vitest (same as Grounds Up). Runs in the browser, installs as an app (PWA)
+and plays offline in production builds.
 
 ## Run it
 
@@ -12,42 +14,54 @@ npm install
 npm run dev        # http://localhost:3000
 npm test           # engine tests
 npm run typecheck
+npm run build      # production build (offline play and install)
 ```
 
 Or double-click `Start Game.bat`.
 
-## Built so far (milestones 1–6)
+## What's in the game
 
-- All 222 Dewan Rakyat seats with their GE15 winners and majorities. Seat demographics are estimates.
-- Voter model: each seat's vote share comes from voter blocs × regional lean, calibrated so the untouched world reproduces GE15.
-  National swing and per-seat offsets are the levers later systems will move.
-- Seeded election simulation with national, state and seat noise, turnout, and the order seats are called on the night.
-- Hex seat map (one hex per seat, grouped by state) with lenses: holder, projection, your support, ethnic majority, urban/rural, test election.
-- Dewan Rakyat chart: hemicycle and chamber-bench views, today or after a test election.
-- Weekly turn loop: Skip 1 Week / Skip 1 Month (exactly four weeks, enforced by tests), 6 action points a week, weekly and monthly reports.
-- Resources: war chest, political capital, party unity, coalition trust, integrity, MACC risk (raids), media reach, members.
-- Actions with live previews: seat (ceramah, walkabout, service project, machinery, handouts), state tours, national campaigns, party and money actions. Government and opposition get different tools.
-- Per-seat presence: service (permanent, builds fortress levels), machinery (needs upkeep), buzz (fades 5% a week).
-- Party holding company: eight businesses with levels, crony vs professional CEOs, tapping for the war chest, and selling.
-- Policies: ten issues with stances that move voter groups. Government enacts them through a Dewan vote (partners rebel when trust is low) and moves the economy and public finances; opposition pledges them at half strength, and unfunded pledges cost integrity.
-- The annual Budget (second week of October): allocate an envelope set by fiscal space, or table a shadow budget in opposition.
-- Decision cards: about 16 news events (floods, ringgit, leaked audio, flashpoints, by-elections that really change seats...) plus festival open houses, each with numbered choices and a default after four weeks.
-- AI rival parties: every other coalition earns money, targets the close seats it could win or lose, builds service early and saves buzz and national campaigns for the run-up to the election, defends seats where you campaign, and (when hostile) works your seats and runs attack ads. Government partners stay friendly while coalition trust is above 40. Rivals have strength and mood (confident, rattled, desperate), shown on a Rivals tab, in the seat panel and as a "Rival pressure" map view.
+- **The map and the Dewan**: all 222 Dewan Rakyat seats with their GE15 winners and majorities on a hex map with lenses (holder,
+  projection, your support, strongholds, rival pressure, ethnic majority, urban/rural, test election), and a Dewan chart (hemicycle
+  or chamber benches). Seat demographics are estimates.
+- **Voter model**: each seat's vote share comes from voter blocs × regional lean, calibrated so the untouched world reproduces GE15.
+  Service (permanent), machinery (turnout, needs upkeep), buzz (fades), policies, the Budget and public mood all move it.
+- **Weekly turns**: Skip 1 week / 1 month (exactly four weeks) / to the next event, action points, reports that explain changes.
+- **Resources**: war chest, political capital, unity, coalition trust, integrity, MACC risk (raids), media reach, members.
+- **Party holding company**: eight businesses with levels, crony or professional CEOs, tapping for the war chest, selling.
+- **Policies & the Budget**: ten issues; government enacts them through Dewan votes (partners rebel when trust is low), opposition
+  pledges them. The annual Budget in October, or a shadow budget.
+- **Decision cards**: news events (floods, ringgit, leaked audio, flashpoints, by-elections that change seats), festival open
+  houses and the June party AGM, each with numbered choices and a default.
+- **Rival parties**: every other coalition earns money, targets close seats, builds early and campaigns late, defends where you
+  campaign and attacks you when hostile.
+- **State elections**: 600 state seats (generated inside the parliamentary seats until real boundaries are added) starting from each
+  state's real seat split; assemblies dissolve at the end of their term, early by an AI ruler, or by you.
+- **Election Night**: seats declared one by one in counting order, the map filling in, race bars, upsets, recounts and "SEAT
+  STOLEN!", optional sound. Then **coalition talks**: gather 112 statutory declarations as a candidate (offer DPM, ministries, MA63)
+  or play kingmaker, and the Agong appoints the government. Results are graded Bronze to Diamond.
+- **Career and dynasty**: leader mode (start as the real party president) or career mode (start as Ketua Cawangan, win your home
+  seat, climb at the June AGM). Leaders age and hand over to a protégé; lose badly and the party challenges you. Term objectives,
+  28 achievements and personal bests.
+- **Scenarios and difficulty**: present day, snap election, underdog (unlocks after a Gold result); easy, normal, hard.
+- **Advisor**: what deserves attention this week, with one-click moves ranked by the game's own preview.
+- **Saves**: autosave, named save slots in the browser, and save files to move a game between computers.
+- **Bahasa Malaysia / English** for navigation, controls and Election Night.
 
 ## Where things live
 
 | Path | What |
 |---|---|
-| `src/game/world.ts` | States, parties, coalitions, the 222 seats and their estimated demographics |
 | `src/game/config.ts` | All balancing numbers (temporary) |
-| `src/game/voter.ts` | Vote shares per seat, GE15 calibration, projections |
-| `src/game/election.ts` | One simulated polling day |
-| `src/game/week.ts`, `src/game/month.ts` | Skip 1 Week (the only place time moves) and Skip 1 Month |
+| `src/game/world.ts` | States, parties, coalitions, the 222 seats and their estimated demographics |
+| `src/game/voter.ts`, `election.ts` | Vote shares, GE15 calibration, projections; simulated polling days |
+| `src/game/state.ts` | The saved game state, new games, save upgrades, voter-model inputs |
+| `src/game/week.ts`, `month.ts` | Skip 1 Week (the only place time moves) and Skip 1 Month |
 | `src/game/actions.ts` | Every player decision and its preview |
-| `src/game/systems/business.ts` | Party holding company |
-| `src/game/systems/policies.ts`, `budget.ts`, `events.ts`, `segments.ts` | Policies, the Budget, decision cards, and how effects land on voter groups |
-| `src/game/systems/rivals.ts` | AI rival parties |
-| `src/game/bases.ts` | Starting presence per seat and the calendar |
-| `src/game/state.ts` | Saved game state |
-| `src/game/hexLayout.ts` | Hex cartogram layout and state borders |
-| `src/components/` | Start screen, seat bars, map, seat panel, Dewan chart |
+| `src/game/progress.ts`, `advice.ts` | Career, objectives and achievements each week; the advisor |
+| `src/game/systems/` | Business, policies, Budget, events, segments, rivals, state seats (`dun.ts`), dissolution and polling (`assemblies.ts`), government formation, career, goals |
+| `src/components/` | The screens: start, overview, map, Dewan, states, policy, rivals, treasury, career, Election Night, coalition talks |
+| `src/store/` | Zustand store with autosave, save slots, cross-game profile |
+
+Real parties and leaders are used for flavour; every result and event in the game is simulated, and scandals are never attributed
+to real people.

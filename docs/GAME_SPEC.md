@@ -1,5 +1,7 @@
 # "Malam Pilihan Raya": Malaysian Parliament Strategy Game: Design & Build Plan
 
+> Status (Oct 2026): milestones 1–10 are implemented. Not yet built: real constituency-boundary map and real state-seat names, historical start dates, full Bahasa Malaysia translation of all game text.
+
 ## Context
 The user wants a political strategy game about Malaysian politics. The climax is **election night**, and the game around it is about preparing to win: money, support, policy and political standing. The player can be **in government or in opposition**, and both sides have to gain control and win the next election. **State elections (PRN)** are included as well as the **general election (PRU)**. The project folder is empty, so this is a new build.
 

@@ -141,7 +141,7 @@ export function SeatPanel() {
 function RivalActivity({ seatIndex }: { seatIndex: number }) {
   const game = useGame((s) => s.game)!;
   const rows = (Object.entries(game.rivals) as [CoalitionId, Rival][])
-    .map(([c, r]) => ({ c, buzz: r.buzz[seatIndex], service: r.service[seatIndex] - serviceBase(c, seatIndex), hostile: isHostile(c, game.player, game.me.trust) }))
+    .map(([c, r]) => ({ c, buzz: r.buzz[seatIndex], service: r.service[seatIndex] - serviceBase(c, seatIndex), hostile: isHostile(c, game.player, game.me.trust, game.government) }))
     .filter((x) => x.buzz >= 1 || x.service >= 1)
     .sort((a, b) => b.buzz + b.service - (a.buzz + a.service));
   if (!rows.length) return null;

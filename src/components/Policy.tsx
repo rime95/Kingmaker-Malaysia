@@ -8,11 +8,12 @@ import { BUDGET, BUDGET_LINES, budgetEnvelope } from "@/game/systems/budget";
 import { MULTIRACIAL, PLEDGE_WEIGHT, POLICIES, POLICY_COST, POLICY_SCALE, UNFUNDED_INTEGRITY_PER_FISCAL, type Policy as PolicyDef } from "@/game/systems/policies";
 import { describeSeg } from "@/game/systems/segments";
 import { useGame } from "@/store/gameStore";
+import { isPresident } from "@/game/systems/career";
 import { MAJORITY } from "@/game/world";
 
 export function Policy() {
   const game = useGame((s) => s.game)!;
-  const gov = isGovernment(game.player);
+  const gov = isGovernment(game);
   const vote = dewanVote(game);
   return (
     <div className="flex flex-col gap-4">
@@ -67,7 +68,7 @@ export function Policy() {
 function PolicyRow({ policy }: { policy: PolicyDef }) {
   const game = useGame((s) => s.game)!;
   const adopt = useGame((s) => s.policy);
-  const gov = isGovernment(game.player);
+  const gov = isGovernment(game);
   const current = game.me.policies[policy.id] ?? 0;
   const previews = useMemo(() => policy.options.map((_, i) => (i === current ? 0 : previewPolicy(game, policy.id, i))), [game, policy, current]);
   return (
@@ -133,7 +134,7 @@ function PolicyRow({ policy }: { policy: PolicyDef }) {
 function BudgetPanel() {
   const game = useGame((s) => s.game)!;
   const submit = useGame((s) => s.budget);
-  const gov = isGovernment(game.player);
+  const gov = isGovernment(game);
   const envelope = budgetEnvelope(game.fiscal);
   const max = envelope + BUDGET.overspendMax;
   const [alloc, setAlloc] = useState<Record<string, number>>(() => Object.fromEntries(BUDGET_LINES.map((l) => [l.id, 0])));
@@ -192,7 +193,12 @@ function BudgetPanel() {
             ✕ Would be defeated {vote.yes}–{vote.no}
           </span>
         )}
-        <button className="btn" onClick={() => submit(alloc)} disabled={total === 0 || total > max}>
+        {!isPresident(game.career) && (
+          <span className="text-xs" style={{ color: "var(--bad)" }}>
+            Only the party president tables it{gov ? "; officials will table an even split" : ""}.
+          </span>
+        )}
+        <button className="btn" onClick={() => submit(alloc)} disabled={total === 0 || total > max || !isPresident(game.career)}>
           {gov ? "Table the Budget" : "Present shadow budget"}
         </button>
       </div>

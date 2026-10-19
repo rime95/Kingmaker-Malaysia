@@ -36,7 +36,7 @@ function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
   const setView = useGame((s) => s.setView);
   const projections = useProjections();
   const info = COALITION_INFO[c];
-  const hostile = isHostile(c, game.player, game.me.trust);
+  const hostile = isHostile(c, game.player, game.me.trust, game.government);
   const held = game.holders.filter((h) => h === c).length;
   const projected = projections.filter((p) => p.leader === c).length;
   const builtService = r.service.reduce((sum, v, i) => sum + Math.max(0, v - serviceBase(c, i)), 0);
@@ -48,7 +48,7 @@ function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
         <div>
           <div className="font-semibold">{info.name}</div>
           <div className="text-xs" style={{ color: "var(--muted)" }}>
-            {info.leader} · {info.inGovernment ? "Government" : "Opposition"}
+            {info.leader} · {game.parliament.pm === c ? "Prime Minister" : game.government.includes(c) ? "Government" : "Opposition"}
           </div>
         </div>
         <span

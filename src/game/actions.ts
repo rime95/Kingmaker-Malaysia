@@ -7,9 +7,13 @@ import { resolveCard } from "./systems/events";
 import { MULTIRACIAL, PLEDGE_WEIGHT, POLICY_BY_ID, POLICY_COST, UNFUNDED_INTEGRITY_PER_FISCAL } from "./systems/policies";
 import { addSeg, type SegEffects } from "./systems/segments";
 import { fmtRM } from "./money";
-import { isGovernment, projectAllFor, weekDate, type GameState, type Player } from "./state";
+import { isGovernment, projectAllFor, weekDate, weekLabel, type GameState, type Player } from "./state";
+import { ASSEMBLY_STATES, dissolveAssembly, dissolveParliament, stateRule } from "./systems/assemblies";
+import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, deciding, endRound, winTier, type Offer } from "./systems/formation";
+import { CAREER as CAREER_LOYALTY, addPoints, isPresident } from "./systems/career";
+import { careerAfterFormation } from "./progress";
 import { ASSETS, MAX_LEVEL, assetIncome, newAsset, saleValue, upgradeCost, type AssetType, type CeoKind } from "./systems/business";
-import { COALITION_INFO, MAJORITY, SEATS, STATE_BY_ID, contestingIn } from "./world";
+import { COALITION_INFO, MAJORITY, SEATS, STATE_BY_ID, contestingIn, type CoalitionId } from "./world";
 
 export type Target = { kind: "none" } | { kind: "seat"; seat: number } | { kind: "state"; state: string };
 export type ActionGroup = "local" | "national" | "party" | "finance";
@@ -318,8 +322,8 @@ function cloneMe(me: Player): Player {
 
 /** Why an action can't be taken now (null when it can). */
 export function actionBlocked(s: GameState, def: ActionDef, t: Target): string | null {
-  if (def.only === "gov" && !isGovernment(s.player)) return "Government only.";
-  if (def.only === "opp" && isGovernment(s.player)) return "Opposition only.";
+  if (def.only === "gov" && !isGovernment(s)) return "Government only.";
+  if (def.only === "opp" && isGovernment(s)) return "Opposition only.";
   if (def.target !== t.kind) return "Pick a target first.";
   if (s.me.ap < def.ap) return `Needs ${def.ap} AP (you have ${s.me.ap}).`;
   const cost = def.cost(s, t);
@@ -336,8 +340,15 @@ export function applyAction(s: GameState, id: string, t: Target): ActionResult {
   me.funds -= def.cost(s, t);
   me.ap -= def.ap;
   const message = def.run(me, s, t);
-  return { ok: true, state: { ...s, me }, message };
+  // Campaigning in your own coalition's seats wins the loyalty of their MPs (your faction).
+  const loyalty = [...s.career.loyalty];
+  const seats = t.kind === "seat" ? [t.seat] : t.kind === "state" ? SEATS.filter((x) => x.state === t.state).map((x) => x.index) : [];
+  const gain = t.kind === "seat" ? CAREER_LOYALTY.loyaltyPerAction : CAREER_LOYALTY.loyaltyPerAction / 3;
+  for (const i of seats) if (s.holders[i] === s.player) loyalty[i] = Math.min(100, loyalty[i] + gain);
+  return { ok: true, state: { ...s, me, career: { ...s.career, loyalty } }, message };
 }
+
+const LEADERSHIP_ONLY = "Only the party president decides this. Climb the party ladder (Career tab).";
 
 export interface Preview {
   /** Change in seats you would win if the election were today. */
@@ -429,7 +440,7 @@ export function tapAsset(s: GameState, type: AssetType): ActionResult {
   const a = me.assets.find((x) => x.type === type);
   if (!a || type === "bursa") return { ok: false, error: "Can't tap this." };
   if (a.tappedWeek !== null && s.week - a.tappedWeek < TAP_COOLDOWN) return { ok: false, error: `Tapped recently; again in ${TAP_COOLDOWN - (s.week - a.tappedWeek)} weeks.` };
-  const cash = assetIncome(a, isGovernment(s.player), me.market) * TAP_WEEKS;
+  const cash = assetIncome(a, isGovernment(s), me.market) * TAP_WEEKS;
   me.funds += cash;
   me.risk = clamp(me.risk + 15);
   a.tappedWeek = s.week;
@@ -456,7 +467,7 @@ export function dewanVote(s: GameState): DewanVote {
   let partnerSeats = 0;
   let ownSeats = 0;
   s.holders.forEach((h) => {
-    if (!COALITION_INFO[h].inGovernment) return;
+    if (!s.government.includes(h)) return;
     if (h === s.player) ownSeats++;
     else partnerSeats++;
   });
@@ -471,8 +482,9 @@ export function dewanVote(s: GameState): DewanVote {
 export function policyBlocked(s: GameState, policyId: string, option: number): string | null {
   const policy = POLICY_BY_ID[policyId];
   if (!policy || !policy.options[option]) return "Unknown policy.";
+  if (!isPresident(s.career)) return LEADERSHIP_ONLY;
   if ((s.me.policies[policyId] ?? 0) === option) return "Already your position.";
-  const capital = isGovernment(s.player) ? POLICY_COST.gov : POLICY_COST.opp;
+  const capital = isGovernment(s) ? POLICY_COST.gov : POLICY_COST.opp;
   if (s.me.ap < POLICY_COST.ap) return `Needs ${POLICY_COST.ap} AP.`;
   if (s.me.capital < capital) return `Needs ${capital} political capital.`;
   return null;
@@ -482,7 +494,7 @@ export function policyBlocked(s: GameState, policyId: string, option: number): s
 export function adoptPolicy(s: GameState, policyId: string, option: number): ActionResult {
   const why = policyBlocked(s, policyId, option);
   if (why) return { ok: false, error: why };
-  const gov = isGovernment(s.player);
+  const gov = isGovernment(s);
   const policy = POLICY_BY_ID[policyId];
   const opt = policy.options[option];
   const me = cloneMe(s.me);
@@ -502,7 +514,8 @@ export function adoptPolicy(s: GameState, policyId: string, option: number): Act
   const message = vote
     ? `${policy.name}: "${opt.label}" passes the Dewan ${vote.yes}–${vote.no}.`
     : `${policy.name}: you pledge "${opt.label}". Voters give it ${Math.round(PLEDGE_WEIGHT * 100)}% credit until you can deliver.`;
-  return { ok: true, state: { ...s, me, economy, fiscal }, message };
+  const career = vote ? addPoints(s.career, s.week, 3, `passed ${policy.name.toLowerCase()} reform`) : s.career;
+  return { ok: true, state: { ...s, me, economy, fiscal, career }, message };
 }
 
 /** Preview: change in seats if held today after a policy change (assuming it passes). */
@@ -529,7 +542,8 @@ export function budgetVoters(alloc: Record<string, number>, weight: number): { v
 export function tableBudget(s: GameState, alloc: Record<string, number>, auto = false): ActionResult {
   if (s.budgetDue === null) return { ok: false, error: "No Budget is due." };
   if (Object.values(alloc).some((v) => v < 0)) return { ok: false, error: "Allocations can't be negative." };
-  const gov = isGovernment(s.player);
+  if (!auto && !isPresident(s.career)) return { ok: false, error: LEADERSHIP_ONLY };
+  const gov = isGovernment(s);
   const envelope = budgetEnvelope(s.fiscal);
   const total = Object.values(alloc).reduce((a, b) => a + b, 0);
   if (total > envelope + BUDGET.overspendMax) return { ok: false, error: `At most ${envelope + BUDGET.overspendMax} points.` };
@@ -559,6 +573,7 @@ export function tableBudget(s: GameState, alloc: Record<string, number>, auto = 
     fiscal: clamp(s.fiscal - over * BUDGET.overspendFiscal),
   };
   const how = auto ? "Treasury officials table a default Budget; it passes" : `Budget ${year + 1} passes`;
+  if (!auto) state.career = addPoints(s.career, s.week, 5, `Budget ${year + 1} passed`);
   return { ok: true, state, message: `${how} ${vote.yes}–${vote.no}${over ? `, with a deficit of ${over} points` : ""}.` };
 }
 
@@ -567,4 +582,158 @@ export function answerCard(s: GameState, cardId: number, choice: number): Action
   if (!r) return { ok: false, error: "That decision is no longer waiting." };
   const extra = r.lines.map((l) => l.text).join(" ");
   return { ok: true, state: r.state, message: extra ? `${r.message} ${extra}` : r.message };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Dissolution (Parliament and state assemblies)
+// ---------------------------------------------------------------------------------------------
+
+export function parliamentDissolveBlocked(s: GameState): string | null {
+  if (s.parliament.pm !== s.player) return "Only the Prime Minister can advise the Agong to dissolve Parliament.";
+  if (!isPresident(s.career)) return LEADERSHIP_ONLY;
+  if (s.parliament.status !== "sitting") return "Parliament is already dissolved.";
+  return null;
+}
+
+export function callGeneralElection(s: GameState): ActionResult {
+  const why = parliamentDissolveBlocked(s);
+  if (why) return { ok: false, error: why };
+  const next = dissolveParliament(s);
+  const synced = ASSEMBLY_STATES.filter((id) => next.assemblies[id].status === "campaign" && s.assemblies[id].status === "sitting");
+  const also = synced.length ? ` ${synced.map((id) => STATE_BY_ID[id].name).join(", ")} dissolve${synced.length === 1 ? "s" : ""} too.` : "";
+  return { ok: true, state: next, message: `The Agong consents: Parliament is dissolved. Polling day is ${weekLabel(next.parliament.pollWeek!)}.${also}` };
+}
+
+export function assemblyDissolveBlocked(s: GameState, stateId: string): string | null {
+  if (stateRule(s.dunHolders, stateId, s.government).ruler !== s.player) return "Only the state's ruling coalition can dissolve its assembly.";
+  if (!isPresident(s.career)) return LEADERSHIP_ONLY;
+  if (s.assemblies[stateId].status !== "sitting") return "Already dissolved.";
+  return null;
+}
+
+export function callStateElection(s: GameState, stateId: string): ActionResult {
+  const why = assemblyDissolveBlocked(s, stateId);
+  if (why) return { ok: false, error: why };
+  const next = dissolveAssembly(s, stateId);
+  return { ok: true, state: next, message: `The ${STATE_BY_ID[stateId].name} assembly is dissolved. Polling day is ${weekLabel(next.assemblies[stateId].pollWeek!)}.` };
+}
+
+/** Whether a state you govern votes together with Parliament. */
+export function setSyncWithGE(s: GameState, stateId: string, sync: boolean): ActionResult {
+  if (stateRule(s.dunHolders, stateId, s.government).ruler !== s.player) return { ok: false, error: "Only the state's ruling coalition decides this." };
+  if (!isPresident(s.career)) return { ok: false, error: LEADERSHIP_ONLY };
+  const a = s.assemblies[stateId];
+  return {
+    ok: true,
+    state: { ...s, assemblies: { ...s.assemblies, [stateId]: { ...a, syncGE: sync } } },
+    message: sync ? `${STATE_BY_ID[stateId].name} will dissolve together with Parliament.` : `${STATE_BY_ID[stateId].name} will hold its own state election.`,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Forming a government after a general election
+// ---------------------------------------------------------------------------------------------
+
+export type OfferKind = "dpm" | "ministries" | "ma63";
+
+export function offerBlocked(s: GameState, c: CoalitionId, kind: OfferKind): string | null {
+  const f = s.formation;
+  if (!f) return "No talks are under way.";
+  if (f.role !== "leader") return "Only a prime-minister candidate makes offers.";
+  if (!isPresident(s.career)) return LEADERSHIP_ONLY;
+  if (!deciding(f, s.player).includes(c)) return "They have already signed.";
+  const o = f.offers[c] ?? {};
+  if (kind === "dpm" && (o.dpm || Object.values(f.offers).some((x) => x?.dpm))) return "There is only one Deputy Prime Minister post.";
+  if (kind === "ministries" && (o.ministries ?? 0) >= OFFERS.ministries.max) return `At most ${OFFERS.ministries.max} extra ministries.`;
+  if (kind === "ma63" && (!BORNEO.includes(c) || o.ma63)) return BORNEO.includes(c) ? "Already promised." : "Only Sabah and Sarawak parties care about MA63.";
+  return null;
+}
+
+export function makeOffer(s: GameState, c: CoalitionId, kind: OfferKind): ActionResult {
+  const why = offerBlocked(s, c, kind);
+  if (why) return { ok: false, error: why };
+  const f = s.formation!;
+  const o = { ...(f.offers[c] ?? {}) };
+  if (kind === "dpm") o.dpm = true;
+  if (kind === "ministries") o.ministries = (o.ministries ?? 0) + 1;
+  if (kind === "ma63") o.ma63 = true;
+  const label = kind === "dpm" ? "the Deputy Prime Minister's post" : kind === "ministries" ? "more ministries" : "full MA63 devolution";
+  return {
+    ok: true,
+    state: { ...s, formation: { ...f, offers: { ...f.offers, [c]: o }, log: [...f.log, `You offer ${COALITION_INFO[c].short} ${label}.`] } },
+    message: `Offer made to ${COALITION_INFO[c].short}: ${label}.`,
+  };
+}
+
+export function nextTalksRound(s: GameState): ActionResult {
+  const f = s.formation;
+  if (!f) return { ok: false, error: "No talks are under way." };
+  if (f.round > OFFERS.rounds) return { ok: false, error: "Talks are over. Go to the Agong." };
+  if (!isPresident(s.career)) return { ok: false, error: LEADERSHIP_ONLY };
+  const next = endRound(f, s.player);
+  return { ok: true, state: { ...s, formation: next }, message: `Round ${f.round} of talks is over.` };
+}
+
+export function backForPm(s: GameState, leader: CoalitionId, askDpm: boolean): ActionResult {
+  const f = s.formation;
+  if (!f || f.role !== "kingmaker") return { ok: false, error: "You aren't the kingmaker." };
+  if (!f.candidates.includes(leader)) return { ok: false, error: "Not a candidate." };
+  if (f.committed[s.player]) return { ok: false, error: "You have already signed." };
+  if (!isPresident(s.career)) return { ok: false, error: LEADERSHIP_ONLY };
+  return { ok: true, state: { ...s, formation: backCandidate(f, s.player, leader, askDpm) }, message: `You back ${COALITION_INFO[leader].short} for Prime Minister.` };
+}
+
+/** Finish the talks (any remaining rounds play out) and let the Agong decide. */
+export function goToAgong(s: GameState): ActionResult {
+  let f = s.formation;
+  if (!f) return { ok: false, error: "No talks are under way." };
+  // Below the presidency, your party leadership picks the side for you.
+  if (f.role === "kingmaker" && !f.committed[s.player] && !isPresident(s.career)) {
+    const [x, y] = f.candidates;
+    f = backCandidate(f, s.player, (AFFINITY[s.player][x] ?? 0) >= (AFFINITY[s.player][y] ?? 0) ? x : y, false);
+  }
+  while (f.round <= OFFERS.rounds) f = endRound(f, s.player);
+  const o = agongDecides(f, s.player);
+  const me = cloneMe(s.me);
+  const inGov = o.government.includes(s.player);
+  const lines: string[] = [];
+  if (o.pm === s.player) {
+    for (const [c, offer] of Object.entries(f.offers) as [CoalitionId, Offer][]) {
+      if (!o.government.includes(c)) continue;
+      if (offer.dpm) me.capital = clamp(me.capital + OFFERS.dpm.capital, 0, 200);
+      if (offer.ministries) me.unity = clamp(me.unity + OFFERS.ministries.unity * offer.ministries);
+      if (offer.ma63) me.policies = { ...me.policies, ma63: 1 };
+    }
+  } else if (inGov) {
+    me.capital = clamp(me.capital + (o.dpmGranted ? 25 : 10), 0, 200);
+    if (o.dpmGranted) me.unity = clamp(me.unity + 5);
+    lines.push(o.dpmGranted ? "Your leader becomes Deputy Prime Minister." : f.askedDpm ? "Your DPM demand was turned down, but you are in government." : "");
+  }
+  me.trust = inGov ? 65 : 50;
+  const state: GameState = { ...s, me, formation: null, government: o.government, parliament: { ...s.parliament, pm: o.pm } };
+  const tier = winTier(state, f, o);
+  state.tiers = [...s.tiers, tier];
+  const how = o.majority ? `with ${o.sds} SDs` : `leading a minority government on ${o.sds} SDs`;
+  const message = `The Agong appoints the leader of ${COALITION_INFO[o.pm].short} as Prime Minister, ${how}. ${lines.filter(Boolean).join(" ")} Result: ${TIER_TEXT[tier.tier].name}.`;
+  state.report = state.report ? { ...state.report, lines: [...state.report.lines, { text: message, tone: inGov ? "good" : "bad" }] } : state.report;
+  return { ok: true, state: careerAfterFormation(state, f, o), message };
+}
+
+/** If time moves on with talks unfinished, they resolve without you: as kingmaker you back your natural partner. */
+export function autoResolveFormation(s: GameState): GameState {
+  let state = s;
+  const f = s.formation;
+  if (!f) return s;
+  if (f.role === "kingmaker" && !f.committed[s.player]) {
+    const [x, y] = f.candidates;
+    const pick = (AFFINITY[s.player][x] ?? 0) >= (AFFINITY[s.player][y] ?? 0) ? x : y;
+    state = { ...state, formation: backCandidate(f, s.player, pick, false) };
+  }
+  const r = goToAgong(state);
+  return r.ok ? r.state : s;
+}
+
+/** Closes the Election Night screen (the result is already applied). */
+export function closeNight(s: GameState): GameState {
+  return { ...s, night: null };
 }

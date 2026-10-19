@@ -90,7 +90,7 @@ function Row({ label, amount }: { label: string; amount: number }) {
 function OwnedAsset({ asset }: { asset: Asset }) {
   const game = useGame((s) => s.game)!;
   const business = useGame((s) => s.business);
-  const gov = isGovernment(game.player);
+  const gov = isGovernment(game);
   const def = ASSETS[asset.type];
   const tapWait = asset.tappedWeek === null ? 0 : Math.max(0, TAP_COOLDOWN - (game.week - asset.tappedWeek));
   return (
@@ -154,7 +154,7 @@ function BuyCard({ type, owned }: { type: AssetType; owned: boolean }) {
   const business = useGame((s) => s.business);
   if (owned) return null;
   const def = ASSETS[type];
-  const gov = isGovernment(game.player);
+  const gov = isGovernment(game);
   const weekly = type === "bursa" ? (def.price * 0.04) / 52 : def.income * (type === "construction" && !gov ? 0.3 : 1);
   const short = def.price > game.me.funds;
   return (
