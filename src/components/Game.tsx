@@ -12,6 +12,7 @@ import { SeatPanel } from "./SeatPanel";
 import { Dewan } from "./Dewan";
 import { Overview } from "./Overview";
 import { Treasury } from "./Treasury";
+import { Policy } from "./Policy";
 import { ReportModal } from "./ReportModal";
 import { Toast } from "./Toast";
 import { CoalitionChip, fmtRM } from "./common";
@@ -30,6 +31,7 @@ const TABS: { id: View; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "map", label: "Seat map" },
   { id: "dewan", label: "Dewan Rakyat" },
+  { id: "policy", label: "Policy & Budget" },
   { id: "treasury", label: "Treasury" },
 ];
 
@@ -39,6 +41,7 @@ function Main() {
   const info = COALITION_INFO[game.player];
   const weeksLeft = Math.max(0, Math.round((new Date(`${AUTO_DISSOLUTION}T00:00:00`).getTime() - weekDate(game.week).getTime()) / (7 * 86400000)));
   const me = game.me;
+  const needs = game.cards.length + (game.budgetDue !== null ? 1 : 0);
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-4 flex flex-col gap-4">
@@ -99,12 +102,18 @@ function Main() {
         {TABS.map((t) => (
           <button key={t.id} role="tab" className="chip" aria-selected={view === t.id} data-on={view === t.id} onClick={() => setView(t.id)}>
             {t.label}
+            {t.id === "overview" && needs > 0 && (
+              <span className="ml-1 rounded-full px-1.5 text-[10px] font-bold" style={{ background: "var(--accent)", color: "#fff" }} aria-label={`${needs} decisions waiting`}>
+                {needs}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       {view === "overview" && <Overview />}
       {view === "treasury" && <Treasury />}
+      {view === "policy" && <Policy />}
       {(view === "map" || view === "dewan") && (
         <div className="flex flex-col lg:flex-row gap-4 items-start">
           <div className="panel p-3 w-full lg:flex-1 min-w-0">{view === "map" ? <SeatMap /> : <Dewan />}</div>

@@ -2,10 +2,14 @@
 // Actions cost Action Points (AP) and money. Business decisions cost money only.
 
 import { ECONOMY } from "./config";
+import { BUDGET, BUDGET_LINES, budgetEnvelope } from "./systems/budget";
+import { resolveCard } from "./systems/events";
+import { MULTIRACIAL, PLEDGE_WEIGHT, POLICY_BY_ID, POLICY_COST, UNFUNDED_INTEGRITY_PER_FISCAL } from "./systems/policies";
+import { addSeg, type SegEffects } from "./systems/segments";
 import { fmtRM } from "./money";
-import { isGovernment, projectAllFor, type GameState, type Player } from "./state";
+import { isGovernment, projectAllFor, weekDate, type GameState, type Player } from "./state";
 import { ASSETS, MAX_LEVEL, assetIncome, newAsset, saleValue, upgradeCost, type AssetType, type CeoKind } from "./systems/business";
-import { SEATS, STATE_BY_ID, contestingIn } from "./world";
+import { COALITION_INFO, MAJORITY, SEATS, STATE_BY_ID, contestingIn } from "./world";
 
 export type Target = { kind: "none" } | { kind: "seat"; seat: number } | { kind: "state"; state: string };
 export type ActionGroup = "local" | "national" | "party" | "finance";
@@ -264,6 +268,7 @@ export const ACTIONS: ActionDef[] = [
     cost: () => 0,
     run: (me) => {
       me.funds += 2_000_000;
+      me.favours += 1;
       me.risk = clamp(me.risk + 12);
       me.integrity = clamp(me.integrity - 3);
       return "A tycoon pledges RM 2M. They will expect something back.";
@@ -308,7 +313,7 @@ function stateSeats(s: GameState, t: Target): number[] {
 }
 
 function cloneMe(me: Player): Player {
-  return { ...me, service: [...me.service], buzz: [...me.buzz], machinery: [...me.machinery], assets: me.assets.map((a) => ({ ...a })) };
+  return { ...me, service: [...me.service], buzz: [...me.buzz], machinery: [...me.machinery], assets: me.assets.map((a) => ({ ...a })), policies: { ...me.policies } };
 }
 
 /** Why an action can't be taken now (null when it can). */
@@ -429,4 +434,137 @@ export function tapAsset(s: GameState, type: AssetType): ActionResult {
   me.risk = clamp(me.risk + 15);
   a.tappedWeek = s.week;
   return { ok: true, state: { ...s, me }, message: `Moved ${fmtRM(cash)} from ${ASSETS[type].name} into the war chest. Investigators may ask questions.` };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Policies, Dewan votes, the Budget and decision cards
+// ---------------------------------------------------------------------------------------------
+
+export interface DewanVote {
+  yes: number;
+  no: number;
+  /** Government-side MPs expected to rebel or stay away. */
+  rebels: number;
+  passes: boolean;
+}
+
+/**
+ * How a government bill would go in the Dewan today. Government-bloc MPs vote yes unless partners have lost trust
+ * (their MPs rebel in proportion) or your own party is split (low unity).
+ */
+export function dewanVote(s: GameState): DewanVote {
+  let partnerSeats = 0;
+  let ownSeats = 0;
+  s.holders.forEach((h) => {
+    if (!COALITION_INFO[h].inGovernment) return;
+    if (h === s.player) ownSeats++;
+    else partnerSeats++;
+  });
+  const partnerRebels = Math.round(partnerSeats * Math.max(0, (50 - s.me.trust) / 50));
+  const ownRebels = Math.round(ownSeats * Math.max(0, (30 - s.me.unity) / 30) * 0.3);
+  const rebels = partnerRebels + ownRebels;
+  const yes = partnerSeats + ownSeats - rebels;
+  return { yes, no: SEATS.length - yes, rebels, passes: yes >= MAJORITY };
+}
+
+/** Why a policy change can't be made now (null when it can). */
+export function policyBlocked(s: GameState, policyId: string, option: number): string | null {
+  const policy = POLICY_BY_ID[policyId];
+  if (!policy || !policy.options[option]) return "Unknown policy.";
+  if ((s.me.policies[policyId] ?? 0) === option) return "Already your position.";
+  const capital = isGovernment(s.player) ? POLICY_COST.gov : POLICY_COST.opp;
+  if (s.me.ap < POLICY_COST.ap) return `Needs ${POLICY_COST.ap} AP.`;
+  if (s.me.capital < capital) return `Needs ${capital} political capital.`;
+  return null;
+}
+
+/** Government: enact a policy (Dewan vote). Opposition: pledge it. */
+export function adoptPolicy(s: GameState, policyId: string, option: number): ActionResult {
+  const why = policyBlocked(s, policyId, option);
+  if (why) return { ok: false, error: why };
+  const gov = isGovernment(s.player);
+  const policy = POLICY_BY_ID[policyId];
+  const opt = policy.options[option];
+  const me = cloneMe(s.me);
+  me.ap -= POLICY_COST.ap;
+  me.capital -= gov ? POLICY_COST.gov : POLICY_COST.opp;
+  const vote = gov ? dewanVote(s) : null;
+  if (vote && !vote.passes) {
+    me.unity = clamp(me.unity - 5);
+    return { ok: true, state: { ...s, me }, message: `${policy.name}: the bill was defeated ${vote.yes}–${vote.no}. A humiliation for the government.` };
+  }
+  me.policies = { ...me.policies, [policyId]: option };
+  if (MULTIRACIAL.includes(s.player) && opt.trustMultiracial) me.trust = clamp(me.trust + opt.trustMultiracial);
+  if (opt.integrity) me.integrity = clamp(me.integrity + opt.integrity);
+  if (!gov && (opt.fiscal ?? 0) < 0) me.integrity = clamp(me.integrity + opt.fiscal! * UNFUNDED_INTEGRITY_PER_FISCAL);
+  const economy = gov ? clamp(s.economy + (opt.economy ?? 0)) : s.economy;
+  const fiscal = gov ? clamp(s.fiscal + (opt.fiscal ?? 0)) : s.fiscal;
+  const message = vote
+    ? `${policy.name}: "${opt.label}" passes the Dewan ${vote.yes}–${vote.no}.`
+    : `${policy.name}: you pledge "${opt.label}". Voters give it ${Math.round(PLEDGE_WEIGHT * 100)}% credit until you can deliver.`;
+  return { ok: true, state: { ...s, me, economy, fiscal }, message };
+}
+
+/** Preview: change in seats if held today after a policy change (assuming it passes). */
+export function previewPolicy(s: GameState, policyId: string, option: number): number {
+  // Run the real change (with AP and capital topped up) so integrity, trust and economy side effects count too.
+  const r = adoptPolicy({ ...s, me: { ...s.me, ap: 99, capital: 999 } }, policyId, option);
+  if (!r.ok) return 0;
+  const seats = (g: GameState) => projectAllFor(g).filter((p) => p.leader === s.player).length;
+  return seats(r.state) - seats(s);
+}
+
+export function budgetVoters(alloc: Record<string, number>, weight: number): { voters: SegEffects; economy: number } {
+  let voters: SegEffects = {};
+  let economy = 0;
+  for (const line of BUDGET_LINES) {
+    const pts = alloc[line.id] ?? 0;
+    voters = addSeg(voters, line.voters, pts * weight);
+    economy += (line.economy ?? 0) * pts;
+  }
+  return { voters, economy };
+}
+
+/** Tables this year's Budget (government) or a shadow budget (opposition). */
+export function tableBudget(s: GameState, alloc: Record<string, number>, auto = false): ActionResult {
+  if (s.budgetDue === null) return { ok: false, error: "No Budget is due." };
+  if (Object.values(alloc).some((v) => v < 0)) return { ok: false, error: "Allocations can't be negative." };
+  const gov = isGovernment(s.player);
+  const envelope = budgetEnvelope(s.fiscal);
+  const total = Object.values(alloc).reduce((a, b) => a + b, 0);
+  if (total > envelope + BUDGET.overspendMax) return { ok: false, error: `At most ${envelope + BUDGET.overspendMax} points.` };
+  const me = cloneMe(s.me);
+  const year = weekDate(s.week).getFullYear();
+  const done = { ...s, budgetDue: null, budgetYear: year };
+  if (!gov) {
+    if (me.ap < BUDGET.shadowAp) return { ok: false, error: `Needs ${BUDGET.shadowAp} AP.` };
+    me.ap -= BUDGET.shadowAp;
+    me.budget = addSeg(me.budget, budgetVoters(alloc, BUDGET.shadowWeight).voters);
+    return { ok: true, state: { ...done, me }, message: "Your shadow budget gets a respectful hearing." };
+  }
+  const vote = dewanVote(s);
+  if (!vote.passes) {
+    me.capital = clamp(me.capital - BUDGET.defeat.capital, 0, 200);
+    me.unity = clamp(me.unity - BUDGET.defeat.unity);
+    me.scandal = clamp(me.scandal + BUDGET.defeat.scandal);
+    return { ok: true, state: { ...done, me }, message: `Budget ${year + 1} is defeated ${vote.yes}–${vote.no}. The government is in crisis.` };
+  }
+  const { voters, economy } = budgetVoters(alloc, 1);
+  me.budget = addSeg(me.budget, voters);
+  const over = Math.max(0, total - envelope);
+  const state = {
+    ...done,
+    me,
+    economy: clamp(s.economy + economy - over * BUDGET.overspendEconomy),
+    fiscal: clamp(s.fiscal - over * BUDGET.overspendFiscal),
+  };
+  const how = auto ? "Treasury officials table a default Budget; it passes" : `Budget ${year + 1} passes`;
+  return { ok: true, state, message: `${how} ${vote.yes}–${vote.no}${over ? `, with a deficit of ${over} points` : ""}.` };
+}
+
+export function answerCard(s: GameState, cardId: number, choice: number): ActionResult {
+  const r = resolveCard(s, cardId, choice);
+  if (!r) return { ok: false, error: "That decision is no longer waiting." };
+  const extra = r.lines.map((l) => l.text).join(" ");
+  return { ok: true, state: r.state, message: extra ? `${r.message} ${extra}` : r.message };
 }

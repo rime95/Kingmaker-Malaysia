@@ -19,11 +19,12 @@ export function advanceMonth(s: GameState): GameState {
   const last = reports[3];
   // One seat summary for the month instead of one per week.
   const isSeatLine = (text: string) => text.startsWith("If the election were held today");
-  const events = reports.flatMap((r) => r.lines.filter((l) => l.tone !== "info" && !isSeatLine(l.text)));
+  const all = reports.flatMap((r) => r.lines.filter((l) => !isSeatLine(l.text)));
+  const events = all.filter((l, i) => all.findIndex((x) => x.text === l.text) === i);
   const before = reports[0].seatsBefore;
   const after = last.seatsAfter;
   if (after !== before)
-    events.unshift({ text: `If the election were held today you would win ${after} seats (${after > before ? "+" : ""}${after - before} this month).`, tone: after > before ? "good" : "bad" });
+    events.unshift({ text: `If the election were held today you would win ${after} seats (${after > before ? "+" : "−"}${Math.abs(after - before)} this month).`, tone: after > before ? "good" : "bad" });
   return {
     ...state,
     report: {
@@ -31,7 +32,7 @@ export function advanceMonth(s: GameState): GameState {
       income: mergeAmounts(reports.map((r) => r.income)),
       expenses: mergeAmounts(reports.map((r) => r.expenses)),
       seatsBefore: before,
-      lines: events.concat(last.lines.filter((l) => l.tone === "info")),
+      lines: events,
       weeks: 4,
     },
   };

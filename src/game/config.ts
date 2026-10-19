@@ -113,6 +113,9 @@ export const EFFECT = {
   /** Coalition trust below this costs every seat. */
   trustFloor: 40,
   trustPenalty: 0.03,
+  /** Per economy point away from normal (55): the government gets credit and blame, the opposition a little of the reverse. */
+  economyGov: 0.004,
+  economyOpp: 0.002,
 };
 
 export const DECAY = {
@@ -145,3 +148,27 @@ export const AP_PER_WEEK = 6;
 
 /** MACC: weekly probe chance = max(0, risk − threshold) / divisor. */
 export const MACC = { threshold: 40, divisor: 400, fineShare: 0.1, integrityHit: 10, scandal: 30 };
+
+// ---------------------------------------------------------------------------------------------
+// Milestone 5: economy, policies, Budget, decision cards. All values TEMPORARY.
+// ---------------------------------------------------------------------------------------------
+
+/** Economy index at rest; it drifts back here each week. */
+export const ECONOMY_REST = 55;
+export const ECONOMY_DRIFT = { economy: 0.02, fiscal: 0.01, noise: 1.5 };
+
+/** Public mood from events fades this share each week. */
+export const MOOD_DECAY = 0.04;
+
+export const CARDS = {
+  /** No random cards before this week. */
+  firstWeek: 3,
+  /** Weekly chance of a new random card (about 1.3 a month). */
+  chance: 0.33,
+  /** Weeks before an unanswered card takes its default choice. */
+  answerWeeks: 4,
+  /** The same kind won't repeat within this many weeks. */
+  noRepeat: 24,
+  /** At most this many cards wait at once. */
+  maxPending: 3,
+};

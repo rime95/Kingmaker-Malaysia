@@ -1,9 +1,13 @@
 // Skip 1 Week: the only place time moves. Skip 1 Month is exactly four of these (see month.ts).
 
-import { DECAY, ECONOMY, MACC, SEAT_SERVICE_PER_WEEK } from "./config";
+import { DECAY, ECONOMY, ECONOMY_DRIFT, ECONOMY_REST, MACC, MOOD_DECAY, SEAT_SERVICE_PER_WEEK } from "./config";
+import { tableBudget } from "./actions";
+import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
+import { cardsWeek } from "./systems/events";
+import { decaySeg } from "./systems/segments";
 import { fmtRM } from "./money";
-import { Rng } from "./rng";
-import { isGovernment, machineryBase, projectAllFor, serviceBase, type GameState, type ReportLine, type WeekReport } from "./state";
+import { Rng, hash01 } from "./rng";
+import { isGovernment, machineryBase, projectAllFor, serviceBase, weekDate, type GameState, type ReportLine, type WeekReport } from "./state";
 import { ASSETS, CEO, assetIncome, assetRisk, marketWeek } from "./systems/business";
 import { SEATS, contestingIn } from "./world";
 
@@ -32,7 +36,7 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
 export function advanceWeek(s: GameState): GameState {
   const before = projectAllFor(s);
   const gov = isGovernment(s.player);
-  const me = { ...s.me, service: [...s.me.service], buzz: [...s.me.buzz], machinery: [...s.me.machinery], assets: s.me.assets.map((a) => ({ ...a })) };
+  const me = { ...s.me, service: [...s.me.service], buzz: [...s.me.buzz], machinery: [...s.me.machinery], assets: s.me.assets.map((a) => ({ ...a })), policies: { ...s.me.policies } };
   const lines: ReportLine[] = [];
   const contested = SEATS.filter((seat) => contestingIn(seat).includes(s.player)).map((seat) => seat.index);
   const held = s.holders.map((h, i) => (h === s.player ? i : -1)).filter((i) => i >= 0);
@@ -99,8 +103,38 @@ export function advanceWeek(s: GameState): GameState {
   me.assets = moved.assets;
   me.market = moved.market;
 
+  // Public reactions and budget measures fade; the economy drifts back toward normal
+  me.mood = decaySeg(me.mood, MOOD_DECAY);
+  me.budget = decaySeg(me.budget, BUDGET.decay);
+  const economy = clamp(s.economy + (ECONOMY_REST - s.economy) * ECONOMY_DRIFT.economy + (hash01("economy", s.seed, s.week) - 0.5) * ECONOMY_DRIFT.noise);
+  const fiscal = clamp(s.fiscal + (50 - s.fiscal) * ECONOMY_DRIFT.fiscal);
+
   me.ap = me.apMax;
-  const next: GameState = { ...s, me, rng: rng.state, week: s.week + 1 };
+  let next: GameState = { ...s, me, rng: rng.state, week: s.week + 1, economy, fiscal };
+
+  // The Budget: due in the second week of October; officials table a default if the government doesn't
+  const year = weekDate(next.week).getFullYear();
+  if (next.budgetDue !== null && next.week - next.budgetDue >= BUDGET.window) {
+    if (gov) {
+      const r = tableBudget(next, defaultAllocation(budgetEnvelope(next.fiscal)), true);
+      if (r.ok) {
+        next = r.state;
+        lines.push({ text: r.message, tone: "info" });
+      }
+    } else {
+      next = { ...next, budgetDue: null, budgetYear: year };
+      lines.push({ text: "The Budget debate is over without a shadow budget from you.", tone: "info" });
+    }
+  }
+  if (next.budgetDue === null && next.budgetYear !== year && isBudgetWeek(weekDate(next.week))) {
+    next = { ...next, budgetDue: next.week };
+    lines.push({ text: gov ? `Budget ${year + 1} is due in the Dewan. Allocate it in the Policy tab.` : `Budget ${year + 1} is being tabled. You can answer with a shadow budget.`, tone: "info" });
+  }
+
+  // Decision cards: expire old ones, then festivals and news
+  const cards = cardsWeek(next);
+  next = cards.state;
+  lines.push(...cards.lines);
 
   // Report
   const after = projectAllFor(next);
@@ -113,7 +147,7 @@ export function advanceWeek(s: GameState): GameState {
   const fadedBuzz = s.me.buzz.reduce((x, b) => x + b, 0) * DECAY.buzz;
   if (fadedBuzz > 5) lines.unshift({ text: `Buzz is fading: last week's rallies count for about ${Math.round(DECAY.buzz * 100)}% less.`, tone: "info" });
   if (seatsAfter !== seatsBefore)
-    lines.unshift({ text: `If the election were held today you would win ${seatsAfter} seats (${seatsAfter > seatsBefore ? "+" : ""}${seatsAfter - seatsBefore}).`, tone: seatsAfter > seatsBefore ? "good" : "bad" });
+    lines.unshift({ text: `If the election were held today you would win ${seatsAfter} seats (${seatsAfter > seatsBefore ? "+" : "−"}${Math.abs(seatsAfter - seatsBefore)}).`, tone: seatsAfter > seatsBefore ? "good" : "bad" });
   for (const i of contested) {
     if (me.machinery[i] < machineryBase(s.player, i) * 0.6 && s.me.machinery[i] >= machineryBase(s.player, i) * 0.6) {
       lines.push({ text: `Machinery in ${SEATS[i].name} has collapsed below 60% of its starting strength.`, tone: "bad" });

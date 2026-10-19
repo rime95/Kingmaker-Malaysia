@@ -2,15 +2,15 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { applyAction, buyAsset, sellAsset, setCeo, tapAsset, upgradeAsset, type ActionResult, type Target } from "@/game/actions";
+import { adoptPolicy, answerCard, applyAction, buyAsset, sellAsset, setCeo, tableBudget, tapAsset, upgradeAsset, type ActionResult, type Target } from "@/game/actions";
 import { advanceMonth } from "@/game/month";
-import { newGame, simulateElection, SAVE_VERSION, type GameState } from "@/game/state";
+import { migrateGame, newGame, simulateElection, SAVE_VERSION, type GameState } from "@/game/state";
 import type { AssetType, CeoKind } from "@/game/systems/business";
 import { advanceWeek } from "@/game/week";
 import type { CoalitionId } from "@/game/world";
 
 export type Lens = "holder" | "projection" | "support" | "presence" | "ethnic" | "urban" | "result";
-export type View = "overview" | "map" | "dewan" | "treasury";
+export type View = "overview" | "map" | "dewan" | "policy" | "treasury";
 
 export interface Toast {
   id: number;
@@ -33,6 +33,9 @@ interface Store {
   skipMonth: () => void;
   act: (id: string, target: Target) => void;
   business: (op: "buy" | "upgrade" | "sell" | "tap" | "ceo", type: AssetType, ceo?: CeoKind) => void;
+  policy: (policyId: string, option: number) => void;
+  budget: (alloc: Record<string, number>) => void;
+  answer: (cardId: number, choice: number) => void;
   select: (seatIndex: number | null) => void;
   setLens: (lens: Lens) => void;
   setView: (view: View) => void;
@@ -104,6 +107,18 @@ export const useGame = create<Store>()(
           else if (op === "tap") result(tapAsset(g, type));
           else result(setCeo(g, type, ceo ?? "pro"));
         },
+        policy: (policyId, option) => {
+          const g = get().game;
+          if (g) result(adoptPolicy(g, policyId, option));
+        },
+        budget: (alloc) => {
+          const g = get().game;
+          if (g) result(tableBudget(g, alloc));
+        },
+        answer: (cardId, choice) => {
+          const g = get().game;
+          if (g) result(answerCard(g, cardId, choice));
+        },
         select: (selected) => set({ selected }),
         setLens: (lens) => set({ lens }),
         setView: (view) => set({ view }),
@@ -118,6 +133,11 @@ export const useGame = create<Store>()(
       partialize: (s) => ({ game: s.game, lens: s.lens, view: s.view }),
       // Saves from before the turn loop can't be upgraded: start fresh.
       migrate: (persisted, version) => (version < 2 ? { game: null, lens: "holder", view: "overview" } : persisted) as Store,
+      // Every load fills fields added since the save was made (safe to repeat).
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<Store>;
+        return { ...current, ...p, game: p.game ? migrateGame(p.game) : null };
+      },
     },
   ),
 );

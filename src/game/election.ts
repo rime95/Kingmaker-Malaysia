@@ -29,6 +29,23 @@ function gaussian(rng: Rng): number {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
+/** A single-seat by-election: local noise only, lower turnout. */
+export function runSeatElection(inputs: VoterInputs, seatIndex: number, rngState: number): { result: SeatResult; rngState: number } {
+  const rng = new Rng(rngState);
+  const seat = SEATS[seatIndex];
+  const noise = Object.fromEntries(COALITIONS.map((c) => [c, gaussian(rng) * (ELECTION_NOISE.seat + ELECTION_NOISE.state)]));
+  const shares = seatShares(seat, inputs, (c) => noise[c]);
+  const turnout = Math.min(TURNOUT.max, Math.max(TURNOUT.min, TURNOUT.base - 0.15 - seat.demo.youth * TURNOUT.youthPenalty + gaussian(rng) * TURNOUT.noise));
+  const cast = Math.round(seat.electorate * turnout);
+  const votes: Partial<Record<CoalitionId, number>> = {};
+  for (const c of Object.keys(shares) as CoalitionId[]) votes[c] = Math.round(cast * shares[c]!);
+  const [winner, v1, runnerUp, v2] = topTwo(votes);
+  return {
+    result: { seatIndex, turnout, votes, winner, winnerParty: candidateParty(seat, winner), runnerUp, majority: v1 - v2, callOrder: 0 },
+    rngState: rng.state,
+  };
+}
+
 /** Runs one general election. Uses a fixed number of draws so results are reproducible from the seed. */
 export function runElection(inputs: VoterInputs, rngState: number): { result: ElectionResult; rngState: number } {
   const rng = new Rng(rngState);

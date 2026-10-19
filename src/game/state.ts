@@ -1,12 +1,14 @@
 // The saved game state. Plain data only, so it can be saved and reloaded exactly.
 
-import { AP_PER_WEEK, EFFECT, FORTRESS, START, START_DATE } from "./config";
+import { AP_PER_WEEK, ECONOMY_REST, EFFECT, FORTRESS, START, START_DATE } from "./config";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
+import { policyVoters } from "./systems/policies";
+import { segValue, type SegEffects } from "./systems/segments";
 import { COALITION_INDEX, ZERO_SWING, ge15MarginShare, projectAll, type Swing, type VoterInputs } from "./voter";
 import { COALITIONS, COALITION_INFO, SEATS, contestingIn, type CoalitionId } from "./world";
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 /** One line of the weekly report. */
 export interface ReportLine {
@@ -25,6 +27,15 @@ export interface WeekReport {
   /** How many weeks this report covers (Skip 1 Month = 4). */
   weeks?: number;
   lines: ReportLine[];
+}
+
+export interface CardInstance {
+  id: number;
+  kind: string;
+  week: number;
+  /** Unanswered cards take their default choice in this week. */
+  deadline: number;
+  seat?: number;
 }
 
 export interface HistoryPoint {
@@ -56,6 +67,14 @@ export interface Player {
   buzz: number[];
   machinery: number[];
   assets: Asset[];
+  /** Policy stance per policy id (option index; 0 = status quo). */
+  policies: Record<string, number>;
+  /** Short-lived reactions to events, by voter segment (fades 4% a week). */
+  mood: SegEffects;
+  /** Budget measures, by voter segment (fades 1.5% a week). */
+  budget: SegEffects;
+  /** Tycoon favours still owed. */
+  favours: number;
   market: Market;
 }
 
@@ -75,6 +94,16 @@ export interface GameState {
   report: WeekReport | null;
   history: HistoryPoint[];
   lastElection: ElectionResult | null;
+  /** National economy (0–100, ~55 normal) and public finances (fiscal space, 0–100). */
+  economy: number;
+  fiscal: number;
+  /** Decision cards waiting for an answer. */
+  cards: CardInstance[];
+  /** Last week each card kind appeared (no repeats within 24 weeks). */
+  cardLast: Record<string, number>;
+  /** The Budget: the week it became due (null when not due) and the last year tabled. */
+  budgetDue: number | null;
+  budgetYear: number | null;
 }
 
 /** Starting service in a seat: your own seats start stronger, safest seats strongest. */
@@ -123,39 +152,72 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647): Ga
       machinery,
       assets: [],
       market: { commodity: 1 },
+      policies: {},
+      mood: {},
+      budget: {},
+      favours: 0,
     },
     report: null,
     history: [],
     lastElection: null,
+    economy: ECONOMY_REST,
+    fiscal: 50,
+    cards: [],
+    cardLast: {},
+    budgetDue: null,
+    budgetYear: null,
   };
   state.history.push({ week: 0, funds: start.funds, seats: projectedSeats(state) });
   return state;
 }
 
-/** Your national swing from messaging, scandal, integrity and coalition trust. */
-export function playerNationalEffect(me: Player): number {
+/** Fills fields added after a save was made, so older saves keep working. */
+export function migrateGame(g: GameState): GameState {
+  return {
+    ...g,
+    version: SAVE_VERSION,
+    me: { ...g.me, policies: g.me.policies ?? {}, mood: g.me.mood ?? {}, budget: g.me.budget ?? {}, favours: g.me.favours ?? 0 },
+    economy: g.economy ?? ECONOMY_REST,
+    fiscal: g.fiscal ?? 50,
+    cards: g.cards ?? [],
+    cardLast: g.cardLast ?? {},
+    budgetDue: g.budgetDue ?? null,
+    budgetYear: g.budgetYear ?? null,
+  };
+}
+
+/** Your national swing from messaging, scandal, integrity, coalition trust and the economy. */
+export function playerNationalEffect(state: GameState): number {
+  const me = state.me;
   let v = me.nationalBuzz * EFFECT.nationalBuzz - me.scandal * EFFECT.scandal + (me.integrity - 60) * EFFECT.integrity;
   if (me.trust < EFFECT.trustFloor) v -= EFFECT.trustPenalty;
+  // The government gets the credit and the blame for the economy; the opposition gains a little from bad times.
+  v += (state.economy - ECONOMY_REST) * (isGovernment(state.player) ? EFFECT.economyGov : -EFFECT.economyOpp);
   return v;
 }
 
-/** Your extra log-odds in one seat from service, buzz and machinery. */
-export function playerSeatEffect(state: GameState, i: number): number {
+/** Your extra log-odds in one seat from service, buzz, machinery, policies, budget and the public mood. */
+export function playerSeatEffect(state: GameState, i: number, policy?: SegEffects): number {
   const me = state.me;
+  const pol = policy ?? policyVoters(me.policies, isGovernment(state.player));
   return (
     (me.service[i] - serviceBase(state.player, i)) * EFFECT.service +
     me.buzz[i] * EFFECT.buzz +
-    (me.machinery[i] - machineryBase(state.player, i)) * EFFECT.machinery
+    (me.machinery[i] - machineryBase(state.player, i)) * EFFECT.machinery +
+    segValue(i, pol) +
+    segValue(i, me.budget) +
+    segValue(i, me.mood)
   );
 }
 
 /** What the voter model sees: rival offsets plus everything the player has built. */
 export function voterInputs(state: GameState): VoterInputs {
   const p = COALITION_INDEX[state.player];
-  const swing = { ...state.swing, [state.player]: state.swing[state.player] + playerNationalEffect(state.me) };
+  const swing = { ...state.swing, [state.player]: state.swing[state.player] + playerNationalEffect(state) };
+  const policy = policyVoters(state.me.policies, isGovernment(state.player));
   const seatOffsets = state.seatOffsets.map((row, i) => {
     const r = [...row];
-    r[p] += playerSeatEffect(state, i);
+    r[p] += playerSeatEffect(state, i, policy);
     return r;
   });
   return { swing, seatOffsets };

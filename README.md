@@ -16,7 +16,7 @@ npm run typecheck
 
 Or double-click `Start Game.bat`.
 
-## Built so far (milestones 1–4)
+## Built so far (milestones 1–5)
 
 - All 222 Dewan Rakyat seats with their GE15 winners and majorities. Seat demographics are estimates.
 - Voter model: each seat's vote share comes from voter blocs × regional lean, calibrated so the untouched world reproduces GE15.
@@ -29,6 +29,9 @@ Or double-click `Start Game.bat`.
 - Actions with live previews: seat (ceramah, walkabout, service project, machinery, handouts), state tours, national campaigns, party and money actions. Government and opposition get different tools.
 - Per-seat presence: service (permanent, builds fortress levels), machinery (needs upkeep), buzz (fades 5% a week).
 - Party holding company: eight businesses with levels, crony vs professional CEOs, tapping for the war chest, and selling.
+- Policies: ten issues with stances that move voter groups. Government enacts them through a Dewan vote (partners rebel when trust is low) and moves the economy and public finances; opposition pledges them at half strength, and unfunded pledges cost integrity.
+- The annual Budget (second week of October): allocate an envelope set by fiscal space, or table a shadow budget in opposition.
+- Decision cards: about 16 news events (floods, ringgit, leaked audio, flashpoints, by-elections that really change seats...) plus festival open houses, each with numbered choices and a default after four weeks.
 
 ## Where things live
 
@@ -41,6 +44,7 @@ Or double-click `Start Game.bat`.
 | `src/game/week.ts`, `src/game/month.ts` | Skip 1 Week (the only place time moves) and Skip 1 Month |
 | `src/game/actions.ts` | Every player decision and its preview |
 | `src/game/systems/business.ts` | Party holding company |
+| `src/game/systems/policies.ts`, `budget.ts`, `events.ts`, `segments.ts` | Policies, the Budget, decision cards, and how effects land on voter groups |
 | `src/game/state.ts` | Saved game state |
 | `src/game/hexLayout.ts` | Hex cartogram layout and state borders |
 | `src/components/` | Start screen, seat bars, map, seat panel, Dewan chart |
