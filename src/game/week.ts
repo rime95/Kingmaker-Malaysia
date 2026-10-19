@@ -4,6 +4,7 @@ import { DECAY, ECONOMY, ECONOMY_DRIFT, ECONOMY_REST, MACC, MOOD_DECAY, SEAT_SER
 import { tableBudget } from "./actions";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
+import { rivalsWeek } from "./systems/rivals";
 import { decaySeg } from "./systems/segments";
 import { fmtRM } from "./money";
 import { Rng, hash01 } from "./rng";
@@ -109,8 +110,14 @@ export function advanceWeek(s: GameState): GameState {
   const economy = clamp(s.economy + (ECONOMY_REST - s.economy) * ECONOMY_DRIFT.economy + (hash01("economy", s.seed, s.week) - 0.5) * ECONOMY_DRIFT.noise);
   const fiscal = clamp(s.fiscal + (50 - s.fiscal) * ECONOMY_DRIFT.fiscal);
 
+  // Rival parties campaign, defend and attack, using this week's starting projections
+  const ai = rivalsWeek({ rivals: s.rivals, player: s.player, playerTrust: me.trust, playerBuzz: s.me.buzz, holders: s.holders, week: s.week, seed: s.seed, projections: before });
+  me.nationalBuzz = clamp(me.nationalBuzz + ai.playerBuzzHit);
+  me.scandal = clamp(me.scandal + ai.playerScandalHit);
+  lines.push(...ai.lines);
+
   me.ap = me.apMax;
-  let next: GameState = { ...s, me, rng: rng.state, week: s.week + 1, economy, fiscal };
+  let next: GameState = { ...s, me, rng: rng.state, week: s.week + 1, economy, fiscal, rivals: ai.rivals };
 
   // The Budget: due in the second week of October; officials table a default if the government doesn't
   const year = weekDate(next.week).getFullYear();

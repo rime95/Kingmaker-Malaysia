@@ -9,8 +9,8 @@ import type { AssetType, CeoKind } from "@/game/systems/business";
 import { advanceWeek } from "@/game/week";
 import type { CoalitionId } from "@/game/world";
 
-export type Lens = "holder" | "projection" | "support" | "presence" | "ethnic" | "urban" | "result";
-export type View = "overview" | "map" | "dewan" | "policy" | "treasury";
+export type Lens = "holder" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
+export type View = "overview" | "map" | "dewan" | "policy" | "rivals" | "treasury";
 
 export interface Toast {
   id: number;

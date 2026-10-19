@@ -1,12 +1,16 @@
 // The saved game state. Plain data only, so it can be saved and reloaded exactly.
 
-import { AP_PER_WEEK, ECONOMY_REST, EFFECT, FORTRESS, START, START_DATE } from "./config";
+import { machineryBase, serviceBase } from "./bases";
+import { AP_PER_WEEK, ECONOMY_REST, EFFECT, FORTRESS, START } from "./config";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
 import { policyVoters } from "./systems/policies";
+import { initRivals, rivalNationalEffect, rivalSeatEffect, type Rivals } from "./systems/rivals";
 import { segValue, type SegEffects } from "./systems/segments";
-import { COALITION_INDEX, ZERO_SWING, ge15MarginShare, projectAll, type Swing, type VoterInputs } from "./voter";
-import { COALITIONS, COALITION_INFO, SEATS, contestingIn, type CoalitionId } from "./world";
+import { COALITION_INDEX, ZERO_SWING, projectAll, type Swing, type VoterInputs } from "./voter";
+import { COALITIONS, COALITION_INFO, SEATS, type CoalitionId } from "./world";
+
+export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
 export const SAVE_VERSION = 3;
 
@@ -104,19 +108,8 @@ export interface GameState {
   /** The Budget: the week it became due (null when not due) and the last year tabled. */
   budgetDue: number | null;
   budgetYear: number | null;
-}
-
-/** Starting service in a seat: your own seats start stronger, safest seats strongest. */
-export function serviceBase(player: CoalitionId, seatIndex: number): number {
-  const s = SEATS[seatIndex];
-  if (s.ge15Coalition !== player) return 5;
-  return Math.round(20 + 50 * Math.min(1, ge15MarginShare(s) / 0.4));
-}
-
-export function machineryBase(player: CoalitionId, seatIndex: number): number {
-  const s = SEATS[seatIndex];
-  if (!contestingIn(s).includes(player)) return 0;
-  return s.ge15Coalition === player ? 30 : 12;
+  /** AI rival parties. */
+  rivals: Rivals;
 }
 
 export function newGame(player: CoalitionId, seed = Date.now() % 2147483647): GameState {
@@ -166,6 +159,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647): Ga
     cardLast: {},
     budgetDue: null,
     budgetYear: null,
+    rivals: initRivals(player),
   };
   state.history.push({ week: 0, funds: start.funds, seats: projectedSeats(state) });
   return state;
@@ -183,6 +177,7 @@ export function migrateGame(g: GameState): GameState {
     cardLast: g.cardLast ?? {},
     budgetDue: g.budgetDue ?? null,
     budgetYear: g.budgetYear ?? null,
+    rivals: g.rivals ?? initRivals(g.player),
   };
 }
 
@@ -214,11 +209,14 @@ export function playerSeatEffect(state: GameState, i: number, policy?: SegEffect
 export function voterInputs(state: GameState): VoterInputs {
   const p = COALITION_INDEX[state.player];
   const swing = { ...state.swing, [state.player]: state.swing[state.player] + playerNationalEffect(state) };
+  const rivals = Object.entries(state.rivals) as [CoalitionId, NonNullable<Rivals[CoalitionId]>][];
+  for (const [c, r] of rivals) swing[c] += rivalNationalEffect(r);
   const policy = policyVoters(state.me.policies, isGovernment(state.player));
   const seatOffsets = state.seatOffsets.map((row, i) => {
-    const r = [...row];
-    r[p] += playerSeatEffect(state, i, policy);
-    return r;
+    const out = [...row];
+    out[p] += playerSeatEffect(state, i, policy);
+    for (const [c, r] of rivals) out[COALITION_INDEX[c]] += rivalSeatEffect(r, c, i);
+    return out;
   });
   return { swing, seatOffsets };
 }
@@ -251,12 +249,3 @@ export function fortressLevel(service: number): string {
   return FORTRESS.find((f) => service >= f.min)!.name;
 }
 
-export function weekDate(week: number): Date {
-  const d = new Date(`${START_DATE}T00:00:00`);
-  d.setDate(d.getDate() + week * 7);
-  return d;
-}
-
-export function weekLabel(week: number): string {
-  return weekDate(week).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}

@@ -5,6 +5,10 @@ import { useGame, type Lens } from "@/store/gameStore";
 import { HEX_MAP, STATE_BORDERS, hexPath } from "@/game/hexLayout";
 import { BLOC_LABEL, COALITION_INFO, SEATS, STATE_BY_ID, contestingIn, majorityBloc } from "@/game/world";
 import { FORTRESS } from "@/game/config";
+import { serviceBase } from "@/game/bases";
+import type { GameState } from "@/game/state";
+import { isHostile, type Rival } from "@/game/systems/rivals";
+import type { CoalitionId } from "@/game/world";
 import type { Rating } from "@/game/voter";
 import { coalColor, pct, useProjections } from "./common";
 
@@ -13,6 +17,7 @@ const LENSES: { id: Lens; label: string }[] = [
   { id: "projection", label: "If held today" },
   { id: "support", label: "Your support" },
   { id: "presence", label: "Your strongholds" },
+  { id: "pressure", label: "Rival pressure" },
   { id: "ethnic", label: "Ethnic majority" },
   { id: "urban", label: "Urban / rural" },
   { id: "result", label: "Test election" },
@@ -41,6 +46,8 @@ export function SeatMap() {
         return { fill: mixFill(coalColor(game.player), (projections[i].shares[game.player] ?? 0) / 0.7) };
       case "presence":
         return contestingIn(seat).includes(game.player) ? { fill: mixFill(coalColor(game.player), game.me.service[i] / 90) } : { fill: "var(--surface)" };
+      case "pressure":
+        return { fill: mixFill("var(--bad)", rivalPressure(game, i) / 40) };
       case "ethnic":
         return { fill: `var(--e-${majorityBloc(seat)})` };
       case "urban":
@@ -136,6 +143,8 @@ function Legend({ lens, player }: { lens: Lens; player: keyof typeof COALITION_I
     items = [0, 0.2, 0.4, 0.6].map((v) => item(String(v), mixFill(coalColor(player), v / 0.7), `${pct(v)}${v === 0.6 ? "+" : ""}`)).concat(<span key="t">{COALITION_INFO[player].short} vote share</span>);
   else if (lens === "presence")
     items = [...FORTRESS].reverse().map((f) => item(f.name, mixFill(coalColor(player), (f.min + 10) / 90), `${f.name} (${f.min}+)`)).concat(<span key="t">constituency service; blank = not contested</span>);
+  else if (lens === "pressure")
+    items = [0, 10, 20, 40].map((v) => item(String(v), mixFill("var(--bad)", v / 40), v === 40 ? "40+" : String(v))).concat(<span key="t">hostile rivals&apos; buzz + new service in the seat</span>);
   else if (lens === "ethnic")
     items = (["malay", "chinese", "indian", "sabah", "sarawak", "mixed"] as const).map((b) => item(b, `var(--e-${b})`, b === "mixed" ? "No majority" : BLOC_LABEL[b]));
   else if (lens === "urban") items = [0.1, 0.4, 0.7, 1].map((v) => item(String(v), mixFill("var(--ink-2)", v), v === 0.1 ? "Rural" : v === 1 ? "City" : ""));
@@ -158,4 +167,14 @@ function Legend({ lens, player }: { lens: Lens; player: keyof typeof COALITION_I
       </span>
     </div>
   );
+}
+
+/** How hard hostile rivals are working a seat: their buzz plus service built above their starting level. */
+function rivalPressure(game: GameState, i: number): number {
+  let max = 0;
+  for (const [c, r] of Object.entries(game.rivals) as [CoalitionId, Rival][]) {
+    if (!isHostile(c, game.player, game.me.trust)) continue;
+    max = Math.max(max, r.buzz[i] + Math.max(0, r.service[i] - serviceBase(c, i)));
+  }
+  return max;
 }

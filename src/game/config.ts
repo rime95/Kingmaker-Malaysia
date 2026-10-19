@@ -172,3 +172,37 @@ export const CARDS = {
   /** At most this many cards wait at once. */
   maxPending: 3,
 };
+
+// ---------------------------------------------------------------------------------------------
+// Milestone 6: AI rival parties. All values TEMPORARY.
+// ---------------------------------------------------------------------------------------------
+
+export const AI = {
+  /** Multiplies how many moves rivals make each week (difficulty knob). */
+  aggression: 1,
+  /** Moves per week by phase: long before the election, in the last 26 weeks, in the last 8 weeks. */
+  movesEarly: 1,
+  movesMid: 3,
+  movesLate: 4,
+  midWeeks: 26,
+  lateWeeks: 8,
+  /** Rivals keep at least this much in the bank. */
+  reserve: 1_000_000,
+  /** Effect of rival moves (same scale as the player's). */
+  ceramah: { cost: 30_000, buzz: 12 },
+  service: { cost: 150_000, gain: 4 },
+  handout: { cost: 250_000, buzz: 20 },
+  media: { cost: 500_000, buzz: 8 },
+  /** Attack ads against you: your national buzz falls and scandal rises. */
+  attack: { cost: 300_000, playerBuzz: -5, playerScandal: 1 },
+  /** Attack ads come mostly from your head-to-head rivals: chance scales with seats where you two are the top two, up to this many. */
+  attackRivalrySeats: 40,
+  /** Seats within this margin are worth fighting for. */
+  attackGap: 0.1,
+  defendGap: 0.08,
+  /** Extra weight on seats you hold when a rival is hostile to you; allies mostly leave your seats alone. */
+  hostileWeight: 1.4,
+  allyWeight: 0.25,
+  /** Allies turn hostile when your coalition trust falls below this. */
+  allyTrustFloor: 40,
+};

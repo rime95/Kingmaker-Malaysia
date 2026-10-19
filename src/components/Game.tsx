@@ -13,6 +13,7 @@ import { Dewan } from "./Dewan";
 import { Overview } from "./Overview";
 import { Treasury } from "./Treasury";
 import { Policy } from "./Policy";
+import { Rivals } from "./Rivals";
 import { ReportModal } from "./ReportModal";
 import { Toast } from "./Toast";
 import { CoalitionChip, fmtRM } from "./common";
@@ -32,6 +33,7 @@ const TABS: { id: View; label: string }[] = [
   { id: "map", label: "Seat map" },
   { id: "dewan", label: "Dewan Rakyat" },
   { id: "policy", label: "Policy & Budget" },
+  { id: "rivals", label: "Rivals" },
   { id: "treasury", label: "Treasury" },
 ];
 
@@ -114,6 +116,7 @@ function Main() {
       {view === "overview" && <Overview />}
       {view === "treasury" && <Treasury />}
       {view === "policy" && <Policy />}
+      {view === "rivals" && <Rivals />}
       {(view === "map" || view === "dewan") && (
         <div className="flex flex-col lg:flex-row gap-4 items-start">
           <div className="panel p-3 w-full lg:flex-1 min-w-0">{view === "map" ? <SeatMap /> : <Dewan />}</div>

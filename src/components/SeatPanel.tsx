@@ -3,6 +3,8 @@
 import { useGame } from "@/store/gameStore";
 import { BLOCS, BLOC_LABEL, COALITION_INFO, PARTIES, SEATS, STATE_BY_ID, candidateParty, contestingIn, type CoalitionId } from "@/game/world";
 import { fortressLevel } from "@/game/state";
+import { serviceBase } from "@/game/bases";
+import { isHostile, type Rival } from "@/game/systems/rivals";
 import { ActionCard } from "./ActionCard";
 import { coalColor, fmt, pct, useProjections } from "./common";
 
@@ -95,6 +97,8 @@ export function SeatPanel() {
         )}
       </section>
 
+      <RivalActivity seatIndex={selected} />
+
       {result && (
         <section>
           <h3 className="font-semibold mb-1">Test election</h3>
@@ -133,7 +137,34 @@ export function SeatPanel() {
   );
 }
 
-const SEAT_ACTIONS = ["ceramah", "walkabout", "service", "machinery", "handout"];
+/** Which rivals are campaigning in this seat, and how hard. */
+function RivalActivity({ seatIndex }: { seatIndex: number }) {
+  const game = useGame((s) => s.game)!;
+  const rows = (Object.entries(game.rivals) as [CoalitionId, Rival][])
+    .map(([c, r]) => ({ c, buzz: r.buzz[seatIndex], service: r.service[seatIndex] - serviceBase(c, seatIndex), hostile: isHostile(c, game.player, game.me.trust) }))
+    .filter((x) => x.buzz >= 1 || x.service >= 1)
+    .sort((a, b) => b.buzz + b.service - (a.buzz + a.service));
+  if (!rows.length) return null;
+  return (
+    <section>
+      <h3 className="font-semibold mb-2">Rivals working this seat</h3>
+      <div className="flex flex-col gap-1">
+        {rows.map((x) => (
+          <div key={x.c} className="flex items-center gap-2 text-xs">
+            <span className="swatch" style={{ background: `var(--c-${x.c})` }} />
+            <span className="font-medium">{COALITION_INFO[x.c].short}</span>
+            {x.hostile && <span style={{ color: "var(--bad)" }}>▲ hostile</span>}
+            <span className="ml-auto tabular-nums" style={{ color: "var(--ink-2)" }}>
+              buzz {Math.round(x.buzz)} · service +{Math.round(Math.max(0, x.service))}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const SEAT_ACTIONS =["ceramah", "walkabout", "service", "machinery", "handout"];
 
 function Presence({ label, value, note }: { label: string; value: number; note: string }) {
   return (
