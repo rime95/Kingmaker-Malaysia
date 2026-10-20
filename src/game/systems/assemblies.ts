@@ -7,7 +7,8 @@
 
 import { ASSEMBLY_TERMS, GE, PRN, START_DATE } from "../config";
 import { runElection, type ElectionResult } from "../election";
-import { recordFrom } from "./results";
+import { recordFrom, standingName } from "./results";
+import { mpOf, seatWinners } from "./people";
 import { seatCandidate } from "./coalitions";
 import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
@@ -194,12 +195,18 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
   const holders = result.seats.map((r) => r.winner);
   const holderParties = result.seats.map((r) => r.winnerParty);
   const geCount = s.geCount + 1;
+  // Winners take their seats (sitting MPs, senior members, or branch chiefs stepping up).
+  const seated = seatWinners({ ...s, holders, holderParties }, result.seats.map((r) => ({ seat: r.seatIndex, party: r.winnerParty })), lines);
   const seatResults = result.seats.map((r) => {
     const seat = SEATS[r.seatIndex];
-    return recordFrom(r, `GE${geCount}`, s.week, Object.fromEntries(contestingIn(seat).map((c) => [c, seatCandidate(s, seat, c)])));
+    const parties = Object.fromEntries(contestingIn(seat).map((c) => [c, seatCandidate(s, seat, c)])) as Partial<Record<CoalitionId, string>>;
+    const names = Object.fromEntries(
+      (Object.keys(r.votes) as CoalitionId[]).map((c) => [c, c === r.winner ? (mpOf(seated, r.seatIndex)?.name ?? "") : standingName(s.seed, r.seatIndex, c, parties[c] ?? c, `GE${geCount}`)]),
+    );
+    return recordFrom(r, `GE${geCount}`, s.week, parties, names);
   });
   let next: GameState = {
-    ...s,
+    ...seated,
     rng: rngState,
     holders,
     holderParties,

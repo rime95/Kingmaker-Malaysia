@@ -4,6 +4,7 @@ import { serviceBase } from "@/game/bases";
 import { fmtRM } from "@/game/money";
 import { isHostile, rivalIds, type Rival } from "@/game/systems/rivals";
 import { useGame } from "@/store/gameStore";
+import { coalitionLeader } from "@/game/systems/coalitions";
 import { COALITION_INFO, SEATS, type CoalitionId } from "@/game/world";
 import { coalColor } from "./common";
 
@@ -44,7 +45,7 @@ function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
         <div>
           <div className="font-semibold">{info.name}</div>
           <div className="text-xs" style={{ color: "var(--muted)" }}>
-            {game.coalitions[c].members.join(" · ") || "No parties left"} · {game.parliament.pm === c ? "Prime Minister" : game.government.includes(c) ? "Government" : "Opposition"}
+            {coalitionLeader(game, c)} · {game.coalitions[c].members.join(" · ") || "No parties left"} · {game.parliament.pm === c ? "Prime Minister" : game.government.includes(c) ? "Government" : "Opposition"}
           </div>
         </div>
         <span

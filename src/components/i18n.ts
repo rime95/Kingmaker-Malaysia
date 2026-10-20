@@ -8,6 +8,7 @@ const STRINGS = {
   overview: { en: "Overview", ms: "Ringkasan" },
   campaign: { en: "Campaign", ms: "Kempen" },
   career: { en: "Party", ms: "Parti" },
+  people: { en: "People", ms: "Tokoh" },
   map: { en: "Seat map", ms: "Peta kerusi" },
   dewan: { en: "Dewan", ms: "Dewan" },
   states: { en: "States", ms: "Negeri" },

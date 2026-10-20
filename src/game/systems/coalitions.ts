@@ -283,9 +283,10 @@ export function renameCoalition(s: GameState, name: string, short: string, color
   return { ok: true, state: { ...s, namePending: false, coalitions: { ...s.coalitions, [s.player]: { ...s.coalitions[s.player], name: n, short: sh, color } } } };
 }
 
-/** Who leads a coalition: its lead party's president (you, if you lead your party). */
-export function coalitionLeader(s: Pick<GameState, "coalitions" | "player" | "career">, c: CoalitionId): string {
+/** Who leads a coalition: its lead party's president today (you, if you lead your party). */
+export function coalitionLeader(s: Pick<GameState, "coalitions" | "player" | "career" | "people">, c: CoalitionId): string {
   if (c === s.player && s.career.rung >= 6) return s.career.name;
   const lead = s.coalitions[c].members[0];
-  return lead ? (PARTIES[lead]?.leader ?? "—") : "—";
+  if (!lead) return "—";
+  return s.people.find((p) => p.party === lead && p.rank === 5)?.name ?? PARTIES[lead]?.leader ?? "—";
 }

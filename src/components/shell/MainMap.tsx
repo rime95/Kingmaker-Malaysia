@@ -9,6 +9,7 @@ import { cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
 import { pct, useReads } from "../common";
 import { winChance, type SeatRead } from "@/game/systems/polls";
 import { resultView } from "@/game/systems/results";
+import { mpOf } from "@/game/systems/people";
 import { MalaysiaMap, type MapMarker } from "../map/MalaysiaMap";
 import { coalColor, lensFill } from "../map/lenses";
 
@@ -82,7 +83,7 @@ function SeatTip({ i, x, y, reads }: { i: number; x: number; y: number; reads: S
       <div style={{ color: "var(--muted)" }}>{STATE_BY_ID[seat.state].name}</div>
       <div className="mt-1 flex items-center gap-1.5">
         <span className="swatch" style={{ background: coalColor(game.holders[i]) }} />
-        {last.candidates[0].name} · {game.holderParties[i]} ({cshort(game.holders[i])})
+        {mpOf(game, i)?.name ?? last.candidates[0].name} · {game.holderParties[i]} ({cshort(game.holders[i])})
       </div>
       <div style={{ color: "var(--ink-2)" }}>
         {last.label}: won by {last.majority.toLocaleString("en-MY")} votes

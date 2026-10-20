@@ -14,6 +14,8 @@ import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, decid
 import { CAREER as CAREER_LOYALTY, addPoints, isPresident } from "./systems/career";
 import { careerAfterFormation } from "./progress";
 import { aiRebrand } from "./systems/coalitions";
+import { PEOPLE, byId, favourBlocked, favourOf, formCabinet, meetPerson, mpOf, syncYou } from "./systems/people";
+import { PORTFOLIOS, type PortfolioId } from "./data/people";
 import { BUBBLE_INFO, applyBubble } from "./systems/bubbles";
 import { ASSETS, MAX_LEVEL, assetIncome, newAsset, saleValue, upgradeCost, type AssetType, type CeoKind } from "./systems/business";
 import { contestingIn, cshort, MAJORITY, SEATS, STATE_BY_ID, type CoalitionId } from "./world";
@@ -399,7 +401,10 @@ export function applyAction(s: GameState, id: string, t: Target): ActionResult {
   const seats = t.kind === "seat" ? [t.seat] : t.kind === "state" ? SEATS.filter((x) => x.state === t.state).map((x) => x.index) : [];
   const gain = t.kind === "seat" ? CAREER_LOYALTY.loyaltyPerAction : CAREER_LOYALTY.loyaltyPerAction / 3;
   for (const i of seats) if (s.holders[i] === s.player) loyalty[i] = Math.min(100, loyalty[i] + gain);
-  return { ok: true, state: { ...base, me, career: { ...s.career, loyalty } }, message };
+  // ...and of the MPs themselves.
+  const mps = new Set(seats.filter((i) => s.holders[i] === s.player).map((i) => mpOf(s, i)?.id));
+  const people = mps.size ? base.people.map((p) => (mps.has(p.id) && p.id !== s.youId ? { ...p, loyalty: Math.min(100, p.loyalty + gain * 0.5) } : p)) : base.people;
+  return { ok: true, state: { ...base, me, people, career: { ...s.career, loyalty } }, message };
 }
 
 export const WAR_ROOM_COST = 100_000;
@@ -658,8 +663,69 @@ export function tableBudget(s: GameState, alloc: Record<string, number>, auto = 
 export function answerCard(s: GameState, cardId: number, choice: number): ActionResult {
   const r = resolveCard(s, cardId, choice);
   if (!r) return { ok: false, error: "That decision is no longer waiting." };
+  const state = syncYou(r.state, r.lines);
   const extra = r.lines.map((l) => l.text).join(" ");
-  return { ok: true, state: r.state, message: extra ? `${r.message} ${extra}` : r.message };
+  return { ok: true, state, message: extra ? `${r.message} ${extra}` : r.message };
+}
+
+// ---------------------------------------------------------------------------------------------
+// People: meetings, favours and the cabinet
+// ---------------------------------------------------------------------------------------------
+
+export function meet(s: GameState, id: number): ActionResult {
+  const r = meetPerson(s, id);
+  return "error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message };
+}
+
+export function askFavour(s: GameState, id: number): ActionResult {
+  const why = favourBlocked(s, id);
+  if (why) return { ok: false, error: why };
+  const p = byId(s, id)!;
+  const f = favourOf(s, p);
+  const me = { ...s.me, unity: clamp(s.me.unity + (f.unity ?? 0)), capital: clamp(s.me.capital + (f.capital ?? 0), 0, 200), trust: clamp(s.me.trust + (f.trust ?? 0)) };
+  const people = s.people.map((x) => (x.id === id ? { ...x, loyalty: x.loyalty - PEOPLE.favourLoyalty, favourWeek: s.week } : x));
+  const career = f.points ? addPoints(s.career, s.week, f.points, `${p.name} brought delegates over`) : s.career;
+  return { ok: true, state: { ...s, me, people, career }, message: `${p.name}: ${f.text.split(":")[0].toLowerCase()}.` };
+}
+
+export function appointBlocked(s: GameState, post: PortfolioId, id: number | null): string | null {
+  if (s.parliament.pm !== s.player || !isPresident(s.career)) return "Only you as Prime Minister can appoint ministers.";
+  if (post === "pm") return "You are the Prime Minister.";
+  if (id === null) return null;
+  const p = byId(s, id);
+  if (!p) return "They have left politics.";
+  if (!s.government.some((c) => s.coalitions[c].members.includes(p.party))) return "Ministers come from government parties.";
+  return null;
+}
+
+/** Reshuffle: put someone in a ministry (or leave it empty). The sacked minister and their party take it badly. */
+export function appoint(s: GameState, post: PortfolioId, id: number | null): ActionResult {
+  const why = appointBlocked(s, post, id);
+  if (why) return { ok: false, error: why };
+  const cabinet = { ...s.cabinet };
+  const old = byId(s, cabinet[post]);
+  // One post per person (except the PM, who may hold Finance).
+  if (id !== null) for (const [k, v] of Object.entries(cabinet)) if (v === id && k !== "pm") delete cabinet[k as PortfolioId];
+  if (id === null) delete cabinet[post];
+  else cabinet[post] = id;
+  let me = s.me;
+  let partySat = s.partySat;
+  const mine = s.coalitions[s.player].members;
+  const people = s.people.map((p) => {
+    if (old && p.id === old.id && p.id !== id) return { ...p, loyalty: Math.max(0, p.loyalty - 25) };
+    if (p.id === id) return { ...p, loyalty: Math.min(100, p.loyalty + 15) };
+    return p;
+  });
+  const feel = (party: string, d: number) => {
+    if (party === mine[0]) me = { ...me, unity: clamp(me.unity + d / 2) };
+    else if (mine.includes(party)) partySat = { ...partySat, [party]: clamp((partySat[party] ?? 55) + d) };
+    else me = { ...me, trust: clamp(me.trust + d / 2) };
+  };
+  if (old && old.id !== id) feel(old.party, -6);
+  const p = byId(s, id);
+  if (p && p.id !== old?.id) feel(p.party, 4);
+  const name = PORTFOLIOS.find((x) => x.id === post)!.name;
+  return { ok: true, state: { ...s, cabinet, people, me, partySat }, message: p ? `${p.name} is the new ${name === "Finance" ? "Finance Minister" : `minister for ${name}`}.` : `${name} is left without a minister.` };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -789,6 +855,8 @@ export function goToAgong(s: GameState): ActionResult {
   }
   me.trust = inGov ? 65 : 50;
   let state: GameState = { ...s, me, formation: null, government: o.government, parliament: { ...s.parliament, pm: o.pm } };
+  // A new cabinet: the AI shares posts by seats; as Prime Minister you can reshuffle it any time.
+  state.cabinet = formCabinet(state);
   // The winner may rebrand: you name your coalition; an AI prime minister's coalition sometimes relaunches.
   if (o.pm === s.player) state.namePending = true;
   else {

@@ -6,6 +6,9 @@ import {
   adoptPolicy,
   answerCard,
   applyAction,
+  appoint,
+  askFavour,
+  meet,
   backForPm,
   buyAsset,
   callGeneralElection,
@@ -34,11 +37,12 @@ import { recordTier } from "./meta";
 import type { AssetType, CeoKind } from "@/game/systems/business";
 import { advanceWeek } from "@/game/week";
 import type { CoalitionId } from "@/game/world";
+import type { PortfolioId } from "@/game/data/people";
 import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
 /** Side panels that open over the map. */
-export type Panel = "campaign" | "party" | "policy" | "states" | "parliament" | "rivals" | "treasury";
+export type Panel = "campaign" | "party" | "people" | "policy" | "states" | "parliament" | "rivals" | "treasury";
 
 export interface Toast {
   id: number;
@@ -80,6 +84,9 @@ interface Store {
   act: (id: string, target: Target) => void;
   claim: (bubbleId: number) => void;
   poll: (seat: number) => void;
+  meet: (id: number) => void;
+  favour: (id: number) => void;
+  appoint: (post: PortfolioId, id: number | null) => void;
   rename: (name: string, short: string, color: string) => void;
   keepName: () => void;
   business: (op: "buy" | "upgrade" | "sell" | "tap" | "ceo", type: AssetType, ceo?: CeoKind) => void;
@@ -213,6 +220,18 @@ export const useGame = create<Store>()(
           const g = get().game;
           if (g) set({ game: { ...g, namePending: false } });
         },
+        meet: (id) => {
+          const g = get().game;
+          if (g) result(meet(g, id));
+        },
+        favour: (id) => {
+          const g = get().game;
+          if (g) result(askFavour(g, id));
+        },
+        appoint: (post, id) => {
+          const g = get().game;
+          if (g) result(appoint(g, post, id));
+        },
         poll: (seat) => {
           const g = get().game;
           if (g) result(commissionPoll(g, seat));
@@ -307,3 +326,8 @@ export const useGame = create<Store>()(
 useGame.subscribe((st, prev) => {
   if (st.game && st.game.coalitions !== prev.game?.coalitions) syncNames(st.game);
 });
+// ...and for a game already loaded from storage when the store was created.
+{
+  const loaded = useGame.getState().game;
+  if (loaded) syncNames(loaded);
+}

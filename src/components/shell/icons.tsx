@@ -17,6 +17,14 @@ export const ICONS = {
       <path d="M15.5 14.5A5 5 0 0 1 21 19" />
     </svg>
   ),
+  people: (
+    <svg viewBox="0 0 24 24" {...P}>
+      <rect x="9" y="3" width="6" height="5" rx="1" />
+      <rect x="3" y="16" width="6" height="5" rx="1" />
+      <rect x="15" y="16" width="6" height="5" rx="1" />
+      <path d="M12 8v4M6 16v-4h12v4" />
+    </svg>
+  ),
   policy: (
     <svg viewBox="0 0 24 24" {...P}>
       <path d="M6 3h9l4 4v14H6z" />

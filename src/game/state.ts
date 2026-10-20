@@ -10,6 +10,8 @@ import { newObjectives, type Objective } from "./systems/goals";
 import { newBubbles, type Bubble } from "./systems/bubbles";
 import { initPolls, type Polls } from "./systems/polls";
 import { initCoalitions, initPartySat, type Coalitions } from "./systems/coalitions";
+import { initPeople, syncYou, type Person } from "./systems/people";
+import type { PortfolioId } from "./data/people";
 import type { SeatRecord } from "./systems/results";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
@@ -21,7 +23,7 @@ import { COALITIONS, COALITION_INFO, SEATS, type CoalitionId } from "./world";
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -54,6 +56,8 @@ export interface CardInstance {
   seat?: number;
   /** The party a card is about (e.g. a partner threatening to walk out). */
   party?: string;
+  /** The person a card is about. */
+  person?: number;
 }
 
 export interface HistoryPoint {
@@ -159,6 +163,13 @@ export interface GameState {
   seatParty: Record<number, Partial<Record<CoalitionId, string>>>;
   /** You won: name your coalition (shown once after taking power). */
   namePending: boolean;
+  /** Every MP, party leader and rising branch chief. */
+  people: Person[];
+  nextPersonId: number;
+  /** Cabinet post → person id. */
+  cabinet: Partial<Record<PortfolioId, number>>;
+  /** Leader mode: the person who is you. */
+  youId: number | null;
 }
 
 export interface NewGameOptions {
@@ -236,7 +247,13 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     partySat: initPartySat(),
     seatParty: {},
     namePending: false,
+    people: [],
+    nextPersonId: 1,
+    cabinet: {},
+    youId: null,
   };
+  Object.assign(state, initPeople(state));
+  Object.assign(state, syncYou(state));
   state.me.apMax = state.me.ap = AP_BY_RUNG[state.career.rung];
   // Difficulty and scenario
   state.me.funds = Math.round(state.me.funds * DIFFICULTY[state.settings.difficulty].funds);
@@ -284,7 +301,12 @@ export function migrateGame(g: GameState): GameState {
     partySat: g.partySat ?? initPartySat(),
     seatParty: g.seatParty ?? {},
     namePending: g.namePending ?? false,
+    people: g.people ?? [],
+    nextPersonId: g.nextPersonId ?? 1,
+    cabinet: g.cabinet ?? {},
+    youId: g.youId ?? null,
   };
+  if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, DIFFICULTY[migrated.settings.difficulty].pollError);
   if (!migrated.objectives.length) migrated.objectives = newObjectives(migrated);
   return migrated;

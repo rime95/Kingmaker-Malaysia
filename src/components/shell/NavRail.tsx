@@ -7,6 +7,7 @@ import { Icon } from "./icons";
 const ITEMS: { id: Panel; label: StringKey }[] = [
   { id: "campaign", label: "campaign" },
   { id: "party", label: "career" },
+  { id: "people", label: "people" },
   { id: "policy", label: "policy" },
   { id: "states", label: "states" },
   { id: "parliament", label: "dewan" },

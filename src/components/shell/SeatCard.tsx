@@ -7,6 +7,7 @@ import { BUBBLE_INFO } from "@/game/systems/bubbles";
 import { DUNS } from "@/game/systems/dun";
 import { CHANCE_LABEL, POLLS, chanceBand, effectiveMoe, winChance, type SeatRead } from "@/game/systems/polls";
 import { resultView, type ResultView } from "@/game/systems/results";
+import { mpOf } from "@/game/systems/people";
 import { isHostile, type Rival } from "@/game/systems/rivals";
 import { useGame } from "@/store/gameStore";
 import { BLOC_LABEL, BLOCS, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
@@ -47,7 +48,7 @@ export function SeatCard() {
           <div className="flex items-center gap-1.5 text-xs mt-1" style={{ color: "var(--ink-2)" }}>
             <span className="swatch" style={{ background: coalColor(holder) }} />
             <span className="truncate">
-              {last.candidates[0].name} · {game.holderParties[i]} ({cshort(holder)})
+              {mpOf(game, i)?.name ?? last.candidates[0].name} · {game.holderParties[i]} ({cshort(holder)})
             </span>
           </div>
         </div>

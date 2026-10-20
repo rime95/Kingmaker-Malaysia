@@ -4,6 +4,7 @@
 import { GE15_RESULTS } from "../data/ge15";
 import type { SeatResult } from "../election";
 import { COALITIONS, SEATS, type CoalitionId } from "../world";
+import { makeName, recruitBloc } from "./names";
 
 /** A simulated result, as saved: votes and ballot party per coalition. */
 export interface SeatRecord {
@@ -12,6 +13,8 @@ export interface SeatRecord {
   turnout: number;
   votes: Partial<Record<CoalitionId, number>>;
   parties: Partial<Record<CoalitionId, string>>;
+  /** Who stood for each coalition. */
+  names?: Partial<Record<CoalitionId, string>>;
 }
 
 export interface Candidate {
@@ -55,8 +58,13 @@ export function ge15Candidate(seat: number, c: CoalitionId, party?: string): str
   return hit?.name ?? null;
 }
 
-export function recordFrom(r: SeatResult, label: string, week: number, parties: Partial<Record<CoalitionId, string>>): SeatRecord {
-  return { label, week, turnout: r.turnout, votes: r.votes, parties };
+export function recordFrom(r: SeatResult, label: string, week: number, parties: Partial<Record<CoalitionId, string>>, names?: Partial<Record<CoalitionId, string>>): SeatRecord {
+  return { label, week, turnout: r.turnout, votes: r.votes, parties, names };
+}
+
+/** A losing candidate's name: whoever stood for that party here at GE15, else a local party member. */
+export function standingName(seed: number, seat: number, c: CoalitionId, party: string, label: string): string {
+  return ge15Candidate(seat, c, party) ?? makeName(recruitBloc(party, SEATS[seat].demo.ethnic, seed, seat, party, label), seed, seat, party, label);
 }
 
 export function resultView(records: (SeatRecord | null)[], i: number): ResultView {
@@ -71,7 +79,7 @@ export function resultView(records: (SeatRecord | null)[], i: number): ResultVie
     .sort((a, b) => b[1] - a[1])
     .map(([c, votes]) => {
       const party = rec.parties[c] ?? c;
-      return { name: ge15Candidate(i, c, party) ?? `${party} candidate`, party, coalition: c, votes, share: votes / Math.max(1, valid) };
+      return { name: rec.names?.[c] ?? ge15Candidate(i, c, party) ?? `${party} candidate`, party, coalition: c, votes, share: votes / Math.max(1, valid) };
     });
   return {
     label: rec.label,

@@ -6,10 +6,12 @@ import { CARDS, DIFFICULTY } from "../config";
 import { runSeatElection } from "../election";
 import { recordFrom } from "./results";
 import { seatCandidate } from "./coalitions";
+import { byId, leave, mpOf, seatWinners } from "./people";
+import { standingName } from "./results";
 import { fmtRM } from "../money";
 import { hash01 } from "../rng";
 import { isGovernment, voterInputs, weekDate, type CardInstance, type GameState, type ReportLine } from "../state";
-import { contestingIn, cshort, PARTIES, SEATS, STATE_BY_ID } from "../world";
+import { contestingIn, cshort, PARTIES, SEATS, STATE_BY_ID, type CoalitionId } from "../world";
 import { MULTIRACIAL } from "./policies";
 import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, addPoints, contestChance, factionSize, promote, succession } from "./career";
 import { addSeg, describeSeg, type SegEffects } from "./segments";
@@ -35,6 +37,13 @@ export interface Effect {
   seatBuzz?: number;
   /** Hold the card's by-election now. */
   byElection?: boolean;
+  /** The card's person: loyalty to you, and standing in their party. */
+  personLoyalty?: number;
+  personInfluence?: number;
+  /** A rival faction will challenge you at the next AGM. */
+  challenge?: boolean;
+  /** The card's MP quits the party; under the anti-hopping law the seat falls vacant (a by-election follows). */
+  hop?: boolean;
   /** Satisfaction of the card's party with your coalition. */
   partnerSat?: number;
   /** Satisfaction of every partner party in your coalition. */
@@ -332,6 +341,40 @@ export const WALKOUT_CARD: CardDef = {
   defaultChoice: 2,
 };
 
+/** Your deputy is restless (you lead the party). */
+export const DEPUTY_CARD: CardDef = {
+  kind: "deputyRestless",
+  title: "Your deputy is on the move",
+  text: (s, c) => {
+    const p = byId(s, c.person);
+    return p ? `${p.name} is touring the divisions and telling delegates the party needs "fresh direction". Everyone knows what that means.` : "Your deputy is restless.";
+  },
+  choices: () => [
+    { label: "Make peace: give them more say", effect: { personLoyalty: 25, capital: -10 } },
+    { label: "Sideline them", effect: { personLoyalty: -20, personInfluence: -15, unity: -6 }, note: "They may still challenge you." },
+    { label: "Ignore it", effect: { challenge: true }, note: "Expect a challenge at the next AGM." },
+  ],
+  defaultChoice: 2,
+};
+
+/** An MP from your coalition thinks about crossing over. */
+export const JUMP_CARD: CardDef = {
+  kind: "mpJump",
+  title: "An MP is thinking of jumping",
+  text: (s, c) => {
+    const p = byId(s, c.person);
+    return p && p.seat !== null
+      ? `${p.name} (${p.party}, ${SEATS[p.seat].name}) has been seen with the other side. Under the anti-hopping law, leaving the party empties the seat for a by-election.`
+      : "An MP is unhappy.";
+  },
+  choices: () => [
+    { label: "Win them back (RM 800k in allocations)", effect: { funds: -800_000, personLoyalty: 30 } },
+    { label: "A seat on a GLC board", effect: { personLoyalty: 20, integrity: -3, risk: 4 } },
+    { label: "Let them go", effect: { hop: true, byElection: true } },
+  ],
+  defaultChoice: 2,
+};
+
 /** Seat-allocation talks inside your coalition once Parliament is dissolved. */
 export const SEAT_TALKS_CARD: CardDef = {
   kind: "seatTalks",
@@ -359,6 +402,8 @@ export const CARD_BY_KIND: Record<string, CardDef> = Object.fromEntries([
   ...CARD_DEFS.map((d) => [d.kind, d]),
   [AGM_CARD.kind, AGM_CARD],
   [WALKOUT_CARD.kind, WALKOUT_CARD],
+  [DEPUTY_CARD.kind, DEPUTY_CARD],
+  [JUMP_CARD.kind, JUMP_CARD],
   [SEAT_TALKS_CARD.kind, SEAT_TALKS_CARD],
   ...FESTIVALS.map((f) => [
     f.kind,
@@ -396,6 +441,9 @@ export function describeEffect(e: Effect): string {
   if (e.byElection) parts.push("Polls open now");
   if (e.careerPoints) parts.push(`Career points +${e.careerPoints}`);
   if (e.partnerSat) parts.push(`Their goodwill ${e.partnerSat > 0 ? "+" : "−"}${Math.abs(e.partnerSat)}`);
+  if (e.personLoyalty) parts.push(`Their loyalty ${e.personLoyalty > 0 ? "+" : "−"}${Math.abs(e.personLoyalty)}`);
+  if (e.personInfluence) parts.push(`Their standing ${e.personInfluence > 0 ? "+" : "−"}${Math.abs(e.personInfluence)}`);
+  if (e.hop) parts.push("By-election");
   if (e.partnersSat) parts.push(`Partners' goodwill ${e.partnersSat > 0 ? "+" : "−"}${Math.abs(e.partnersSat)}`);
   if (e.careerContest) parts.push("Delegates vote");
   return parts.join(" · ") || "No effect";
@@ -424,6 +472,18 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
     });
   if (e.seatBuzz && card?.seat !== undefined) me.buzz[card.seat] = clamp(me.buzz[card.seat] + e.seatBuzz);
   let state: GameState = { ...s, me, economy: clamp(s.economy + (e.economy ?? 0)), fiscal: clamp(s.fiscal + (e.fiscal ?? 0)) };
+  if (card?.person !== undefined && (e.personLoyalty || e.personInfluence))
+    state.people = state.people.map((p) =>
+      p.id === card.person ? { ...p, loyalty: clamp(p.loyalty + (e.personLoyalty ?? 0)), influence: clamp(p.influence + (e.personInfluence ?? 0)) } : p,
+    );
+  if (e.challenge && state.career.rung >= PRESIDENT) state.career = { ...state.career, challenge: true };
+  if (e.hop && card?.person !== undefined) {
+    const p = byId(state, card.person);
+    if (p) {
+      lines.push({ text: `${p.name} quits ${p.party}. The seat falls vacant.`, tone: "bad" });
+      state = leave(state, p.id, "defects", lines);
+    }
+  }
   if (e.partnerSat && card?.party) state.partySat = { ...state.partySat, [card.party]: clamp((state.partySat[card.party] ?? 55) + e.partnerSat) };
   if (e.partnersSat) {
     const partySat = { ...state.partySat };
@@ -440,7 +500,10 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
     holders[i] = result.winner;
     holderParties[i] = result.winnerParty;
     const seatResults = [...state.seatResults];
-    seatResults[i] = recordFrom(result, "By-election", s.week, Object.fromEntries(contestingIn(SEATS[i]).map((c) => [c, seatCandidate(state, SEATS[i], c)])));
+    state = seatWinners({ ...state, holders, holderParties }, [{ seat: i, party: result.winnerParty }], lines);
+    const parties = Object.fromEntries(contestingIn(SEATS[i]).map((c) => [c, seatCandidate(state, SEATS[i], c)])) as Partial<Record<CoalitionId, string>>;
+    const names = Object.fromEntries((Object.keys(result.votes) as CoalitionId[]).map((c) => [c, c === result.winner ? (mpOf(state, i)?.name ?? "") : standingName(s.seed, i, c, parties[c] ?? c, `by${s.week}`)]));
+    seatResults[i] = recordFrom(result, "By-election", s.week, parties, names);
     state = { ...state, rng: rngState, holders, holderParties, seatResults };
     const won = result.winner === s.player;
     const name = SEATS[i].name;

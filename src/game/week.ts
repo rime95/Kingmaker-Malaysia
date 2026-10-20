@@ -8,6 +8,7 @@ import { careerAfterGE, careerWeek, goalsWeek } from "./progress";
 import { newBubbles } from "./systems/bubbles";
 import { pollsWeek } from "./systems/polls";
 import { coalitionsWeek, syncNames } from "./systems/coalitions";
+import { peopleMonth, syncYou } from "./systems/people";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
 import { rivalsWeek } from "./systems/rivals";
@@ -186,17 +187,32 @@ export function advanceWeek(input: GameState): GameState {
   const coal = coalitionsWeek(next);
   next = coal.state;
   lines.push(...coal.lines);
-  const addCard = (kind: string, party?: string) => {
+  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping" };
+  const addCard = (kind: string, party?: string, person?: number, seat?: number) => {
     const id = Math.max(0, ...next.cards.map((c) => c.id), next.week * 10) + 1;
-    next = { ...next, cards: [...next.cards, { id, kind, week: next.week, deadline: next.week + 2, party }], cardLast: { ...next.cardLast, [kind]: next.week } };
-    lines.push({ text: `Needs you: ${kind === "seatTalks" ? "seat talks with your partners" : "a partner threatens to walk out"}.`, tone: "info" });
+    next = { ...next, cards: [...next.cards, { id, kind, week: next.week, deadline: next.week + 2, party, person, seat }], cardLast: { ...next.cardLast, [kind]: next.week } };
+    lines.push({ text: `Needs you: ${CARD_NEWS[kind]}.`, tone: "info" });
   };
   if (coal.warn && next.cards.length < 4) addCard("partnerWalkout", coal.warn);
   if (next.cards.length < 4 && next.parliament.status === "campaign" && next.coalitions[next.player].members.length > 1 && (next.cardLast.seatTalks ?? -99) < next.week - 12) addCard("seatTalks");
 
+  // People: age, standing, retirements and successions
+  const ppl = peopleMonth(next);
+  next = ppl.state;
+  lines.push(...ppl.lines);
+  if (next.week % 4 === 2 && next.cards.length < 4) {
+    const lead = next.coalitions[next.player].members[0];
+    const mine = next.coalitions[next.player].members;
+    const you = next.people.find((p) => p.id === next.youId);
+    const deputy = next.people.find((p) => p.party === lead && p.rank === 4);
+    const jumper = next.people.find((p) => p.seat !== null && p.id !== next.youId && mine.includes(p.party) && next.holders[p.seat] === next.player && p.loyalty < 18 && !p.retired);
+    if (you?.rank === 5 && deputy && deputy.loyalty < 30 && deputy.ambition > 55 && (next.cardLast.deputyRestless ?? -99) < next.week - 26) addCard("deputyRestless", undefined, deputy.id);
+    else if (jumper && hash01("jump", next.seed, next.week) < 0.35 && (next.cardLast.mpJump ?? -99) < next.week - 12) addCard("mpJump", undefined, jumper.id, jumper.seat!);
+  }
+
   // Your career, term objectives and achievements
   const career = careerWeek(next);
-  next = career.state;
+  next = syncYou(career.state, lines);
   next = { ...next, me: { ...next.me, ap: next.me.apMax } };
   lines.push(...career.lines);
   // New opportunity bubbles (last week's expire unclaimed)
