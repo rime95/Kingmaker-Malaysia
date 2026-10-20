@@ -14,6 +14,10 @@ import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, decid
 import { CAREER as CAREER_LOYALTY, RUNGS, addPoints, isPresident } from "./systems/career";
 import { raceMove, type RaceMove } from "./systems/partyrace";
 import { fire, hire, pollError, raise, teamAp } from "./systems/team";
+import { NATION, PROJECT_BY_ID, type Nation } from "./systems/nation";
+import { startFormation } from "./systems/formation";
+import { seatCounts } from "./state";
+import { hash01 } from "./rng";
 import { careerAfterFormation } from "./progress";
 import { aiRebrand } from "./systems/coalitions";
 import { PEOPLE, byId, favourBlocked, favourOf, formCabinet, meetPerson, mpOf, syncYou } from "./systems/people";
@@ -77,6 +81,9 @@ export function allyIn(s: GameState, i: number): CoalitionId | null {
 export const ALLY_BUZZ = 12;
 
 /** Role moves earn career points at most once a week (the work counts, not the number of photo-ops). */
+/** Seats behind the government. */
+export const govSeats = (s: GameState) => s.holders.filter((h) => s.government.includes(h)).length;
+
 const careerPoints = (n: number, why: string) => (s: GameState) => (s.career.roleWeek === s.week ? s : { ...s, career: { ...addPoints(s.career, s.week, n, why), roleWeek: s.week } });
 const home = (s: GameState) => s.career.homeSeat;
 
@@ -210,6 +217,127 @@ const ROLE_ACTIONS: ActionDef[] = [
     after: careerPoints(2, "brokered a deal"),
   },
 ];
+
+/** Running the country (as Prime Minister) and holding it to account (in opposition). */
+const NATION_ACTIONS: ActionDef[] = [
+  {
+    id: "roadshow",
+    name: "Investment roadshow",
+    group: "national",
+    target: "none",
+    ap: 1,
+    only: "gov",
+    blurb: "Tokyo, Shenzhen, Silicon Valley: sell Malaysia to investors. The investment climate improves.",
+    cost: () => 0,
+    blocked: (s) => (s.parliament.pm !== s.player ? "Only the Prime Minister leads roadshows." : null),
+    run: (me) => {
+      me.capital = clamp(me.capital - 5, 0, 200);
+      return "Investors sign letters of intent worth billions.";
+    },
+    after: (s) => ({ ...s, nation: { ...s.nation, fdi: clamp(s.nation.fdi + NATION.roadshowFdi) } }),
+  },
+  {
+    id: "attackRecord",
+    name: "Attack the government's record",
+    group: "national",
+    target: "none",
+    ap: 1,
+    only: "opp",
+    blurb: "Prices, jobs, the ringgit: hammer every number that's going wrong. Works best when approval is low.",
+    cost: () => 50_000,
+    run: (me, s) => {
+      const gain = Math.max(2, (55 - s.nation.approval) / 3);
+      me.nationalBuzz = clamp(me.nationalBuzz + gain);
+      return s.nation.approval < 45 ? "Your attack lands: voters are already angry." : "The numbers aren't bad enough to bite. A small win.";
+    },
+  },
+  {
+    id: "noConfidence",
+    name: "Table a no-confidence motion",
+    group: "national",
+    target: "none",
+    ap: 2,
+    only: "opp",
+    blurb: "Bring down the government on the floor of the Dewan. Needs a thin majority, unpopular ministers and wavering partners. Failing costs you.",
+    cost: () => 0,
+    blocked: (s) => {
+      if (!isPresident(s.career)) return LEADERSHIP_ONLY;
+      if (s.parliament.status !== "sitting") return "Parliament is dissolved.";
+      if (s.me.capital < 40) return "Needs 40 political capital.";
+      return govSeats(s) > MAJORITY + 20 ? "The government's majority is too big." : null;
+    },
+    run: (me) => {
+      me.capital = clamp(me.capital - 40, 0, 200);
+      return "";
+    },
+    after: (s) => noConfidence(s),
+  },
+];
+
+/** The chance a no-confidence motion passes: a thin majority, low approval and restless partners. */
+export function noConfidenceChance(s: GameState): number {
+  const margin = govSeats(s) - MAJORITY;
+  return Math.max(0.03, Math.min(0.85, 0.35 - margin / 40 + (45 - s.nation.approval) / 60));
+}
+
+function noConfidence(s: GameState): GameState {
+  const pass = hash01("noconf", s.seed, s.week, s.me.capital) < noConfidenceChance(s);
+  const line = pass ? "The motion passes. The government has lost the confidence of the House." : "The motion fails. The government survives and mocks your stunt.";
+  let state: GameState = pass ? changeGovernmentMidTerm(s) : { ...s, me: { ...s.me, unity: clamp(s.me.unity - 4), nationalBuzz: clamp(s.me.nationalBuzz - 3) } };
+  state = { ...state, report: state.report ? { ...state.report, lines: [{ text: line, tone: pass ? "good" : "bad" }, ...state.report.lines] } : state.report };
+  return state;
+}
+
+/** The government falls between elections: talks resolve at once and the Agong appoints whoever commands the House. */
+export function changeGovernmentMidTerm(s: GameState): GameState {
+  const counts = seatCounts(s.holders);
+  const f = startFormation(s, counts, counts[s.player]);
+  return autoResolveFormation({ ...s, formation: f }, true);
+}
+
+/** Prime Minister's levers. */
+export function leverBlocked(s: GameState): string | null {
+  if (s.parliament.pm !== s.player || !isPresident(s.career)) return "Only you as Prime Minister decide this.";
+  return null;
+}
+
+export function startProject(s: GameState, id: string): ActionResult {
+  const why = leverBlocked(s);
+  if (why) return { ok: false, error: why };
+  const def = PROJECT_BY_ID[id];
+  if (!def) return { ok: false, error: "Unknown project." };
+  if (s.nation.projects.some((p) => p.id === id)) return { ok: false, error: "Already under way." };
+  if (s.fiscal < 20) return { ok: false, error: "No fiscal space for it (needs 20)." };
+  if (s.me.capital < 10) return { ok: false, error: "Needs 10 political capital." };
+  const nation: Nation = { ...s.nation, projects: [...s.nation.projects, { id, progress: 0, startWeek: s.week, done: false }] };
+  const me = { ...s.me, capital: s.me.capital - 10, risk: clamp(s.me.risk + 3), nationalBuzz: clamp(s.me.nationalBuzz + 4) };
+  return { ok: true, state: { ...s, nation, me, fiscal: clamp(s.fiscal - 3) }, message: `Ground is broken on the ${def.name}.` };
+}
+
+export function setCivilPay(s: GameState, stance: Nation["civilPay"]): ActionResult {
+  const why = leverBlocked(s);
+  if (why) return { ok: false, error: why };
+  if (s.nation.civilPay === stance) return { ok: false, error: "Already your policy." };
+  if (s.me.capital < 5) return { ok: false, error: "Needs 5 political capital." };
+  const mood = stance === "raise" ? { malay: 0.02 } : stance === "freeze" ? { malay: -0.02 } : {};
+  return {
+    ok: true,
+    state: { ...s, nation: { ...s.nation, civilPay: stance }, me: { ...s.me, capital: s.me.capital - 5, mood: addSeg(s.me.mood, mood) } },
+    message: stance === "raise" ? "Civil servants get a pay rise." : stance === "freeze" ? "Civil service pay is frozen." : "Civil service pay rises with inflation.",
+  };
+}
+
+export function launchStimulus(s: GameState): ActionResult {
+  const why = leverBlocked(s);
+  if (why) return { ok: false, error: why };
+  if (s.nation.stimulus > 0) return { ok: false, error: "A stimulus is already running." };
+  if (s.me.capital < 10) return { ok: false, error: "Needs 10 political capital." };
+  return {
+    ok: true,
+    state: { ...s, fiscal: clamp(s.fiscal + NATION.stimulusFiscal), nation: { ...s.nation, stimulus: NATION.stimulusWeeks }, me: { ...s.me, capital: s.me.capital - 10 } },
+    message: "A stimulus package: cash for households and contracts for business.",
+  };
+}
 
 export const ACTIONS: ActionDef[] = [
   // Local: one seat
@@ -503,7 +631,7 @@ export const ACTIONS: ActionDef[] = [
   },
 ];
 
-ACTIONS.push(...ROLE_ACTIONS);
+ACTIONS.push(...ROLE_ACTIONS, ...NATION_ACTIONS);
 
 export const ACTION_BY_ID: Record<string, ActionDef> = Object.fromEntries(ACTIONS.map((a) => [a.id, a]));
 
@@ -595,7 +723,7 @@ export function commissionPoll(s: GameState, seat: number): ActionResult {
   };
 }
 
-const LEADERSHIP_ONLY = "Only the party president decides this. Climb the party ladder (Career tab).";
+const LEADERSHIP_ONLY = "Only the party president decides this. Climb the party ladder (Party panel).";
 
 export interface Preview {
   /** Change in seats you would win if the election were today. */
@@ -992,7 +1120,7 @@ export function backForPm(s: GameState, leader: CoalitionId, askDpm: boolean): A
 }
 
 /** Finish the talks (any remaining rounds play out) and let the Agong decide. */
-export function goToAgong(s: GameState): ActionResult {
+export function goToAgong(s: GameState, midTerm = false): ActionResult {
   let f = s.formation;
   if (!f) return { ok: false, error: "No talks are under way." };
   // Below the presidency, your party leadership picks the side for you.
@@ -1022,22 +1150,27 @@ export function goToAgong(s: GameState): ActionResult {
   // A new cabinet: the AI shares posts by seats; as Prime Minister you can reshuffle it any time.
   state.cabinet = formCabinet(state);
   // The winner may rebrand: you name your coalition; an AI prime minister's coalition sometimes relaunches.
-  if (o.pm === s.player) state.namePending = true;
+  if (o.pm === s.player && !midTerm) state.namePending = true;
   else {
     const r = aiRebrand(state, o.pm);
     state = r.state;
     if (r.line) lines.push(r.line.text);
   }
+  const how = o.majority ? `with ${o.sds} SDs` : `leading a minority government on ${o.sds} SDs`;
+  if (midTerm) {
+    const message = `The Agong appoints the leader of ${cshort(o.pm)} as Prime Minister, ${how}.`;
+    state.report = state.report ? { ...state.report, lines: [...state.report.lines, { text: message, tone: inGov ? "good" : "bad" }] } : state.report;
+    return { ok: true, state, message };
+  }
   const tier = winTier(state, f, o);
   state.tiers = [...s.tiers, tier];
-  const how = o.majority ? `with ${o.sds} SDs` : `leading a minority government on ${o.sds} SDs`;
   const message = `The Agong appoints the leader of ${cshort(o.pm)} as Prime Minister, ${how}. ${lines.filter(Boolean).join(" ")} Result: ${TIER_TEXT[tier.tier].name}.`;
   state.report = state.report ? { ...state.report, lines: [...state.report.lines, { text: message, tone: inGov ? "good" : "bad" }] } : state.report;
   return { ok: true, state: careerAfterFormation(state, f, o), message };
 }
 
 /** If time moves on with talks unfinished, they resolve without you: as kingmaker you back your natural partner. */
-export function autoResolveFormation(s: GameState): GameState {
+export function autoResolveFormation(s: GameState, midTerm = false): GameState {
   let state = s;
   const f = s.formation;
   if (!f) return s;
@@ -1046,7 +1179,7 @@ export function autoResolveFormation(s: GameState): GameState {
     const pick = (AFFINITY[s.player][x] ?? 0) >= (AFFINITY[s.player][y] ?? 0) ? x : y;
     state = { ...state, formation: backCandidate(f, s.player, pick, false) };
   }
-  const r = goToAgong(state);
+  const r = goToAgong(state, midTerm);
   return r.ok ? r.state : s;
 }
 

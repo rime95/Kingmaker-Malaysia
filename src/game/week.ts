@@ -1,9 +1,9 @@
 // Skip 1 Week: the only place time moves. Skip 1 Month is exactly four of these (see month.ts).
 
-import { DECAY, DIFFICULTY, ECONOMY, ECONOMY_DRIFT, ECONOMY_REST, MACC, MOOD_DECAY, PRN, SEAT_SERVICE_PER_WEEK } from "./config";
+import { DECAY, DIFFICULTY, ECONOMY, ECONOMY_DRIFT, MACC, MOOD_DECAY, PRN, SEAT_SERVICE_PER_WEEK } from "./config";
 import { assembliesWeek, campaignStates, stateRulers, weeksToElection } from "./systems/assemblies";
 import { DUNS_BY_STATE } from "./systems/dun";
-import { autoResolveFormation, tableBudget } from "./actions";
+import { autoResolveFormation, changeGovernmentMidTerm, govSeats, tableBudget } from "./actions";
 import { careerAfterGE, careerWeek, goalsWeek } from "./progress";
 import { newBubbles } from "./systems/bubbles";
 import { pollsWeek } from "./systems/polls";
@@ -11,6 +11,7 @@ import { coalitionsWeek, syncNames } from "./systems/coalitions";
 import { leaderOfParty, peopleMonth, syncYou } from "./systems/people";
 import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
 import { CONTEST_POINTS } from "./systems/career";
+import { economyScore, nationWeek, projectSeats } from "./systems/nation";
 import { ROLES, pollError, teamDonations, teamRaidMult, teamSalaries, teamUpkeepMult, teamWeek } from "./systems/team";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
@@ -20,7 +21,7 @@ import { fmtRM } from "./money";
 import { Rng, hash01 } from "./rng";
 import { isGovernment, machineryBase, projectAllFor, serviceBase, voterInputs, weekDate, type GameState, type ReportLine, type WeekReport } from "./state";
 import { ASSETS, CEO, assetIncome, assetRisk, marketWeek } from "./systems/business";
-import { SEATS, STATE_BY_ID, contestingIn } from "./world";
+import { MAJORITY, SEATS, STATE_BY_ID, contestingIn, cshort } from "./world";
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 const HISTORY_LIMIT = 520;
@@ -135,8 +136,13 @@ export function advanceWeek(input: GameState): GameState {
   // Public reactions and budget measures fade; the economy drifts back toward normal
   me.mood = decaySeg(me.mood, MOOD_DECAY);
   me.budget = decaySeg(me.budget, BUDGET.decay);
-  const economy = clamp(s.economy + (ECONOMY_REST - s.economy) * ECONOMY_DRIFT.economy + (hash01("economy", s.seed, s.week) - 0.5) * ECONOMY_DRIFT.noise);
-  const fiscal = clamp(s.fiscal + (50 - s.fiscal) * ECONOMY_DRIFT.fiscal);
+  // The country: indicators drift toward where policy, ministers, projects and crises push them
+  const nw = nationWeek(s);
+  lines.push(...nw.lines);
+  const economy = economyScore(nw.nation);
+  const fiscal = clamp(s.fiscal + (50 - s.fiscal) * ECONOMY_DRIFT.fiscal + nw.fiscal);
+  // A project opening: the government that built it gets the credit in the seats it serves.
+  if (gov) for (const def of nw.opened) for (const i of projectSeats(def)) if (contestingIn(SEATS[i]).includes(s.player)) me.service[i] = clamp(me.service[i] + 3);
 
   // Rival parties campaign, defend and attack, using this week's starting projections
   const ai = rivalsWeek({
@@ -159,7 +165,7 @@ export function advanceWeek(input: GameState): GameState {
   lines.push(...ai.lines);
 
   me.ap = me.apMax;
-  let next: GameState = { ...s, me, rng: rng.state, week: s.week + 1, economy, fiscal, rivals: ai.rivals };
+  let next: GameState = { ...s, me, rng: rng.state, week: s.week + 1, economy, fiscal, rivals: ai.rivals, nation: nw.nation };
 
   // The Budget: due in the second week of October; officials table a default if the government doesn't
   const year = weekDate(next.week).getFullYear();
@@ -204,13 +210,14 @@ export function advanceWeek(input: GameState): GameState {
   const coal = coalitionsWeek(next);
   next = coal.state;
   lines.push(...coal.lines);
-  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president" };
+  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis" };
   const addCard = (kind: string, party?: string, person?: number, seat?: number) => {
     const id = Math.max(0, ...next.cards.map((c) => c.id), next.week * 10) + 1;
     next = { ...next, cards: [...next.cards, { id, kind, week: next.week, deadline: next.week + 2, party, person, seat }], cardLast: { ...next.cardLast, [kind]: next.week } };
     lines.push({ text: `Needs you: ${CARD_NEWS[kind]}.`, tone: "info" });
   };
   if (coal.warn && next.cards.length < 4) addCard("partnerWalkout", coal.warn);
+  if (nw.crisis) addCard("crisis");
   if (next.cards.length < 4 && next.parliament.status === "campaign" && next.coalitions[next.player].members.length > 1 && (next.cardLast.seatTalks ?? -99) < next.week - 12) addCard("seatTalks");
 
   // People: age, standing, retirements and successions
@@ -238,6 +245,19 @@ export function advanceWeek(input: GameState): GameState {
   if (next.week % 4 === 1 && (c0.rung === 2 || c0.rung === 3) && c0.points >= CONTEST_POINTS[c0.rung] && next.cards.length < 4 && (next.cardLast.appointment ?? -99) < next.week - 12) {
     const pres = leaderOfParty(next, next.coalitions[next.player].members[0]);
     if (pres && pres.id !== next.youId && pres.loyalty >= 45) addCard("appointment", undefined, pres.id);
+  }
+
+  // An unpopular government's partners may walk out; if it loses its majority, it falls.
+  if (next.week % 4 === 1 && next.parliament.status === "sitting" && next.nation.approval < 32 && !next.formation) {
+    const quitter = next.government.find((c) => c !== next.parliament.pm && c !== next.player && c !== "OTHERS" && hash01("quitgov", next.seed, next.week, c) < 0.12);
+    if (quitter) {
+      next = { ...next, government: next.government.filter((c) => c !== quitter) };
+      lines.push({ text: `${cshort(quitter)} pulls out of the government, blaming its record.`, tone: next.government.includes(next.player) ? "bad" : "good" });
+      if (govSeats(next) < MAJORITY) {
+        lines.push({ text: "The government has lost its majority. The Agong calls party leaders to the palace.", tone: "info" });
+        next = changeGovernmentMidTerm(next);
+      }
+    }
   }
 
   // Your career, term objectives and achievements

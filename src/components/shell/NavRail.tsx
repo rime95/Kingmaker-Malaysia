@@ -9,6 +9,7 @@ const ITEMS: { id: Panel; label: StringKey }[] = [
   { id: "party", label: "career" },
   { id: "people", label: "people" },
   { id: "team", label: "team" },
+  { id: "nation", label: "nation" },
   { id: "policy", label: "policy" },
   { id: "states", label: "states" },
   { id: "parliament", label: "dewan" },

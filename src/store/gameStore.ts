@@ -10,6 +10,9 @@ import {
   askFavour,
   closeRace,
   fireStaff,
+  launchStimulus,
+  setCivilPay,
+  startProject,
   hireStaff,
   raceAct,
   raiseStaff,
@@ -48,7 +51,7 @@ import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
 /** Side panels that open over the map. */
-export type Panel = "campaign" | "party" | "people" | "team" | "policy" | "states" | "parliament" | "rivals" | "treasury";
+export type Panel = "campaign" | "party" | "people" | "team" | "nation" | "policy" | "states" | "parliament" | "rivals" | "treasury";
 
 export interface Toast {
   id: number;
@@ -91,6 +94,7 @@ interface Store {
   claim: (bubbleId: number) => void;
   poll: (seat: number) => void;
   meet: (id: number) => void;
+  lever: (l: { kind: "pay"; stance: "freeze" | "normal" | "raise" } | { kind: "stimulus" } | { kind: "project"; id: string }) => void;
   hireStaff: (id: number) => void;
   fireStaff: (id: number) => void;
   raiseStaff: (id: number) => void;
@@ -250,6 +254,11 @@ export const useGame = create<Store>()(
         raiseStaff: (id) => {
           const g = get().game;
           if (g) result(raiseStaff(g, id));
+        },
+        lever: (l) => {
+          const g = get().game;
+          if (!g) return;
+          result(l.kind === "pay" ? setCivilPay(g, l.stance) : l.kind === "stimulus" ? launchStimulus(g) : startProject(g, l.id));
         },
         meet: (id) => {
           const g = get().game;

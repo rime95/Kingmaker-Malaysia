@@ -12,6 +12,7 @@ import { CampaignPanel } from "../panels/CampaignPanel";
 import { PartyPanel } from "../panels/PartyPanel";
 import { PeoplePanel } from "../panels/PeoplePanel";
 import { TeamPanel } from "../panels/TeamPanel";
+import { NationPanel } from "../panels/NationPanel";
 import { Icon } from "./icons";
 
 const TITLES: Record<Panel, { title: string; sub: string }> = {
@@ -19,6 +20,7 @@ const TITLES: Record<Panel, { title: string; sub: string }> = {
   party: { title: "Party & career", sub: "Your party's health and your climb" },
   people: { title: "People", sub: "The cabinet and every party's leadership" },
   team: { title: "Your team", sub: "Your own staff, and who is looking for work" },
+  nation: { title: "The nation", sub: "The economy, the government's record and its levers" },
   policy: { title: "Policy & Budget", sub: "Positions, the economy and the Budget" },
   states: { title: "States", sub: "Assemblies, state elections and dissolution" },
   parliament: { title: "Dewan Rakyat", sub: "Who sits where, and the numbers" },
@@ -56,6 +58,7 @@ export function SidePanel() {
         {panel === "party" && <PartyPanel />}
         {panel === "people" && <PeoplePanel />}
         {panel === "team" && <TeamPanel />}
+        {panel === "nation" && <NationPanel />}
         {panel === "policy" && <Policy />}
         {panel === "states" && <States />}
         {panel === "rivals" && <Rivals />}

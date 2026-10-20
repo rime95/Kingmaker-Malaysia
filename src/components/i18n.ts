@@ -10,6 +10,7 @@ const STRINGS = {
   career: { en: "Party", ms: "Parti" },
   people: { en: "People", ms: "Tokoh" },
   team: { en: "Team", ms: "Pasukan" },
+  nation: { en: "Nation", ms: "Negara" },
   map: { en: "Seat map", ms: "Peta kerusi" },
   dewan: { en: "Dewan", ms: "Dewan" },
   states: { en: "States", ms: "Negeri" },

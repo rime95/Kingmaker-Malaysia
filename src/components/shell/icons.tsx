@@ -31,6 +31,11 @@ export const ICONS = {
       <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18" />
     </svg>
   ),
+  nation: (
+    <svg viewBox="0 0 24 24" {...P}>
+      <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />
+    </svg>
+  ),
   policy: (
     <svg viewBox="0 0 24 24" {...P}>
       <path d="M6 3h9l4 4v14H6z" />

@@ -14,6 +14,7 @@ import { initPeople, syncYou, type Person } from "./systems/people";
 import type { PortfolioId } from "./data/people";
 import type { PartyRace } from "./systems/partyrace";
 import { initTeam, pollError, type Staff } from "./systems/team";
+import { NATION, initNation, type Nation } from "./systems/nation";
 import type { SeatRecord } from "./systems/results";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
@@ -25,7 +26,7 @@ import { COALITIONS, COALITION_INFO, SEATS, type CoalitionId } from "./world";
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -178,6 +179,8 @@ export interface GameState {
   team: Staff[];
   teamMarket: Staff[];
   nextStaffId: number;
+  /** The country: growth, prices, jobs, the ringgit, debt, approval, projects and crises. */
+  nation: Nation;
 }
 
 export interface NewGameOptions {
@@ -261,6 +264,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     youId: null,
     race: null,
     ...initTeam(seed),
+    nation: initNation(),
   };
   Object.assign(state, initPeople(state));
   Object.assign(state, syncYou(state));
@@ -319,6 +323,7 @@ export function migrateGame(g: GameState): GameState {
     team: g.team ?? [],
     teamMarket: g.teamMarket ?? initTeam(g.seed).teamMarket,
     nextStaffId: g.nextStaffId ?? initTeam(g.seed).nextStaffId,
+    nation: g.nation ?? initNation(),
   };
   if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));
@@ -333,6 +338,8 @@ export function playerNationalEffect(state: GameState): number {
   if (me.trust < EFFECT.trustFloor) v -= EFFECT.trustPenalty;
   // The government gets the credit and the blame for the economy; the opposition gains a little from bad times.
   v += (state.economy - ECONOMY_REST) * (isGovernment(state) ? EFFECT.economyGov : -EFFECT.economyOpp);
+  // The government's approval: yours to keep in power, theirs to lose in opposition.
+  if (state.nation) v += (state.nation.approval - 50) * (isGovernment(state) ? NATION.approvalSwingGov : -NATION.approvalSwingOpp);
   return v;
 }
 

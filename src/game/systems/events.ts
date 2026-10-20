@@ -8,6 +8,7 @@ import { recordFrom } from "./results";
 import { seatCandidate } from "./coalitions";
 import { byId, leave, mpOf, seatWinners } from "./people";
 import { RACE, raceOnOffer, startRace } from "./partyrace";
+import { CRISIS_BY_KIND, NATION } from "./nation";
 import { standingName } from "./results";
 import { fmtRM } from "../money";
 import { hash01 } from "../rng";
@@ -38,6 +39,11 @@ export interface Effect {
   seatBuzz?: number;
   /** Hold the card's by-election now. */
   byElection?: boolean;
+  /** Crisis response (government only): how hard the crisis bites, a stimulus, and direct hits to the numbers. */
+  crisisSeverity?: number;
+  stimulus?: boolean;
+  approval?: number;
+  fdi?: number;
   /** Enter this year's party election. */
   raceStart?: boolean;
   /** The card's person: loyalty to you, and standing in their party. */
@@ -338,6 +344,49 @@ export const RACE_CARD: CardDef = {
   defaultChoice: 0,
 };
 
+/** A national crisis: the government decides the response; the opposition decides how to play it. */
+export const CRISIS_CARD: CardDef = {
+  kind: "crisis",
+  title: "National crisis",
+  text: (s) => {
+    const c = s.nation.crisis;
+    const def = c ? CRISIS_BY_KIND[c.kind] : null;
+    if (!def) return "The crisis has passed.";
+    return `${def.title}. ${def.text}${isGovernment(s) ? " The cabinet waits for your call." : " The government is scrambling."}`;
+  },
+  choices: (s) => {
+    const kind = s.nation.crisis?.kind;
+    if (!isGovernment(s))
+      return [
+        { label: "Blame the government", effect: { nationalBuzz: 8, integrity: -1 } },
+        { label: "Offer to work together", effect: { integrity: 4, trust: 3, mood: { urban: 0.02 } } },
+      ];
+    if (kind === "recession")
+      return [
+        { label: "A stimulus package", effect: { stimulus: true, crisisSeverity: 0.6, fiscal: NATION.stimulusFiscal } },
+        { label: "Hold steady", effect: {} },
+        { label: "Cut spending", effect: { fiscal: 6, crisisSeverity: 1.3, approval: -4 } },
+      ];
+    if (kind === "ringgit")
+      return [
+        { label: "Defend it with reserves", effect: { fiscal: -8, crisisSeverity: 0.5 } },
+        { label: "Let it float", effect: {} },
+        { label: "Capital controls", effect: { crisisSeverity: 0.3, fdi: -12, integrity: -2 } },
+      ];
+    if (kind === "pandemic")
+      return [
+        { label: "Lock down early", effect: { crisisSeverity: 1.15, approval: 6, fiscal: -6 } },
+        { label: "Targeted measures", effect: { crisisSeverity: 0.8, fiscal: -4 } },
+        { label: "Stay open", effect: { crisisSeverity: 1.3, approval: -5 } },
+      ];
+    return [
+      { label: "Save the windfall", effect: { fiscal: 10 } },
+      { label: "Share it with the people", effect: { fiscal: 3, approval: 5, mood: { b40: 0.03 } } },
+    ];
+  },
+  defaultChoice: 1,
+};
+
 /** Your party president offers you a ministerial (or shadow) post. */
 export const APPOINT_CARD: CardDef = {
   kind: "appointment",
@@ -432,6 +481,7 @@ export const CARD_BY_KIND: Record<string, CardDef> = Object.fromEntries([
   ...CARD_DEFS.map((d) => [d.kind, d]),
   [AGM_CARD.kind, AGM_CARD],
   [RACE_CARD.kind, RACE_CARD],
+  [CRISIS_CARD.kind, CRISIS_CARD],
   [APPOINT_CARD.kind, APPOINT_CARD],
   [WALKOUT_CARD.kind, WALKOUT_CARD],
   [DEPUTY_CARD.kind, DEPUTY_CARD],
@@ -476,6 +526,10 @@ export function describeEffect(e: Effect): string {
   if (e.personLoyalty) parts.push(`Their loyalty ${e.personLoyalty > 0 ? "+" : "−"}${Math.abs(e.personLoyalty)}`);
   if (e.personInfluence) parts.push(`Their standing ${e.personInfluence > 0 ? "+" : "−"}${Math.abs(e.personInfluence)}`);
   if (e.hop) parts.push("By-election");
+  if (e.crisisSeverity) parts.push(e.crisisSeverity < 1 ? `Softens the blow (×${e.crisisSeverity})` : `Bites harder (×${e.crisisSeverity})`);
+  if (e.stimulus) parts.push("Growth +0.8 for six months");
+  if (e.approval) parts.push(`Approval ${e.approval > 0 ? "+" : "−"}${Math.abs(e.approval)}`);
+  if (e.fdi) parts.push(`Investment ${e.fdi > 0 ? "+" : "−"}${Math.abs(e.fdi)}`);
   if (e.partnersSat) parts.push(`Partners' goodwill ${e.partnersSat > 0 ? "+" : "−"}${Math.abs(e.partnersSat)}`);
   if (e.careerContest) parts.push("Delegates vote");
   return parts.join(" · ") || "No effect";
@@ -504,6 +558,16 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
     });
   if (e.seatBuzz && card?.seat !== undefined) me.buzz[card.seat] = clamp(me.buzz[card.seat] + e.seatBuzz);
   let state: GameState = { ...s, me, economy: clamp(s.economy + (e.economy ?? 0)), fiscal: clamp(s.fiscal + (e.fiscal ?? 0)) };
+  // The economy score is rebuilt from the indicators each week, so shocks go into growth itself.
+  if (e.economy || e.crisisSeverity || e.stimulus || e.approval || e.fdi) {
+    const n = { ...state.nation };
+    n.gdp += (e.economy ?? 0) * 0.08;
+    if (e.crisisSeverity && n.crisis) n.crisis = { ...n.crisis, severity: n.crisis.severity * e.crisisSeverity };
+    if (e.stimulus) n.stimulus = NATION.stimulusWeeks;
+    n.approval = Math.max(5, Math.min(95, n.approval + (e.approval ?? 0)));
+    n.fdi = clamp(n.fdi + (e.fdi ?? 0));
+    state.nation = n;
+  }
   if (card?.person !== undefined && (e.personLoyalty || e.personInfluence))
     state.people = state.people.map((p) =>
       p.id === card.person ? { ...p, loyalty: clamp(p.loyalty + (e.personLoyalty ?? 0)), influence: clamp(p.influence + (e.personInfluence ?? 0)) } : p,
