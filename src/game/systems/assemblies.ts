@@ -8,10 +8,11 @@
 import { ASSEMBLY_TERMS, GE, PRN, START_DATE } from "../config";
 import { runElection, type ElectionResult } from "../election";
 import { recordFrom } from "./results";
+import { seatCandidate } from "./coalitions";
 import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
 import { projectAll, type VoterInputs } from "../voter";
-import { COALITIONS, COALITION_INFO, MAJORITY, SEATS, STATES, STATE_BY_ID, candidateParty, contestingIn, type CoalitionId } from "../world";
+import { COALITIONS, contestingIn, cshort, MAJORITY, SEATS, STATE_BY_ID, STATES, type CoalitionId } from "../world";
 import { DUNS_BY_STATE, projectDuns, runStateElection } from "./dun";
 import { startFormation } from "./formation";
 import { addPoints } from "./career";
@@ -177,9 +178,9 @@ function holdStateElection(s: GameState, stateId: string, inputs: VoterInputs, l
   const mine = (ruleAfter.seats[p] ?? 0) - (ruleBefore.seats[p] ?? 0);
   const summary = (Object.entries(ruleAfter.seats) as [CoalitionId, number][])
     .sort((a, b) => b[1] - a[1])
-    .map(([c, n]) => `${COALITION_INFO[c].short} ${n}`)
+    .map(([c, n]) => `${cshort(c)} ${n}`)
     .join(", ");
-  const change = ruleAfter.ruler !== ruleBefore.ruler ? `${COALITION_INFO[ruleAfter.ruler].short} takes ${name} from ${COALITION_INFO[ruleBefore.ruler].short}` : `${COALITION_INFO[ruleAfter.ruler].short} holds ${name}`;
+  const change = ruleAfter.ruler !== ruleBefore.ruler ? `${cshort(ruleAfter.ruler)} takes ${name} from ${cshort(ruleBefore.ruler)}` : `${cshort(ruleAfter.ruler)} holds ${name}`;
   lines.push({
     text: `${name} state election: ${change} (${summary}). ${mine === 0 ? "No net change for you" : `You ${mine > 0 ? "won" : "lost"} ${Math.abs(mine)} seat${Math.abs(mine) === 1 ? "" : "s"} net`}.`,
     tone: ruleAfter.ruler === p || mine > 0 ? "good" : mine < 0 || ruleBefore.ruler === p ? "bad" : "info",
@@ -188,14 +189,14 @@ function holdStateElection(s: GameState, stateId: string, inputs: VoterInputs, l
 }
 
 function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLine[]): GameState {
-  const { result, rngState } = runElection(inputs, s.rng);
+  const { result, rngState } = runElection(inputs, s.rng, (seat, c) => seatCandidate(s, seat, c));
   const before = countSeats(s.holders);
   const holders = result.seats.map((r) => r.winner);
   const holderParties = result.seats.map((r) => r.winnerParty);
   const geCount = s.geCount + 1;
   const seatResults = result.seats.map((r) => {
     const seat = SEATS[r.seatIndex];
-    return recordFrom(r, `GE${geCount}`, s.week, Object.fromEntries(contestingIn(seat).map((c) => [c, candidateParty(seat, c)])));
+    return recordFrom(r, `GE${geCount}`, s.week, Object.fromEntries(contestingIn(seat).map((c) => [c, seatCandidate(s, seat, c)])));
   });
   let next: GameState = {
     ...s,
@@ -220,9 +221,9 @@ function generalSummary(result: ElectionResult, player: CoalitionId): string {
   const parts = (Object.entries(result.totals) as [CoalitionId, number][])
     .filter(([, n]) => n > 0)
     .sort((a, b) => b[1] - a[1])
-    .map(([c, n]) => `${COALITION_INFO[c].short} ${n}`)
+    .map(([c, n]) => `${cshort(c)} ${n}`)
     .join(", ");
-  return `General election results: ${parts}. ${COALITION_INFO[player].short} won ${result.totals[player]} seats; ${MAJORITY} needed for a majority.`;
+  return `General election results: ${parts}. ${cshort(player)} won ${result.totals[player]} seats; ${MAJORITY} needed for a majority.`;
 }
 
 /**
@@ -243,7 +244,7 @@ export function assembliesWeek(s: GameState, inputs: VoterInputs): { state: Game
       const proj = projectAll(inputs);
       const govSeats = proj.filter((p) => state.government.includes(p.leader)).length;
       if (govSeats >= MAJORITY + GE.aiLead && hash01("ge", seed, week) < GE.aiChance)
-        reason = `The Prime Minister (${COALITION_INFO[pm].short}) has advised the Agong to dissolve Parliament`;
+        reason = `The Prime Minister (${cshort(pm)}) has advised the Agong to dissolve Parliament`;
     }
     if (reason) {
       state = dissolveParliament(state);
@@ -269,7 +270,7 @@ export function assembliesWeek(s: GameState, inputs: VoterInputs): { state: Game
       const ahead = DUNS_BY_STATE[id].filter((d) => dunProj![d].leader === ruler).length > DUNS_BY_STATE[id].length / 2;
       if (ahead) {
         state = dissolveAssembly(state, id);
-        lines.push({ text: `${COALITION_INFO[ruler].short} calls an early ${name} state election. Polling day is in ${PRN.campaignWeeks} weeks.`, tone: "info" });
+        lines.push({ text: `${cshort(ruler)} calls an early ${name} state election. Polling day is in ${PRN.campaignWeeks} weeks.`, tone: "info" });
       }
     }
   }

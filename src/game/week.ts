@@ -7,6 +7,7 @@ import { autoResolveFormation, tableBudget } from "./actions";
 import { careerAfterGE, careerWeek, goalsWeek } from "./progress";
 import { newBubbles } from "./systems/bubbles";
 import { pollsWeek } from "./systems/polls";
+import { coalitionsWeek, syncNames } from "./systems/coalitions";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
 import { rivalsWeek } from "./systems/rivals";
@@ -43,6 +44,7 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
 
 export function advanceWeek(input: GameState): GameState {
   // Unfinished government talks resolve before time moves on.
+  syncNames(input);
   const s = input.formation ? autoResolveFormation(input) : input;
   const before = projectAllFor(s);
   const gov = isGovernment(s);
@@ -179,6 +181,18 @@ export function advanceWeek(input: GameState): GameState {
     next = ge.state;
     lines.push(...ge.lines);
   }
+
+  // Coalitions: partners' satisfaction, walkouts, and seat talks once Parliament is dissolved
+  const coal = coalitionsWeek(next);
+  next = coal.state;
+  lines.push(...coal.lines);
+  const addCard = (kind: string, party?: string) => {
+    const id = Math.max(0, ...next.cards.map((c) => c.id), next.week * 10) + 1;
+    next = { ...next, cards: [...next.cards, { id, kind, week: next.week, deadline: next.week + 2, party }], cardLast: { ...next.cardLast, [kind]: next.week } };
+    lines.push({ text: `Needs you: ${kind === "seatTalks" ? "seat talks with your partners" : "a partner threatens to walk out"}.`, tone: "info" });
+  };
+  if (coal.warn && next.cards.length < 4) addCard("partnerWalkout", coal.warn);
+  if (next.cards.length < 4 && next.parliament.status === "campaign" && next.coalitions[next.player].members.length > 1 && (next.cardLast.seatTalks ?? -99) < next.week - 12) addCard("seatTalks");
 
   // Your career, term objectives and achievements
   const career = careerWeek(next);

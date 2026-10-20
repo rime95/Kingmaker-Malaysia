@@ -5,7 +5,8 @@ import { MalaysiaMap } from "./map/MalaysiaMap";
 import { fmtRM } from "@/game/money";
 import { TIER_TEXT } from "@/game/systems/formation";
 import { useGame } from "@/store/gameStore";
-import { COALITION_INFO, MAJORITY, SEATS, TOTAL_SEATS, type CoalitionId } from "@/game/world";
+import { coalitionLeader } from "@/game/systems/coalitions";
+import { cshort, MAJORITY, SEATS, TOTAL_SEATS, type CoalitionId } from "@/game/world";
 import { CHART_ORDER, coalColor, fmt } from "./common";
 import { CoalitionTalks } from "./CoalitionTalks";
 import { useT } from "./i18n";
@@ -119,7 +120,7 @@ function Count({ onDone }: { onDone: () => void }) {
 
       {latestGain && (
         <div className="rounded-lg px-4 py-2 text-center font-bold" style={{ background: coalColor(player), color: "#fff" }} role="status">
-          {t("seatStolen")} {SEATS[latestGain.seatIndex].name} from {COALITION_INFO[prev[latestGain.seatIndex]].short}, by {fmt(latestGain.majority)} votes
+          {t("seatStolen")} {SEATS[latestGain.seatIndex].name} from {cshort(prev[latestGain.seatIndex])}, by {fmt(latestGain.majority)} votes
         </div>
       )}
 
@@ -151,7 +152,7 @@ function RaceBars({ counts, player }: { counts: Record<CoalitionId, number>; pla
       {top.slice(0, 6).map((c) => (
         <div key={c} className="grid grid-cols-[72px_1fr_40px] items-center gap-2">
           <span className="text-sm font-semibold" style={{ color: c === player ? "var(--ink)" : "var(--ink-2)" }}>
-            {COALITION_INFO[c].short}
+            {cshort(c)}
             {c === player ? " ★" : ""}
           </span>
           <div className="relative h-5 rounded-sm" style={{ background: "var(--surface-2)" }}>
@@ -182,14 +183,14 @@ function Ticker({ order, prev, player }: { order: { seatIndex: number; winner: C
         const upset = flip && seat.ge15Majority > 8000;
         const tags: string[] = [];
         if (upset) tags.push("UPSET");
-        else if (flip) tags.push(`GAIN from ${COALITION_INFO[prev[r.seatIndex]].short}`);
+        else if (flip) tags.push(`GAIN from ${cshort(prev[r.seatIndex])}`);
         if (r.majority < 300) tags.push("RECOUNT");
         else if (r.majority < 1500) tags.push("Too close to call");
         return (
           <div key={r.seatIndex} className="flex items-center gap-2 text-sm">
             <span className="swatch" style={{ background: coalColor(r.winner) }} />
             <span className="truncate">
-              <b>{seat.name}</b> · {r.winnerParty} ({COALITION_INFO[r.winner].short}) {flip ? "wins" : "holds"} by {fmt(r.majority)}
+              <b>{seat.name}</b> · {r.winnerParty} ({cshort(r.winner)}) {flip ? "wins" : "holds"} by {fmt(r.majority)}
             </span>
             {tags.map((t) => (
               <span
@@ -214,7 +215,7 @@ function Summary({ counts, prev, player }: { counts: Record<CoalitionId, number>
     <div className="panel p-4">
       <div className="font-semibold mb-1">The night in one line</div>
       <p className="text-sm" style={{ color: "var(--ink-2)" }}>
-        {COALITION_INFO[player].short} {now >= before ? "rises" : "falls"} from {before} to {now} seats. Nobody reaches {MAJORITY} alone
+        {cshort(player)} {now >= before ? "rises" : "falls"} from {before} to {now} seats. Nobody reaches {MAJORITY} alone
         {CHART_ORDER.some((c) => counts[c] >= MAJORITY) ? "… except one coalition, which has a majority on its own." : ", so the talks begin."}
       </p>
     </div>
@@ -252,7 +253,7 @@ function Verdict({ onClose }: { onClose: () => void }) {
         </div>
         <p className="text-sm">{t.text}</p>
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
-          Prime Minister: {COALITION_INFO[pm].leader} ({COALITION_INFO[pm].short}) with {tier.govSeats} seats behind the government.{" "}
+          Prime Minister: {coalitionLeader(game, pm)} ({cshort(pm)}) with {tier.govSeats} seats behind the government.{" "}
           {pm === game.player ? "That's you." : inGov ? "You are in government." : "You are in opposition."}
         </p>
         <p className="text-xs" style={{ color: "var(--muted)" }}>

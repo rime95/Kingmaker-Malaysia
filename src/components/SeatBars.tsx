@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useGame } from "@/store/gameStore";
 import { seatCounts } from "@/game/state";
-import { COALITION_INFO, MAJORITY, TOTAL_SEATS, type CoalitionId } from "@/game/world";
+import { cname, cshort, MAJORITY, TOTAL_SEATS, type CoalitionId } from "@/game/world";
 import { CHART_ORDER, coalColor } from "./common";
 
 /** Stacked seat bars (holders now, the latest national poll, the last war-room simulation) with the 112 majority line. */
@@ -20,7 +20,7 @@ export function SeatBars() {
         {CHART_ORDER.map((c) => (
           <span key={c} className="inline-flex items-center gap-1.5">
             <span className="swatch" style={{ background: coalColor(c) }} />
-            {COALITION_INFO[c].short}
+            {cshort(c)}
           </span>
         ))}
         <span className="ml-auto" style={{ color: "var(--muted)" }}>
@@ -51,7 +51,7 @@ function Bar({ label, counts, player, government }: { label: string; counts: Rec
               onMouseLeave={() => setHover(null)}
               style={{ width: `${(counts[c] / TOTAL_SEATS) * 100}%`, background: coalColor(c), opacity: hover && hover !== c ? 0.45 : 1 }}
               className="h-full flex items-center justify-center text-[11px] font-semibold text-white"
-              title={`${COALITION_INFO[c].name}: ${counts[c]} seats`}
+              title={`${cname(c)}: ${counts[c]} seats`}
             >
               {counts[c] >= 12 ? counts[c] : ""}
             </div>
@@ -60,7 +60,7 @@ function Bar({ label, counts, player, government }: { label: string; counts: Rec
         <div className="absolute -top-1 -bottom-1 w-[2px]" style={{ left: `${(MAJORITY / TOTAL_SEATS) * 100}%`, background: "var(--ink)" }} />
       </div>
       <span className="text-xs tabular-nums text-right" style={{ color: "var(--ink-2)" }}>
-        {hover ? `${COALITION_INFO[hover].short} ${counts[hover]}` : `You ${counts[player]} · Gov bloc ${gov}`}
+        {hover ? `${cshort(hover)} ${counts[hover]}` : `You ${counts[player]} · Gov bloc ${gov}`}
       </span>
     </div>
   );

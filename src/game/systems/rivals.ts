@@ -9,7 +9,7 @@ import { serviceBase } from "../bases";
 
 import { hash01 } from "../rng";
 import type { Projection } from "../voter";
-import { COALITIONS, COALITION_INFO, SEATS, STATE_BY_ID, contestingIn, type CoalitionId } from "../world";
+import { COALITIONS, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "../world";
 
 export type Mood = "confident" | "rattled" | "desperate";
 
@@ -200,13 +200,13 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
       r.funds -= AI.attack.cost;
       playerBuzzHit += AI.attack.playerBuzz;
       playerScandalHit += AI.attack.playerScandal;
-      lines.push({ text: `${COALITION_INFO[c].short} ran attack ads against ${COALITION_INFO[player].short}.`, tone: "bad" });
+      lines.push({ text: `${cshort(c)} ran attack ads against ${cshort(player)}.`, tone: "bad" });
       spent.push("attack ads against you");
     }
 
     if (onYourSeats > 0 && week % 4 === 0) {
       const names = r.targets.filter((i) => holders[i] === player).map((i) => SEATS[i].name);
-      lines.push({ text: `${COALITION_INFO[c].short} is working your seats: ${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""}.`, tone: hostile ? "bad" : "info" });
+      lines.push({ text: `${cshort(c)} is working your seats: ${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""}.`, tone: hostile ? "bad" : "info" });
     }
     if (spent.length) r.recent = [`Week ${week + 1}: ${spent.slice(0, 4).join(", ")}${spent.length > 4 ? "…" : ""}`, ...r.recent].slice(0, 5);
 
@@ -217,7 +217,7 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
       const moneyTerm = Math.max(-20, Math.min(20, ((r.funds - START[c].funds) / START[c].funds) * 20));
       r.strength = Math.round(clamp(50 + seatTerm + moneyTerm));
       const mood: Mood = r.strength >= 45 ? "confident" : r.strength >= 30 ? "rattled" : "desperate";
-      if (mood !== prev.mood) lines.push({ text: `${COALITION_INFO[c].short} is now ${MOOD_LABEL[mood]} (strength ${r.strength}).`, tone: "info" });
+      if (mood !== prev.mood) lines.push({ text: `${cshort(c)} is now ${MOOD_LABEL[mood]} (strength ${r.strength}).`, tone: "info" });
       r.mood = mood;
     }
     out[c] = r;

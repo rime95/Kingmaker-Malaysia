@@ -3,7 +3,7 @@
 import { ELECTION_NOISE, TURNOUT } from "./config";
 import { Rng } from "./rng";
 import { seatShares, topTwo, type VoterInputs } from "./voter";
-import { COALITIONS, SEATS, STATES, candidateParty, type CoalitionId } from "./world";
+import { COALITIONS, SEATS, STATES, candidateParty, type CoalitionId, type Seat } from "./world";
 
 export interface SeatResult {
   seatIndex: number;
@@ -30,7 +30,10 @@ function gaussian(rng: Rng): number {
 }
 
 /** A single-seat by-election: local noise only, lower turnout. */
-export function runSeatElection(inputs: VoterInputs, seatIndex: number, rngState: number): { result: SeatResult; rngState: number } {
+/** Which party a coalition fields in a seat (defaults to the starting line-up). */
+export type PartyOf = (seat: Seat, c: CoalitionId) => string;
+
+export function runSeatElection(inputs: VoterInputs, seatIndex: number, rngState: number, partyOf: PartyOf = candidateParty): { result: SeatResult; rngState: number } {
   const rng = new Rng(rngState);
   const seat = SEATS[seatIndex];
   const noise = Object.fromEntries(COALITIONS.map((c) => [c, gaussian(rng) * (ELECTION_NOISE.seat + ELECTION_NOISE.state)]));
@@ -38,16 +41,16 @@ export function runSeatElection(inputs: VoterInputs, seatIndex: number, rngState
   const turnout = Math.min(TURNOUT.max, Math.max(TURNOUT.min, TURNOUT.base - 0.15 - seat.demo.youth * TURNOUT.youthPenalty + gaussian(rng) * TURNOUT.noise));
   const cast = Math.round(seat.electorate * turnout);
   const votes: Partial<Record<CoalitionId, number>> = {};
-  for (const c of Object.keys(shares) as CoalitionId[]) votes[c] = Math.round(cast * shares[c]!);
+  for (const c of Object.keys(shares) as CoalitionId[]) if (shares[c]! > 0.001) votes[c] = Math.round(cast * shares[c]!);
   const [winner, v1, runnerUp, v2] = topTwo(votes);
   return {
-    result: { seatIndex, turnout, votes, winner, winnerParty: candidateParty(seat, winner), runnerUp, majority: v1 - v2, callOrder: 0 },
+    result: { seatIndex, turnout, votes, winner, winnerParty: partyOf(seat, winner), runnerUp, majority: v1 - v2, callOrder: 0 },
     rngState: rng.state,
   };
 }
 
 /** Runs one general election. Uses a fixed number of draws so results are reproducible from the seed. */
-export function runElection(inputs: VoterInputs, rngState: number): { result: ElectionResult; rngState: number } {
+export function runElection(inputs: VoterInputs, rngState: number, partyOf: PartyOf = candidateParty): { result: ElectionResult; rngState: number } {
   const rng = new Rng(rngState);
   const national = Object.fromEntries(COALITIONS.map((c) => [c, gaussian(rng) * ELECTION_NOISE.national]));
   const byState: Record<string, Record<string, number>> = {};
@@ -62,6 +65,7 @@ export function runElection(inputs: VoterInputs, rngState: number): { result: El
     const cast = Math.round(seat.electorate * turnout);
     const votes: Partial<Record<CoalitionId, number>> = {};
     for (const c of Object.keys(shares) as CoalitionId[]) {
+      if (shares[c]! <= 0.001) continue;
       votes[c] = Math.round(cast * shares[c]!);
       popularVote[c] += votes[c]!;
     }
@@ -72,7 +76,7 @@ export function runElection(inputs: VoterInputs, rngState: number): { result: El
       turnout,
       votes,
       winner,
-      winnerParty: candidateParty(seat, winner),
+      winnerParty: partyOf(seat, winner),
       runnerUp,
       majority: v1 - v2,
       callOrder: 0,

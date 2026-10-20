@@ -1,7 +1,7 @@
 "use client";
 
 import { useGame } from "@/store/gameStore";
-import { COALITION_INFO, type CoalitionId } from "@/game/world";
+import { cshort, type CoalitionId } from "@/game/world";
 
 /** Plague Inc-style headlines along the bottom. Hover pauses; click opens the week in review. */
 export function NewsTicker() {
@@ -10,7 +10,7 @@ export function NewsTicker() {
     ...(game.report?.lines ?? []).map((l) => ({ text: l.text, tone: l.tone ?? "info" })),
     ...(Object.entries(game.rivals) as [CoalitionId, NonNullable<(typeof game.rivals)[CoalitionId]>][])
       .filter(([, r]) => r.recent[0])
-      .map(([c, r]) => ({ text: `${COALITION_INFO[c].short}: ${r.recent[0].replace(/^Week \d+: /, "")}`, tone: "info" as const })),
+      .map(([c, r]) => ({ text: `${cshort(c)}: ${r.recent[0].replace(/^Week \d+: /, "")}`, tone: "info" as const })),
   ];
   if (game.bubbles.length) headlines.unshift({ text: `${game.bubbles.length} opportunit${game.bubbles.length === 1 ? "y" : "ies"} on the map this week: click the gold bubbles.`, tone: "good" });
   if (!headlines.length) headlines.push({ text: "Quiet week in Malaysian politics.", tone: "info" });

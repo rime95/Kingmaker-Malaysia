@@ -9,7 +9,7 @@ import { CHANCE_LABEL, POLLS, chanceBand, effectiveMoe, winChance, type SeatRead
 import { resultView, type ResultView } from "@/game/systems/results";
 import { isHostile, type Rival } from "@/game/systems/rivals";
 import { useGame } from "@/store/gameStore";
-import { BLOCS, BLOC_LABEL, COALITION_INFO, SEATS, STATE_BY_ID, contestingIn, type CoalitionId } from "@/game/world";
+import { BLOC_LABEL, BLOCS, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
 import { ActionCard } from "../ActionCard";
 import { fmt, fmtRM, pct, useReads } from "../common";
 import { coalColor } from "../map/lenses";
@@ -47,7 +47,7 @@ export function SeatCard() {
           <div className="flex items-center gap-1.5 text-xs mt-1" style={{ color: "var(--ink-2)" }}>
             <span className="swatch" style={{ background: coalColor(holder) }} />
             <span className="truncate">
-              {last.candidates[0].name} · {game.holderParties[i]} ({COALITION_INFO[holder].short})
+              {last.candidates[0].name} · {game.holderParties[i]} ({cshort(holder)})
             </span>
           </div>
         </div>
@@ -89,11 +89,11 @@ export function SeatCard() {
           </section>
         ) : (
           <section>
-            <h3 className="eyebrow mb-1.5">No {COALITION_INFO[game.player].short} candidate here</h3>
+            <h3 className="eyebrow mb-1.5">No {cshort(game.player)} candidate here</h3>
             {ally ? (
               <>
                 <p className="text-xs mb-1.5" style={{ color: "var(--ink-2)" }}>
-                  You can still help the friendliest party standing here, {COALITION_INFO[ally].short}. It raises their vote and their trust in you.
+                  You can still help the friendliest party standing here, {cshort(ally)}. It raises their vote and their trust in you.
                 </p>
                 <ActionCard id="ally" target={{ kind: "seat", seat: i }} compact />
               </>
@@ -111,7 +111,7 @@ export function SeatCard() {
             {rivals.map((x) => (
               <div key={x.c} className="flex items-center gap-2 text-xs py-0.5">
                 <span className="swatch" style={{ background: coalColor(x.c) }} />
-                {COALITION_INFO[x.c].short}
+                {cshort(x.c)}
                 {x.hostile && <span style={{ color: "var(--bad)" }}>▲ hostile</span>}
                 <span className="ml-auto tabular-nums" style={{ color: "var(--ink-2)" }}>
                   buzz {Math.round(x.buzz)} · service +{Math.round(Math.max(0, x.service))}
@@ -169,7 +169,7 @@ function LatestResult({ r }: { r: ResultView }) {
         <div key={k} className="grid grid-cols-[1fr_auto] gap-x-2 py-0.5">
           <span className="text-xs truncate" style={{ fontWeight: k === 0 ? 650 : 400 }}>
             {k === 0 ? "✓ " : ""}
-            {c.name} <span style={{ color: "var(--muted)", fontWeight: 400 }}>{c.coalition === "OTHERS" ? c.party : `${c.party} · ${COALITION_INFO[c.coalition].short}`}</span>
+            {c.name} <span style={{ color: "var(--muted)", fontWeight: 400 }}>{c.coalition === "OTHERS" ? c.party : `${c.party} · ${cshort(c.coalition)}`}</span>
           </span>
           <span className="text-xs tabular-nums text-right" style={{ color: "var(--ink-2)" }}>
             {fmt(c.votes)} · {pct(c.share, 1)}
@@ -230,7 +230,7 @@ function Chances({ read, seat }: { read: SeatRead; seat: number }) {
         {shares.map(([c, v]) => (
           <span key={c} className="inline-flex items-center gap-1">
             <span className="swatch" style={{ background: coalColor(c), width: 8, height: 8 }} />
-            {COALITION_INFO[c].short} {pct(v)}
+            {cshort(c)} {pct(v)}
           </span>
         ))}
       </div>

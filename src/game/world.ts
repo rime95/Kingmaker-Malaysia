@@ -32,35 +32,56 @@ export const COALITION_INFO: Record<CoalitionId, Coalition> = {
   OTHERS: { id: "OTHERS", name: "Independents & others", short: "Others", color: "#9a9a9a", leader: "—", inGovernment: true, blurb: "Independents and small parties (KDM, PBM). Most back the government." },
 };
 
-/** Parties as they appear on the ballot, each in a coalition. */
+/** Parties as they appear on the ballot. `coalition` is where each starts; coalitions can change during a game. */
 export interface Party {
   id: string;
   name: string;
   coalition: CoalitionId;
+  /** Party president or leader (Oct 2026 snapshot, editable). */
+  leader: string;
+  /** Where the party is based (a party only joins coalitions that stand there). */
+  home: Region | "national";
 }
 
 export const PARTIES: Record<string, Party> = {
-  PKR: { id: "PKR", name: "Parti Keadilan Rakyat", coalition: "PH" },
-  DAP: { id: "DAP", name: "Democratic Action Party", coalition: "PH" },
-  AMANAH: { id: "AMANAH", name: "Parti Amanah Negara", coalition: "PH" },
-  UPKO: { id: "UPKO", name: "UPKO", coalition: "PH" },
-  UMNO: { id: "UMNO", name: "UMNO", coalition: "BN" },
-  MCA: { id: "MCA", name: "MCA", coalition: "BN" },
-  MIC: { id: "MIC", name: "MIC", coalition: "BN" },
-  PBRS: { id: "PBRS", name: "PBRS", coalition: "BN" },
-  BERSATU: { id: "BERSATU", name: "Parti Pribumi Bersatu Malaysia", coalition: "PN" },
-  PAS: { id: "PAS", name: "Parti Islam Se-Malaysia", coalition: "PN" },
-  PBB: { id: "PBB", name: "Parti Pesaka Bumiputera Bersatu", coalition: "GPS" },
-  SUPP: { id: "SUPP", name: "SUPP", coalition: "GPS" },
-  PRS: { id: "PRS", name: "Parti Rakyat Sarawak", coalition: "GPS" },
-  PDP: { id: "PDP", name: "Progressive Democratic Party", coalition: "GPS" },
-  GRS: { id: "GRS", name: "Gabungan Rakyat Sabah", coalition: "GRS" },
-  WARISAN: { id: "WARISAN", name: "Parti Warisan", coalition: "WARISAN" },
-  MUDA: { id: "MUDA", name: "MUDA", coalition: "MUDA" },
-  KDM: { id: "KDM", name: "Parti KDM", coalition: "OTHERS" },
-  PBM: { id: "PBM", name: "Parti Bangsa Malaysia", coalition: "OTHERS" },
-  IND: { id: "IND", name: "Independent", coalition: "OTHERS" },
+  PKR: { id: "PKR", name: "Parti Keadilan Rakyat", coalition: "PH", leader: "Anwar Ibrahim", home: "national" },
+  DAP: { id: "DAP", name: "Democratic Action Party", coalition: "PH", leader: "Anthony Loke", home: "national" },
+  AMANAH: { id: "AMANAH", name: "Parti Amanah Negara", coalition: "PH", leader: "Mohamad Sabu", home: "peninsula" },
+  UPKO: { id: "UPKO", name: "UPKO", coalition: "PH", leader: "Ewon Benedick", home: "sabah" },
+  UMNO: { id: "UMNO", name: "UMNO", coalition: "BN", leader: "Ahmad Zahid Hamidi", home: "national" },
+  MCA: { id: "MCA", name: "MCA", coalition: "BN", leader: "Wee Ka Siong", home: "peninsula" },
+  MIC: { id: "MIC", name: "MIC", coalition: "BN", leader: "S. A. Vigneswaran", home: "peninsula" },
+  PBRS: { id: "PBRS", name: "PBRS", coalition: "BN", leader: "Arthur Joseph Kurup", home: "sabah" },
+  BERSATU: { id: "BERSATU", name: "Parti Pribumi Bersatu Malaysia", coalition: "PN", leader: "Muhyiddin Yassin", home: "national" },
+  PAS: { id: "PAS", name: "Parti Islam Se-Malaysia", coalition: "PN", leader: "Abdul Hadi Awang", home: "peninsula" },
+  GERAKAN: { id: "GERAKAN", name: "Gerakan", coalition: "PN", leader: "Dominic Lau", home: "peninsula" },
+  PBB: { id: "PBB", name: "Parti Pesaka Bumiputera Bersatu", coalition: "GPS", leader: "Abang Johari Openg", home: "sarawak" },
+  SUPP: { id: "SUPP", name: "SUPP", coalition: "GPS", leader: "Sim Kui Hian", home: "sarawak" },
+  PRS: { id: "PRS", name: "Parti Rakyat Sarawak", coalition: "GPS", leader: "Joseph Salang Gandum", home: "sarawak" },
+  PDP: { id: "PDP", name: "Progressive Democratic Party", coalition: "GPS", leader: "Tiong King Sing", home: "sarawak" },
+  GRS: { id: "GRS", name: "Gabungan Rakyat Sabah", coalition: "GRS", leader: "Hajiji Noor", home: "sabah" },
+  WARISAN: { id: "WARISAN", name: "Parti Warisan", coalition: "WARISAN", leader: "Shafie Apdal", home: "sabah" },
+  MUDA: { id: "MUDA", name: "MUDA", coalition: "MUDA", leader: "Amira Aisya Abdul Aziz", home: "peninsula" },
+  KDM: { id: "KDM", name: "Parti KDM", coalition: "OTHERS", leader: "Peter Anthony", home: "sabah" },
+  PBM: { id: "PBM", name: "Parti Bangsa Malaysia", coalition: "OTHERS", leader: "Larry Sng", home: "sarawak" },
+  IND: { id: "IND", name: "Independent", coalition: "OTHERS", leader: "—", home: "national" },
 };
+
+// Coalition names can change during a game (a winner renames its coalition). Display text reads them from here;
+// the store and the weekly turn keep it in step with the current game (see setCoalitionNames).
+let NAMES: Record<CoalitionId, { name: string; short: string }> = Object.fromEntries(COALITIONS.map((c) => [c, { name: COALITION_INFO[c].name, short: COALITION_INFO[c].short }])) as Record<
+  CoalitionId,
+  { name: string; short: string }
+>;
+
+export function setCoalitionNames(names: Record<CoalitionId, { name: string; short: string }>) {
+  NAMES = names;
+}
+
+/** A coalition's current short name (e.g. "PH"). */
+export const cshort = (c: CoalitionId) => NAMES[c]?.short ?? COALITION_INFO[c].short;
+/** A coalition's current full name. */
+export const cname = (c: CoalitionId) => NAMES[c]?.name ?? COALITION_INFO[c].name;
 
 export type Region = "peninsula" | "sabah" | "sarawak";
 

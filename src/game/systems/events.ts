@@ -5,10 +5,11 @@
 import { CARDS, DIFFICULTY } from "../config";
 import { runSeatElection } from "../election";
 import { recordFrom } from "./results";
+import { seatCandidate } from "./coalitions";
 import { fmtRM } from "../money";
 import { hash01 } from "../rng";
 import { isGovernment, voterInputs, weekDate, type CardInstance, type GameState, type ReportLine } from "../state";
-import { COALITION_INFO, SEATS, STATE_BY_ID, candidateParty, contestingIn } from "../world";
+import { contestingIn, cshort, PARTIES, SEATS, STATE_BY_ID } from "../world";
 import { MULTIRACIAL } from "./policies";
 import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, addPoints, contestChance, factionSize, promote, succession } from "./career";
 import { addSeg, describeSeg, type SegEffects } from "./segments";
@@ -34,6 +35,10 @@ export interface Effect {
   seatBuzz?: number;
   /** Hold the card's by-election now. */
   byElection?: boolean;
+  /** Satisfaction of the card's party with your coalition. */
+  partnerSat?: number;
+  /** Satisfaction of every partner party in your coalition. */
+  partnersSat?: number;
   /** Party AGM outcomes. */
   careerContest?: boolean;
   careerChallenge?: boolean;
@@ -119,7 +124,7 @@ export const CARD_DEFS: CardDef[] = [
   {
     kind: "audio",
     title: "Leaked audio",
-    text: (s) => `A recording of an MP from ${COALITION_INFO[s.player].short} apparently discussing a project kickback is all over WhatsApp.`,
+    text: (s) => `A recording of an MP from ${cshort(s.player)} apparently discussing a project kickback is all over WhatsApp.`,
     choices: () => [
       { label: "Deny everything", effect: { scandal: 20, integrity: -5 }, note: "It may come back later." },
       { label: "Suspend the MP", effect: { unity: -8, integrity: 4, scandal: 6 } },
@@ -140,7 +145,7 @@ export const CARD_DEFS: CardDef[] = [
   {
     kind: "gaffe",
     title: "Gaffe in the Dewan",
-    text: (s) => `A ${COALITION_INFO[s.player].short} backbencher made a crude racial remark in a debate. The clip has two million views.`,
+    text: (s) => `A ${cshort(s.player)} backbencher made a crude racial remark in a debate. The clip has two million views.`,
     choices: (s) => [
       { label: "Make them apologise", effect: { capital: -5, unity: -3, mood: { chinese: 0.01, indian: 0.01 } } },
       { label: "Defend them", effect: { unity: 4, mood: { malay: 0.02, chinese: -0.05, indian: -0.05, urban: -0.02 }, trust: multiracial(s) ? -8 : 0 } },
@@ -249,7 +254,7 @@ export const CARD_DEFS: CardDef[] = [
     },
     text: (s, c) => {
       const seat = SEATS[c.seat!];
-      return `The MP for ${seat.name} (${STATE_BY_ID[seat.state].name}) has died. The by-election is a test of strength for everyone. Held by ${COALITION_INFO[s.holders[c.seat!]].short}.`;
+      return `The MP for ${seat.name} (${STATE_BY_ID[seat.state].name}) has died. The by-election is a test of strength for everyone. Held by ${cshort(s.holders[c.seat!])}.`;
     },
     choices: () => [
       { label: "Go all in (RM 1M)", effect: { funds: -1_000_000, seatBuzz: 35, byElection: true } },
@@ -309,6 +314,41 @@ export const AGM_CARD: CardDef = {
   defaultChoice: 1,
 };
 
+/** A partner party in your coalition threatens to walk out. */
+export const WALKOUT_CARD: CardDef = {
+  kind: "partnerWalkout",
+  title: "A partner threatens to walk out",
+  text: (s, c) => {
+    const p = PARTIES[c.party ?? ""];
+    return p
+      ? `${p.name} (${p.leader}) says it is being sidelined in ${cshort(s.player)} and is talking to other coalitions. If it goes, its MPs go with it.`
+      : "A partner party is unhappy.";
+  },
+  choices: () => [
+    { label: "Offer posts and more seats", effect: { partnerSat: 25, capital: -15, unity: -3 } },
+    { label: "Pay for peace (RM 1.5M)", effect: { partnerSat: 15, funds: -1_500_000 } },
+    { label: "Call their bluff", effect: { partnerSat: -8, unity: 3 } },
+  ],
+  defaultChoice: 2,
+};
+
+/** Seat-allocation talks inside your coalition once Parliament is dissolved. */
+export const SEAT_TALKS_CARD: CardDef = {
+  kind: "seatTalks",
+  title: "Seat talks with your partners",
+  text: (s) =>
+    `Parliament is dissolved and ${s.coalitions[s.player].members
+      .slice(1)
+      .map((p) => PARTIES[p]?.name ?? p)
+      .join(", ")} want more seats to contest. Every seat you give away is one your own party's warlords wanted.`,
+  choices: () => [
+    { label: "Be generous", effect: { partnersSat: 15, unity: -6 } },
+    { label: "Split by the last result", effect: { partnersSat: 5 } },
+    { label: "Your party takes the lion's share", effect: { partnersSat: -12, unity: 5 } },
+  ],
+  defaultChoice: 1,
+};
+
 function challengeChance(s: GameState): number {
   const seats = s.holders.filter((h) => h === s.player).length;
   const share = seats ? factionSize(s.career, s.holders, s.player) / seats : 0;
@@ -318,6 +358,8 @@ function challengeChance(s: GameState): number {
 export const CARD_BY_KIND: Record<string, CardDef> = Object.fromEntries([
   ...CARD_DEFS.map((d) => [d.kind, d]),
   [AGM_CARD.kind, AGM_CARD],
+  [WALKOUT_CARD.kind, WALKOUT_CARD],
+  [SEAT_TALKS_CARD.kind, SEAT_TALKS_CARD],
   ...FESTIVALS.map((f) => [
     f.kind,
     {
@@ -353,6 +395,8 @@ export function describeEffect(e: Effect): string {
   if (e.mood) parts.push(describeSeg(e.mood));
   if (e.byElection) parts.push("Polls open now");
   if (e.careerPoints) parts.push(`Career points +${e.careerPoints}`);
+  if (e.partnerSat) parts.push(`Their goodwill ${e.partnerSat > 0 ? "+" : "−"}${Math.abs(e.partnerSat)}`);
+  if (e.partnersSat) parts.push(`Partners' goodwill ${e.partnersSat > 0 ? "+" : "−"}${Math.abs(e.partnersSat)}`);
   if (e.careerContest) parts.push("Delegates vote");
   return parts.join(" · ") || "No effect";
 }
@@ -380,25 +424,31 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
     });
   if (e.seatBuzz && card?.seat !== undefined) me.buzz[card.seat] = clamp(me.buzz[card.seat] + e.seatBuzz);
   let state: GameState = { ...s, me, economy: clamp(s.economy + (e.economy ?? 0)), fiscal: clamp(s.fiscal + (e.fiscal ?? 0)) };
+  if (e.partnerSat && card?.party) state.partySat = { ...state.partySat, [card.party]: clamp((state.partySat[card.party] ?? 55) + e.partnerSat) };
+  if (e.partnersSat) {
+    const partySat = { ...state.partySat };
+    for (const p of state.coalitions[s.player].members.slice(1)) partySat[p] = clamp((partySat[p] ?? 55) + e.partnersSat);
+    state.partySat = partySat;
+  }
 
   if (e.byElection && card?.seat !== undefined) {
     const i = card.seat;
     const before = state.holders[i];
-    const { result, rngState } = runSeatElection(voterInputs(state), i, state.rng);
+    const { result, rngState } = runSeatElection(voterInputs(state), i, state.rng, (seat, c) => seatCandidate(state, seat, c));
     const holders = [...state.holders];
     const holderParties = [...state.holderParties];
     holders[i] = result.winner;
     holderParties[i] = result.winnerParty;
     const seatResults = [...state.seatResults];
-    seatResults[i] = recordFrom(result, "By-election", s.week, Object.fromEntries(contestingIn(SEATS[i]).map((c) => [c, candidateParty(SEATS[i], c)])));
+    seatResults[i] = recordFrom(result, "By-election", s.week, Object.fromEntries(contestingIn(SEATS[i]).map((c) => [c, seatCandidate(state, SEATS[i], c)])));
     state = { ...state, rng: rngState, holders, holderParties, seatResults };
     const won = result.winner === s.player;
     const name = SEATS[i].name;
     state.me = { ...state.me, capital: clamp(state.me.capital + (won ? 10 : -3), 0, 200), unity: clamp(state.me.unity + (won ? 4 : -2)) };
     if (won) state.career = addPoints(state.career, s.week, 8, `won the ${name} by-election`);
-    const flip = result.winner !== before ? `, a gain from ${COALITION_INFO[before].short}` : "";
+    const flip = result.winner !== before ? `, a gain from ${cshort(before)}` : "";
     lines.push({
-      text: `${name} by-election: ${result.winnerParty} (${COALITION_INFO[result.winner].short}) wins by ${result.majority.toLocaleString("en-MY")} votes${flip}.`,
+      text: `${name} by-election: ${result.winnerParty} (${cshort(result.winner)}) wins by ${result.majority.toLocaleString("en-MY")} votes${flip}.`,
       tone: won ? "good" : result.winner !== before && before === s.player ? "bad" : "info",
     });
   }

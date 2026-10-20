@@ -7,7 +7,7 @@ import { voterInputs, weekLabel } from "@/game/state";
 import { ASSEMBLY_STATES, countSeats, stateRule, weeksToElection } from "@/game/systems/assemblies";
 import { DUNS, DUNS_BY_STATE, projectDuns, type DunProjection } from "@/game/systems/dun";
 import { useGame } from "@/store/gameStore";
-import { COALITION_INFO, STATE_BY_ID, type CoalitionId } from "@/game/world";
+import { cshort, STATE_BY_ID, type CoalitionId } from "@/game/world";
 import { CHART_ORDER, coalColor, pct } from "./common";
 import { hemicycle } from "./Dewan";
 
@@ -58,7 +58,7 @@ function ParliamentPanel() {
         <p className="text-sm" style={{ color: "var(--ink-2)" }}>
           {p.status === "campaign"
             ? `Dissolved. General election polling day: ${weekLabel(p.pollWeek!)} (${toGo} week${toGo === 1 ? "" : "s"}).`
-            : `Prime Minister from ${COALITION_INFO[p.pm].short}. Dissolves automatically on ${weekLabel(p.deadlineWeek)}; polling about ${GE.campaignWeeks} weeks later.`}
+            : `Prime Minister from ${cshort(p.pm)}. Dissolves automatically on ${weekLabel(p.deadlineWeek)}; polling about ${GE.campaignWeeks} weeks later.`}
         </p>
         <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
           States that vote with Parliament:{" "}
@@ -88,7 +88,7 @@ function SeatStrip({ seats, total }: { seats: Partial<Record<CoalitionId, number
     <div className="relative h-3">
       <div className="flex h-full gap-[2px] rounded-sm overflow-hidden">
         {CHART_ORDER.filter((c) => seats[c]).map((c) => (
-          <div key={c} title={`${COALITION_INFO[c].short} ${seats[c]}`} style={{ width: `${(seats[c]! / total) * 100}%`, background: coalColor(c) }} />
+          <div key={c} title={`${cshort(c)} ${seats[c]}`} style={{ width: `${(seats[c]! / total) * 100}%`, background: coalColor(c) }} />
         ))}
       </div>
       <div className="absolute -top-0.5 -bottom-0.5 w-[2px]" style={{ left: `${(Math.floor(total / 2) + 1) / total * 100}%`, background: "var(--ink)" }} />
@@ -115,7 +115,7 @@ function StateCard({ id, proj, active, onPick }: { id: string; proj: DunProjecti
         <span className="font-semibold text-sm">{STATE_BY_ID[id].name}</span>
         <span className="text-[11px] inline-flex items-center gap-1">
           <span className="swatch" style={{ background: coalColor(rule.ruler) }} />
-          {COALITION_INFO[rule.ruler].short}
+          {cshort(rule.ruler)}
           {rule.ruler === game.player ? " (you)" : ""}
         </span>
       </div>
@@ -182,7 +182,7 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
         <text x={geo.w / 2} y={geo.h - 42} textAnchor="middle" className="map-label" style={{ fontSize: 17 }}>
           {(Object.entries(counts) as [CoalitionId, number][])
             .sort((x, y) => y[1] - x[1])
-            .map(([c, n]) => `${COALITION_INFO[c].short} ${n}`)
+            .map(([c, n]) => `${cshort(c)} ${n}`)
             .join(" · ")}
         </text>
       </svg>
@@ -191,9 +191,9 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
           <div className="font-semibold">
             {DUNS[hover.d].code} {DUNS[hover.d].name}
           </div>
-          <div>Held by {COALITION_INFO[game.dunHolders[hover.d]].short}</div>
+          <div>Held by {cshort(game.dunHolders[hover.d])}</div>
           <div style={{ color: "var(--muted)" }}>
-            Today: {COALITION_INFO[proj[hover.d].leader].short} by {pct(proj[hover.d].margin, 1)}
+            Today: {cshort(proj[hover.d].leader)} by {pct(proj[hover.d].margin, 1)}
           </div>
         </div>
       )}
@@ -203,7 +203,7 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
           Last state election ({weekLabel(a.lastPollWeek!)}):{" "}
           {(Object.entries(a.lastAfter) as [CoalitionId, number][])
             .sort((x, y) => y[1] - x[1])
-            .map(([c, n]) => `${COALITION_INFO[c].short} ${n} (${n - (a.lastBefore?.[c] ?? 0) >= 0 ? "+" : "−"}${Math.abs(n - (a.lastBefore?.[c] ?? 0))})`)
+            .map(([c, n]) => `${cshort(c)} ${n} (${n - (a.lastBefore?.[c] ?? 0) >= 0 ? "+" : "−"}${Math.abs(n - (a.lastBefore?.[c] ?? 0))})`)
             .join(", ")}
         </p>
       )}
@@ -227,7 +227,7 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
             )}
             {!mine && (
               <span className="text-xs" style={{ color: "var(--muted)" }}>
-                Run by {COALITION_INFO[rule.ruler].short}: they decide when it dissolves.
+                Run by {cshort(rule.ruler)}: they decide when it dissolves.
               </span>
             )}
           </>

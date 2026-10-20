@@ -6,7 +6,7 @@ import { defaultHomeSeat } from "@/game/systems/career";
 import { TIER_TEXT } from "@/game/systems/formation";
 import { useGame } from "@/store/gameStore";
 import { metaSnapshot, underdogUnlocked, type Meta } from "@/store/meta";
-import { COALITION_INFO, SEATS, STATE_BY_ID, contestingIn, type CoalitionId } from "@/game/world";
+import { cname, COALITION_INFO, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
 import { coalColor } from "./common";
 import { SaveSlots } from "./SaveSlots";
 import { Toast } from "./Toast";
@@ -78,7 +78,7 @@ export function NewGame() {
 
       {pick && (
         <section className="panel p-4 flex flex-col gap-4">
-          <h2 className="font-semibold">Your game with {COALITION_INFO[pick].name}</h2>
+          <h2 className="font-semibold">Your game with {cname(pick)}</h2>
           <Choice label="How you play">
             <button className="chip" aria-pressed={mode === "leader"} onClick={() => setMode("leader")}>
               Leader: start as {COALITION_INFO[pick].leader}, party president
@@ -98,7 +98,7 @@ export function NewGame() {
                 <select value={home ?? ""} onChange={(e) => setHome(Number(e.target.value))} className="rounded-lg border px-3 py-2" style={{ borderColor: "var(--line)", background: "var(--surface-2)", color: "var(--ink)" }}>
                   {seats.map((s) => (
                     <option key={s.index} value={s.index}>
-                      {s.name} ({STATE_BY_ID[s.state].name}) · held by {COALITION_INFO[s.ge15Coalition].short}
+                      {s.name} ({STATE_BY_ID[s.state].name}) · held by {cshort(s.ge15Coalition)}
                     </option>
                   ))}
                 </select>

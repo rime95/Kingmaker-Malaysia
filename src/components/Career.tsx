@@ -6,7 +6,7 @@ import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, RUNGS_OPP, contestChance, faction
 import { TIER_TEXT } from "@/game/systems/formation";
 import { ACHIEVEMENTS } from "@/game/systems/goals";
 import { useGame } from "@/store/gameStore";
-import { COALITION_INFO, SEATS, STATE_BY_ID } from "@/game/world";
+import { cshort, SEATS, STATE_BY_ID } from "@/game/world";
 import { fmtRM } from "./common";
 
 export function Career() {
@@ -36,7 +36,7 @@ export function Career() {
               </div>
               <h2 className="text-xl font-bold">{c.name}</h2>
               <div className="text-sm" style={{ color: "var(--ink-2)" }}>
-                {careerTitle(game)} · {COALITION_INFO[game.player].short} · age {c.age}
+                {careerTitle(game)} · {cshort(game.player)} · age {c.age}
               </div>
             </div>
             <div className="text-right">
@@ -104,7 +104,7 @@ export function Career() {
             </div>
             <div className="font-semibold">{home.name}</div>
             <div className="text-xs" style={{ color: homeHolder === game.player ? "var(--good)" : "var(--bad)" }}>
-              {homeHolder === game.player ? "▲ Held by your coalition" : `▼ Held by ${COALITION_INFO[homeHolder].short}`} · {fortressLevel(game.me.service[c.homeSeat])}
+              {homeHolder === game.player ? "▲ Held by your coalition" : `▼ Held by ${cshort(homeHolder)}`} · {fortressLevel(game.me.service[c.homeSeat])}
             </div>
           </button>
           <div className="grid grid-cols-3 gap-2 text-center">

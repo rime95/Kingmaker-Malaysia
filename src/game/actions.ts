@@ -13,9 +13,10 @@ import { ASSEMBLY_STATES, dissolveAssembly, dissolveParliament, stateRule } from
 import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, deciding, endRound, winTier, type Offer } from "./systems/formation";
 import { CAREER as CAREER_LOYALTY, addPoints, isPresident } from "./systems/career";
 import { careerAfterFormation } from "./progress";
+import { aiRebrand } from "./systems/coalitions";
 import { BUBBLE_INFO, applyBubble } from "./systems/bubbles";
 import { ASSETS, MAX_LEVEL, assetIncome, newAsset, saleValue, upgradeCost, type AssetType, type CeoKind } from "./systems/business";
-import { COALITION_INFO, MAJORITY, SEATS, STATE_BY_ID, contestingIn, type CoalitionId } from "./world";
+import { contestingIn, cshort, MAJORITY, SEATS, STATE_BY_ID, type CoalitionId } from "./world";
 
 export type Target = { kind: "none" } | { kind: "seat"; seat: number } | { kind: "state"; state: string };
 export type ActionGroup = "local" | "national" | "party" | "finance";
@@ -121,7 +122,7 @@ export const ACTIONS: ActionDef[] = [
       const ally = allyIn(s, i)!;
       me.trust = clamp(me.trust + 2);
       me.favours += 1;
-      return `You campaign for the ${COALITION_INFO[ally].short} candidate in ${SEATS[i].name}. They will remember it.`;
+      return `You campaign for the ${cshort(ally)} candidate in ${SEATS[i].name}. They will remember it.`;
     },
     after: (s, t) => {
       const i = (t as { seat: number }).seat;
@@ -737,8 +738,8 @@ export function makeOffer(s: GameState, c: CoalitionId, kind: OfferKind): Action
   const label = kind === "dpm" ? "the Deputy Prime Minister's post" : kind === "ministries" ? "more ministries" : "full MA63 devolution";
   return {
     ok: true,
-    state: { ...s, formation: { ...f, offers: { ...f.offers, [c]: o }, log: [...f.log, `You offer ${COALITION_INFO[c].short} ${label}.`] } },
-    message: `Offer made to ${COALITION_INFO[c].short}: ${label}.`,
+    state: { ...s, formation: { ...f, offers: { ...f.offers, [c]: o }, log: [...f.log, `You offer ${cshort(c)} ${label}.`] } },
+    message: `Offer made to ${cshort(c)}: ${label}.`,
   };
 }
 
@@ -757,7 +758,7 @@ export function backForPm(s: GameState, leader: CoalitionId, askDpm: boolean): A
   if (!f.candidates.includes(leader)) return { ok: false, error: "Not a candidate." };
   if (f.committed[s.player]) return { ok: false, error: "You have already signed." };
   if (!isPresident(s.career)) return { ok: false, error: LEADERSHIP_ONLY };
-  return { ok: true, state: { ...s, formation: backCandidate(f, s.player, leader, askDpm) }, message: `You back ${COALITION_INFO[leader].short} for Prime Minister.` };
+  return { ok: true, state: { ...s, formation: backCandidate(f, s.player, leader, askDpm) }, message: `You back ${cshort(leader)} for Prime Minister.` };
 }
 
 /** Finish the talks (any remaining rounds play out) and let the Agong decide. */
@@ -787,11 +788,18 @@ export function goToAgong(s: GameState): ActionResult {
     lines.push(o.dpmGranted ? "Your leader becomes Deputy Prime Minister." : f.askedDpm ? "Your DPM demand was turned down, but you are in government." : "");
   }
   me.trust = inGov ? 65 : 50;
-  const state: GameState = { ...s, me, formation: null, government: o.government, parliament: { ...s.parliament, pm: o.pm } };
+  let state: GameState = { ...s, me, formation: null, government: o.government, parliament: { ...s.parliament, pm: o.pm } };
+  // The winner may rebrand: you name your coalition; an AI prime minister's coalition sometimes relaunches.
+  if (o.pm === s.player) state.namePending = true;
+  else {
+    const r = aiRebrand(state, o.pm);
+    state = r.state;
+    if (r.line) lines.push(r.line.text);
+  }
   const tier = winTier(state, f, o);
   state.tiers = [...s.tiers, tier];
   const how = o.majority ? `with ${o.sds} SDs` : `leading a minority government on ${o.sds} SDs`;
-  const message = `The Agong appoints the leader of ${COALITION_INFO[o.pm].short} as Prime Minister, ${how}. ${lines.filter(Boolean).join(" ")} Result: ${TIER_TEXT[tier.tier].name}.`;
+  const message = `The Agong appoints the leader of ${cshort(o.pm)} as Prime Minister, ${how}. ${lines.filter(Boolean).join(" ")} Result: ${TIER_TEXT[tier.tier].name}.`;
   state.report = state.report ? { ...state.report, lines: [...state.report.lines, { text: message, tone: inGov ? "good" : "bad" }] } : state.report;
   return { ok: true, state: careerAfterFormation(state, f, o), message };
 }

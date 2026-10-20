@@ -5,7 +5,7 @@ import { BUBBLE_INFO } from "@/game/systems/bubbles";
 import { DUNS } from "@/game/systems/dun";
 import { isHostile } from "@/game/systems/rivals";
 import { useGame } from "@/store/gameStore";
-import { COALITION_INFO, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
+import { cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
 import { pct, useReads } from "../common";
 import { winChance, type SeatRead } from "@/game/systems/polls";
 import { resultView } from "@/game/systems/results";
@@ -82,7 +82,7 @@ function SeatTip({ i, x, y, reads }: { i: number; x: number; y: number; reads: S
       <div style={{ color: "var(--muted)" }}>{STATE_BY_ID[seat.state].name}</div>
       <div className="mt-1 flex items-center gap-1.5">
         <span className="swatch" style={{ background: coalColor(game.holders[i]) }} />
-        {last.candidates[0].name} · {game.holderParties[i]} ({COALITION_INFO[game.holders[i]].short})
+        {last.candidates[0].name} · {game.holderParties[i]} ({cshort(game.holders[i])})
       </div>
       <div style={{ color: "var(--ink-2)" }}>
         {last.label}: won by {last.majority.toLocaleString("en-MY")} votes
@@ -106,7 +106,7 @@ function DunTip({ i, x, y }: { i: number; x: number; y: number }) {
       </div>
       <div className="mt-1 flex items-center gap-1.5">
         <span className="swatch" style={{ background: coalColor(game.dunHolders[i]) }} />
-        {COALITION_INFO[game.dunHolders[i]].short}
+        {cshort(game.dunHolders[i])}
       </div>
     </div>
   );

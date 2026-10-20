@@ -9,6 +9,7 @@ import { AP_BY_RUNG, initCareer, type Career } from "./systems/career";
 import { newObjectives, type Objective } from "./systems/goals";
 import { newBubbles, type Bubble } from "./systems/bubbles";
 import { initPolls, type Polls } from "./systems/polls";
+import { initCoalitions, initPartySat, type Coalitions } from "./systems/coalitions";
 import type { SeatRecord } from "./systems/results";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
@@ -20,7 +21,7 @@ import { COALITIONS, COALITION_INFO, SEATS, type CoalitionId } from "./world";
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -51,6 +52,8 @@ export interface CardInstance {
   /** Unanswered cards take their default choice in this week. */
   deadline: number;
   seat?: number;
+  /** The party a card is about (e.g. a partner threatening to walk out). */
+  party?: string;
 }
 
 export interface HistoryPoint {
@@ -148,6 +151,14 @@ export interface GameState {
   seatResults: (SeatRecord | null)[];
   /** Number of the last general election held (15 = GE15). */
   geCount: number;
+  /** Coalitions: names, colours and member parties (they change during a game). */
+  coalitions: Coalitions;
+  /** Each non-leading party's satisfaction with its coalition (0–100). */
+  partySat: Record<string, number>;
+  /** Seat → coalition → the party standing there, where parties have changed sides. */
+  seatParty: Record<number, Partial<Record<CoalitionId, string>>>;
+  /** You won: name your coalition (shown once after taking power). */
+  namePending: boolean;
 }
 
 export interface NewGameOptions {
@@ -221,6 +232,10 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     polls: { national: [], seats: [] },
     seatResults: SEATS.map(() => null),
     geCount: 15,
+    coalitions: initCoalitions(),
+    partySat: initPartySat(),
+    seatParty: {},
+    namePending: false,
   };
   state.me.apMax = state.me.ap = AP_BY_RUNG[state.career.rung];
   // Difficulty and scenario
@@ -265,6 +280,10 @@ export function migrateGame(g: GameState): GameState {
     polls: g.polls ?? { national: [], seats: [] },
     seatResults: g.seatResults ?? SEATS.map(() => null),
     geCount: g.geCount ?? 15,
+    coalitions: g.coalitions ?? initCoalitions(),
+    partySat: g.partySat ?? initPartySat(),
+    seatParty: g.seatParty ?? {},
+    namePending: g.namePending ?? false,
   };
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, DIFFICULTY[migrated.settings.difficulty].pollError);
   if (!migrated.objectives.length) migrated.objectives = newObjectives(migrated);
@@ -299,6 +318,8 @@ export function playerSeatEffect(state: GameState, i: number, policy?: SegEffect
 export function voterInputs(state: GameState): VoterInputs {
   const p = COALITION_INDEX[state.player];
   const swing = { ...state.swing, [state.player]: state.swing[state.player] + playerNationalEffect(state) };
+  // A coalition left with no parties has no candidates.
+  for (const c of COALITIONS) if (state.coalitions && !state.coalitions[c].members.length) swing[c] -= 20;
   const rivals = Object.entries(state.rivals) as [CoalitionId, NonNullable<Rivals[CoalitionId]>][];
   for (const [c, r] of rivals) swing[c] += rivalNationalEffect(r);
   const policy = policyVoters(state.me.policies, isGovernment(state));

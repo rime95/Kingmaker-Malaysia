@@ -4,7 +4,8 @@ import { offerBlocked, type OfferKind } from "@/game/actions";
 import { BORNEO, OFFERS, deciding, sdCount, willingness } from "@/game/systems/formation";
 import { isPresident } from "@/game/systems/career";
 import { useGame } from "@/store/gameStore";
-import { COALITIONS, COALITION_INFO, MAJORITY, type CoalitionId } from "@/game/world";
+import { coalitionLeader } from "@/game/systems/coalitions";
+import { cname, COALITIONS, cshort, MAJORITY, type CoalitionId } from "@/game/world";
 import { coalColor } from "./common";
 
 const OFFER_LABEL: Record<OfferKind, string> = { dpm: "Offer DPM", ministries: "+ Ministries", ma63: "Promise MA63" };
@@ -33,7 +34,7 @@ export function CoalitionTalks() {
             ? "Your party leadership is negotiating. You aren't party president yet, so you watch from the sidelines."
             : f.role === "leader"
             ? `You are a prime-minister candidate. Win statutory declarations (SDs) from other coalitions: make offers, then end the round to see who signs. ${MAJORITY} SDs make a majority.`
-            : `You are the kingmaker. Neither ${COALITION_INFO[x].short} nor ${COALITION_INFO[y].short} can easily reach ${MAJORITY} without you. Back one of them, and name your price.`}
+            : `You are the kingmaker. Neither ${cshort(x)} nor ${cshort(y)} can easily reach ${MAJORITY} without you. Back one of them, and name your price.`}
         </p>
       </header>
 
@@ -44,7 +45,7 @@ export function CoalitionTalks() {
             <div key={c} className="panel p-4" style={{ borderTop: `4px solid ${coalColor(c)}` }}>
               <div className="flex items-baseline justify-between">
                 <span className="font-semibold">
-                  {COALITION_INFO[c].leader} ({COALITION_INFO[c].short}){c === player ? " · you" : ""}
+                  {coalitionLeader(game, c)} ({cshort(c)}){c === player ? " · you" : ""}
                 </span>
                 <span className="text-2xl font-bold tabular-nums">{sds}</span>
               </div>
@@ -56,13 +57,13 @@ export function CoalitionTalks() {
                 {sds >= MAJORITY ? "✓ Majority" : `${MAJORITY - sds} short`} · signed:{" "}
                 {(Object.entries(f.committed) as [CoalitionId, CoalitionId][])
                   .filter(([, l]) => l === c)
-                  .map(([k]) => `${COALITION_INFO[k].short} ${f.seats[k]}`)
+                  .map(([k]) => `${cshort(k)} ${f.seats[k]}`)
                   .join(", ")}
               </div>
               {f.role === "kingmaker" && !playerSigned && president && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   <button className="btn" onClick={() => back(c, false)}>
-                    Back {COALITION_INFO[c].short}
+                    Back {cshort(c)}
                   </button>
                   <button className="btn btn-ghost" onClick={() => back(c, true)} title="Granted only if your seats are what takes them past 112.">
                     Back them, ask for DPM
@@ -87,12 +88,12 @@ export function CoalitionTalks() {
                 return (
                   <div key={c} className="rounded-lg border p-3 flex flex-wrap items-center gap-3" style={{ borderColor: "var(--line)" }}>
                     <span className="swatch" style={{ background: coalColor(c) }} />
-                    <span className="font-semibold">{COALITION_INFO[c].name}</span>
+                    <span className="font-semibold">{cname(c)}</span>
                     <span className="text-sm tabular-nums" style={{ color: "var(--ink-2)" }}>
                       {f.seats[c]} seats
                     </span>
                     <span className="text-xs" style={{ color: "var(--muted)" }}>
-                      Leaning {COALITION_INFO[lean].short} ({Math.abs(wx - wy) < 0.1 ? "barely" : Math.abs(wx - wy) < 0.3 ? "clearly" : "strongly"})
+                      Leaning {cshort(lean)} ({Math.abs(wx - wy) < 0.1 ? "barely" : Math.abs(wx - wy) < 0.3 ? "clearly" : "strongly"})
                     </span>
                     {f.role === "leader" && president && (
                       <div className="ml-auto flex flex-wrap gap-1.5">
@@ -143,7 +144,7 @@ export function CoalitionTalks() {
           ))}
         </ul>
         <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
-          Coalitions: {COALITIONS.filter((c) => f.seats[c]).map((c) => `${COALITION_INFO[c].short} ${f.seats[c]}`).join(" · ")}
+          Coalitions: {COALITIONS.filter((c) => f.seats[c]).map((c) => `${cshort(c)} ${f.seats[c]}`).join(" · ")}
         </p>
       </section>
     </div>

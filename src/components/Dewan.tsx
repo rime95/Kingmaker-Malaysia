@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useGame } from "@/store/gameStore";
-import { COALITION_INFO, MAJORITY, SEATS, STATE_BY_ID, TOTAL_SEATS, type CoalitionId } from "@/game/world";
+import { cname, MAJORITY, SEATS, STATE_BY_ID, TOTAL_SEATS, type CoalitionId } from "@/game/world";
 import { CHART_ORDER } from "./common";
 import { coalColor } from "./common";
 
@@ -167,7 +167,7 @@ export function Dewan() {
           </div>
           <div style={{ color: "var(--muted)" }}>{STATE_BY_ID[SEATS[hover.i].state].name}</div>
           <div className="mt-1">
-            {parties[hover.i]} · {COALITION_INFO[holders[hover.i]].name}
+            {parties[hover.i]} · {cname(holders[hover.i])}
           </div>
           <div style={{ color: "var(--muted)" }}>{game.government.includes(holders[hover.i]) ? "Government bench" : "Opposition bench"}</div>
         </div>

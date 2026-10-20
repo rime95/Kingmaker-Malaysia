@@ -44,7 +44,7 @@ function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
         <div>
           <div className="font-semibold">{info.name}</div>
           <div className="text-xs" style={{ color: "var(--muted)" }}>
-            {info.leader} · {game.parliament.pm === c ? "Prime Minister" : game.government.includes(c) ? "Government" : "Opposition"}
+            {game.coalitions[c].members.join(" · ") || "No parties left"} · {game.parliament.pm === c ? "Prime Minister" : game.government.includes(c) ? "Government" : "Opposition"}
           </div>
         </div>
         <span

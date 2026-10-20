@@ -28,6 +28,7 @@ import {
   type Target,
 } from "@/game/actions";
 import { advanceMonth } from "@/game/month";
+import { renameCoalition, syncNames } from "@/game/systems/coalitions";
 import { migrateGame, newGame, SAVE_VERSION, type GameState, type NewGameOptions } from "@/game/state";
 import { recordTier } from "./meta";
 import type { AssetType, CeoKind } from "@/game/systems/business";
@@ -35,7 +36,7 @@ import { advanceWeek } from "@/game/week";
 import type { CoalitionId } from "@/game/world";
 import type { MapFocus } from "@/components/map/MalaysiaMap";
 
-export type Lens = "holder" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
+export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
 /** Side panels that open over the map. */
 export type Panel = "campaign" | "party" | "policy" | "states" | "parliament" | "rivals" | "treasury";
 
@@ -79,6 +80,8 @@ interface Store {
   act: (id: string, target: Target) => void;
   claim: (bubbleId: number) => void;
   poll: (seat: number) => void;
+  rename: (name: string, short: string, color: string) => void;
+  keepName: () => void;
   business: (op: "buy" | "upgrade" | "sell" | "tap" | "ceo", type: AssetType, ceo?: CeoKind) => void;
   policy: (policyId: string, option: number) => void;
   budget: (alloc: Record<string, number>) => void;
@@ -199,6 +202,17 @@ export const useGame = create<Store>()(
           result(r);
           if (r.ok && b) set({ floater: { id: ++toastId, seat: b.seat, text: r.message.split(": ").at(-1)!.replace(/\.$/, "") } });
         },
+        rename: (name, short, color) => {
+          const g = get().game;
+          if (!g) return;
+          const r = renameCoalition(g, name, short, color);
+          if (r.ok) set({ game: r.state, toast: { id: ++toastId, text: `Your coalition is now ${name.trim()} (${short.trim()}).` } });
+          else set({ toast: { id: ++toastId, text: r.error, error: true } });
+        },
+        keepName: () => {
+          const g = get().game;
+          if (g) set({ game: { ...g, namePending: false } });
+        },
         poll: (seat) => {
           const g = get().game;
           if (g) result(commissionPoll(g, seat));
@@ -288,3 +302,8 @@ export const useGame = create<Store>()(
     },
   ),
 );
+
+// Coalition names can change during a game; keep display text in step with the loaded game.
+useGame.subscribe((st, prev) => {
+  if (st.game && st.game.coalitions !== prev.game?.coalitions) syncNames(st.game);
+});

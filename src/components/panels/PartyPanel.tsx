@@ -3,6 +3,7 @@
 import { MACC } from "@/game/config";
 import { useGame } from "@/store/gameStore";
 import { Career } from "../Career";
+import { CoalitionCard } from "../CoalitionCard";
 import { fmt, fmtRM } from "../common";
 
 /** Your party's health at a glance, then your career. */
@@ -33,6 +34,7 @@ export function PartyPanel() {
           </div>
         </div>
       </section>
+      <CoalitionCard />
       <Career />
     </div>
   );

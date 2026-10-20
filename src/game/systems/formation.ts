@@ -6,7 +6,7 @@
 
 import { DIFFICULTY } from "../config";
 import type { GameState } from "../state";
-import { COALITIONS, COALITION_INFO, MAJORITY, SUPERMAJORITY, type CoalitionId } from "../world";
+import { COALITIONS, cshort, MAJORITY, SUPERMAJORITY, type CoalitionId } from "../world";
 import { stateRulers } from "./assemblies";
 
 /** How willing one coalition is to serve under another's prime minister (−1 to 1). Row = joiner, column = leader. */
@@ -125,7 +125,7 @@ export function startFormation(s: GameState, seats: Record<CoalitionId, number>,
     oldGovernment: s.government,
     seatsBefore,
     greed: DIFFICULTY[s.settings.difficulty].greed,
-    log: [`${COALITION_INFO[candidates[0]].short} (${seats[candidates[0]]} seats) and ${COALITION_INFO[candidates[1]].short} (${seats[candidates[1]]}) are racing to ${MAJORITY}.`],
+    log: [`${cshort(candidates[0])} (${seats[candidates[0]]} seats) and ${cshort(candidates[1])} (${seats[candidates[1]]}) are racing to ${MAJORITY}.`],
   };
   // Natural partners sign straight away for the candidate they like most (never on your behalf).
   for (const c of COALITIONS) {
@@ -134,7 +134,7 @@ export function startFormation(s: GameState, seats: Record<CoalitionId, number>,
     const best = aff(c, x) >= aff(c, y) ? x : y;
     if (aff(c, best) >= 0.45 && f.oldGovernment.includes(c) === f.oldGovernment.includes(best)) {
       f.committed[c] = best;
-      f.log.push(`${COALITION_INFO[c].short} (${seats[c]}) signs SDs for ${COALITION_INFO[best].short} at once.`);
+      f.log.push(`${cshort(c)} (${seats[c]}) signs SDs for ${cshort(best)} at once.`);
     }
   }
   return f;
@@ -153,7 +153,7 @@ export function endRound(f: Formation, player: CoalitionId): Formation {
   if (rival && undecided.length) {
     const target = undecided[0];
     next.rivalOffers[target] = (next.rivalOffers[target] ?? 0) + OFFERS.aiOffer * f.round;
-    next.log.push(`${COALITION_INFO[rival].short} makes a new offer to ${COALITION_INFO[target].short}.`);
+    next.log.push(`${cshort(rival)} makes a new offer to ${cshort(target)}.`);
   }
   const last = f.round >= OFFERS.rounds;
   const threshold = OFFERS.threshold[Math.min(f.round, OFFERS.rounds) - 1];
@@ -165,8 +165,8 @@ export function endRound(f: Formation, player: CoalitionId): Formation {
     const w = Math.max(wx, wy);
     if (w >= threshold || (last && w > 0)) {
       next.committed[c] = best;
-      next.log.push(`${COALITION_INFO[c].short} (${f.seats[c]}) signs SDs for ${COALITION_INFO[best].short}.`);
-    } else if (last) next.log.push(`${COALITION_INFO[c].short} stays on the crossbench.`);
+      next.log.push(`${cshort(c)} (${f.seats[c]}) signs SDs for ${cshort(best)}.`);
+    } else if (last) next.log.push(`${cshort(c)} stays on the crossbench.`);
   }
   next.round = f.round + 1;
   return next;
@@ -175,7 +175,7 @@ export function endRound(f: Formation, player: CoalitionId): Formation {
 /** Kingmaker: back a candidate, optionally asking for Deputy Prime Minister. */
 export function backCandidate(f: Formation, player: CoalitionId, leader: CoalitionId, askDpm: boolean): Formation {
   const next: Formation = { ...f, committed: { ...f.committed, [player]: leader }, log: [...f.log], askedDpm: askDpm };
-  next.log.push(`You sign SDs for ${COALITION_INFO[leader].short}${askDpm ? ", asking for Deputy Prime Minister" : ""}.`);
+  next.log.push(`You sign SDs for ${cshort(leader)}${askDpm ? ", asking for Deputy Prime Minister" : ""}.`);
   return next;
 }
 

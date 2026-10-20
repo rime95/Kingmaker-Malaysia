@@ -6,7 +6,7 @@ import { DIFFICULTY } from "@/game/config";
 import { bestRead, type SeatRead } from "@/game/systems/polls";
 import type { Projection } from "@/game/voter";
 export { fmtRM } from "@/game/money";
-import { COALITION_INFO, PARTIES, SEATS, type CoalitionId } from "@/game/world";
+import { cshort, PARTIES, SEATS, type CoalitionId } from "@/game/world";
 import { useMemo } from "react";
 
 export const coalColor = (c: CoalitionId) => `var(--c-${c})`;
@@ -45,7 +45,7 @@ export function CoalitionChip({ c }: { c: CoalitionId }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-sm">
       <span className="swatch" style={{ background: coalColor(c) }} />
-      {COALITION_INFO[c].short}
+      {cshort(c)}
     </span>
   );
 }

@@ -5,12 +5,14 @@ import { FORTRESS } from "@/game/config";
 import type { GameState } from "@/game/state";
 import { isHostile, type Rival } from "@/game/systems/rivals";
 import { leaderOf, winChance, type SeatRead } from "@/game/systems/polls";
+import { partyColor } from "@/game/systems/coalitions";
 import type { Rating } from "@/game/voter";
-import { BLOC_LABEL, COALITION_INFO, SEATS, contestingIn, majorityBloc, type CoalitionId } from "@/game/world";
+import { BLOC_LABEL, contestingIn, cshort, majorityBloc, SEATS, type CoalitionId } from "@/game/world";
 import type { Lens } from "@/store/gameStore";
 
 export const LENSES: { id: Lens; label: string; short: string }[] = [
   { id: "holder", label: "Who holds each seat", short: "Holder" },
+  { id: "parties", label: "Which party holds each seat", short: "Parties" },
   { id: "projection", label: "Latest polls and branch reports", short: "Polls" },
   { id: "support", label: "Your polled vote share", short: "Support" },
   { id: "presence", label: "Your strongholds (service)", short: "Strongholds" },
@@ -56,6 +58,8 @@ export function lensFill(game: GameState, reads: SeatRead[], lens: Lens, i: numb
   switch (lens) {
     case "holder":
       return { fill: coalColor(game.holders[i]) };
+    case "parties":
+      return { fill: partyColor(game, game.holderParties[i]) };
     case "projection": {
       const r = readRating(reads[i], game.week);
       return { fill: coalColor(r.leader), opacity: RATING_OPACITY[r.rating] * (reads[i].source === "estimate" ? 0.7 : 1), flipped: r.leader !== game.holders[i] };
@@ -87,7 +91,11 @@ export function lensLegend(game: GameState, lens: Lens): { items: LegendItem[]; 
   const player = game.player;
   switch (lens) {
     case "holder":
-      return { items: [...new Set(game.holders)].map((c) => ({ color: coalColor(c), label: COALITION_INFO[c].short })) };
+      return { items: [...new Set(game.holders)].map((c) => ({ color: coalColor(c), label: cshort(c) })) };
+    case "parties": {
+      const parties = [...new Set(game.holderParties)].sort((a, b) => game.holderParties.filter((p) => p === b).length - game.holderParties.filter((p) => p === a).length);
+      return { items: parties.map((p) => ({ color: partyColor(game, p), label: `${p} ${game.holderParties.filter((x) => x === p).length}` })), note: "Partners wear lighter or darker shades of their coalition's colour." };
+    }
     case "projection":
       return { items: (Object.keys(RATING_OPACITY) as Rating[]).map((r) => ({ color: "var(--ink-2)", label: RATING_LABEL[r], opacity: RATING_OPACITY[r] })), note: "Who leads in your polls. Faded = rough estimate only. Dashed = would change hands." };
     case "support":

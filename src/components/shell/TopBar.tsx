@@ -5,7 +5,7 @@ import { careerTitle } from "@/game/progress";
 import { isGovernment, weekLabel } from "@/game/state";
 import { weeksToElection } from "@/game/systems/assemblies";
 import { useGame } from "@/store/gameStore";
-import { COALITIONS, COALITION_INFO, MAJORITY, TOTAL_SEATS, type CoalitionId } from "@/game/world";
+import { COALITIONS, cshort, MAJORITY, TOTAL_SEATS, type CoalitionId } from "@/game/world";
 import { CHART_ORDER, fmtRM } from "../common";
 import { coalColor } from "../map/lenses";
 import { useT } from "../i18n";
@@ -34,7 +34,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
       <div className="min-w-0 flex-none">
         <div className="flex items-center gap-1.5 text-sm font-semibold">
           <span className="swatch" style={{ background: coalColor(game.player) }} />
-          {COALITION_INFO[game.player].short}
+          {cshort(game.player)}
           <span className="font-normal hidden sm:inline" style={{ color: "var(--muted)" }}>
             · {isGovernment(game) ? t("government") : t("opposition")}
           </span>
@@ -64,7 +64,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
               </div>
               <div className="text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 mt-0.5" style={{ color: "var(--ink-2)" }}>
                 <span className="swatch" style={{ background: coalColor(c), width: 8, height: 8 }} />
-                {COALITION_INFO[c].short}
+                {cshort(c)}
                 {c === game.player ? " ★" : ""}
               </div>
             </div>

@@ -3,7 +3,7 @@
 // Named save slots in this browser, plus export/import as a file to move a game to another computer.
 
 import { migrateGame, weekLabel, type GameState } from "@/game/state";
-import { COALITION_INFO } from "@/game/world";
+import { cshort } from "@/game/world";
 
 const KEY = "mpr-slots";
 const MAX_SLOTS = 8;
@@ -35,7 +35,7 @@ function write(slots: Slot[]): boolean {
 }
 
 export function summary(g: GameState): string {
-  return `${COALITION_INFO[g.player].short} · ${g.career.name} · ${weekLabel(g.week)} · ${g.holders.filter((h) => h === g.player).length} seats`;
+  return `${cshort(g.player)} · ${g.career.name} · ${weekLabel(g.week)} · ${g.holders.filter((h) => h === g.player).length} seats`;
 }
 
 export function saveSlot(g: GameState, name: string): boolean {
@@ -59,7 +59,7 @@ export function exportGame(g: GameState): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `malam-pilihan-raya-${COALITION_INFO[g.player].short}-week${g.week + 1}.json`;
+  a.download = `malam-pilihan-raya-${cshort(g.player)}-week${g.week + 1}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

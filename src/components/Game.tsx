@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { COALITIONS } from "@/game/world";
 import { useGame } from "@/store/gameStore";
 import { NewGame } from "./NewGame";
 import { Toast } from "./Toast";
@@ -15,6 +16,7 @@ import { SeatCard } from "./shell/SeatCard";
 import { NewsTicker } from "./shell/NewsTicker";
 import { WeekReview } from "./shell/WeekReview";
 import { AlertModal } from "./shell/AlertModal";
+import { NameCoalition } from "./shell/NameCoalition";
 
 const noop = () => () => {};
 
@@ -32,7 +34,17 @@ export function Game() {
  */
 function Main() {
   const { panel, selected } = useGame();
+  const game = useGame((s) => s.game)!;
   const [savesOpen, setSavesOpen] = useState(false);
+  // Coalition colours can change (a winner rebrands): feed them to the CSS variables every view uses.
+  const coalitions = game.coalitions;
+  useEffect(() => {
+    const root = document.documentElement;
+    for (const c of COALITIONS) root.style.setProperty(`--c-${c}`, coalitions[c].color);
+    return () => {
+      for (const c of COALITIONS) root.style.removeProperty(`--c-${c}`);
+    };
+  }, [coalitions]);
 
   return (
     <div className="fixed inset-0 overflow-hidden main-map">
@@ -92,6 +104,7 @@ function Main() {
         </div>
       )}
       <AlertModal />
+      {game.namePending && !game.night && !game.formation && <NameCoalition />}
       <ElectionNight />
       <Toast />
     </div>
