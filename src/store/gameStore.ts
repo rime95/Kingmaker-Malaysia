@@ -47,6 +47,8 @@ import { advanceWeek } from "@/game/week";
 import type { CoalitionId } from "@/game/world";
 import type { PortfolioId } from "@/game/data/people";
 import type { RaceMove } from "@/game/systems/partyrace";
+import { buyProperty, buyShares, cancelOrder, declareAssets, donate, payOffLoan, placeOrder, sellProperty, sellShares, setPayTeam, type Owner } from "@/game/systems/wealth";
+import type { StockOrder } from "@/game/systems/bursa";
 import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
@@ -94,6 +96,19 @@ interface Store {
   claim: (bubbleId: number) => void;
   poll: (seat: number) => void;
   meet: (id: number) => void;
+  money: (
+    op:
+      | { kind: "buy"; ticker: string; n: number }
+      | { kind: "sell"; ticker: string; n: number }
+      | { kind: "order"; ticker: string; order: StockOrder["kind"]; trigger: number; shares: number }
+      | { kind: "cancel"; id: number }
+      | { kind: "buyProp"; id: string; units: number; owner: Owner; ltv: number }
+      | { kind: "sellProp"; index: number }
+      | { kind: "payoff"; index: number }
+      | { kind: "donate"; amount: number }
+      | { kind: "declare" }
+      | { kind: "payTeam"; on: boolean },
+  ) => void;
   lever: (l: { kind: "pay"; stance: "freeze" | "normal" | "raise" } | { kind: "stimulus" } | { kind: "project"; id: string }) => void;
   hireStaff: (id: number) => void;
   fireStaff: (id: number) => void;
@@ -259,6 +274,36 @@ export const useGame = create<Store>()(
           const g = get().game;
           if (!g) return;
           result(l.kind === "pay" ? setCivilPay(g, l.stance) : l.kind === "stimulus" ? launchStimulus(g) : startProject(g, l.id));
+        },
+        money: (op) => {
+          const g = get().game;
+          if (!g) return;
+          const run = () => {
+            switch (op.kind) {
+              case "buy":
+                return buyShares(g, op.ticker, op.n);
+              case "sell":
+                return sellShares(g, op.ticker, op.n);
+              case "order":
+                return placeOrder(g, op.ticker, op.order, op.trigger, op.shares);
+              case "cancel":
+                return cancelOrder(g, op.id);
+              case "buyProp":
+                return buyProperty(g, op.id, op.units, op.owner, op.ltv);
+              case "sellProp":
+                return sellProperty(g, op.index);
+              case "payoff":
+                return payOffLoan(g, op.index);
+              case "donate":
+                return donate(g, op.amount);
+              case "declare":
+                return declareAssets(g);
+              case "payTeam":
+                return setPayTeam(g, op.on);
+            }
+          };
+          const r = run();
+          result(r);
         },
         meet: (id) => {
           const g = get().game;

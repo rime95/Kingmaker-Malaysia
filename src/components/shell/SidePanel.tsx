@@ -7,7 +7,7 @@ import { Policy } from "../Policy";
 import { Rivals } from "../Rivals";
 import { SeatBars } from "../SeatBars";
 import { States } from "../States";
-import { Treasury } from "../Treasury";
+import { MoneyPanel } from "../panels/MoneyPanel";
 import { CampaignPanel } from "../panels/CampaignPanel";
 import { PartyPanel } from "../panels/PartyPanel";
 import { PeoplePanel } from "../panels/PeoplePanel";
@@ -25,7 +25,7 @@ const TITLES: Record<Panel, { title: string; sub: string }> = {
   states: { title: "States", sub: "Assemblies, state elections and dissolution" },
   parliament: { title: "Dewan Rakyat", sub: "Who sits where, and the numbers" },
   rivals: { title: "Rivals", sub: "What the other parties are doing" },
-  treasury: { title: "Money", sub: "War chest and the party's businesses" },
+  treasury: { title: "Money", sub: "The war chest, Bursa, property and your own fortune" },
 };
 
 /** One panel at a time, sliding in over the map. Esc closes it. */
@@ -62,7 +62,7 @@ export function SidePanel() {
         {panel === "policy" && <Policy />}
         {panel === "states" && <States />}
         {panel === "rivals" && <Rivals />}
-        {panel === "treasury" && <Treasury />}
+        {panel === "treasury" && <MoneyPanel />}
         {panel === "parliament" && (
           <div className="flex flex-col gap-4">
             <SeatBars />

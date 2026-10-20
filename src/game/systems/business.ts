@@ -26,7 +26,7 @@ export const ASSETS: Record<AssetType, AssetDef> = {
   koperasi: { type: "koperasi", name: "Members' cooperative (koperasi)", price: 1_000_000, income: 8_000, risk: 0, effect: "Party unity +0.3/week and membership grows per level" },
   digital: { type: "digital", name: "Digital & social media agency", price: 2_500_000, income: 20_000, risk: 0, effect: "Social media actions 30% cheaper" },
   foundation: { type: "foundation", name: "Education foundation (scholarships)", price: 2_000_000, income: 4_000, risk: 0, effect: "Scholarship PR: youth buzz in every seat each week" },
-  bursa: { type: "bursa", name: "Bursa stock portfolio", price: 2_000_000, income: 0, risk: 0, effect: "Market value moves weekly; ~4% yearly dividends. Buy more to add RM 2M each" },
+  bursa: { type: "bursa", name: "Party investment fund", price: 2_000_000, income: 0, risk: 0, effect: "Market value moves weekly; ~4% yearly dividends. Buy more to add RM 2M each" },
 };
 
 export const ASSET_ORDER: AssetType[] = ["property", "newspaper", "digital", "koperasi", "foundation", "plantation", "construction", "bursa"];

@@ -12,6 +12,7 @@ import { leaderOfParty, peopleMonth, syncYou } from "./systems/people";
 import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
 import { CONTEST_POINTS } from "./systems/career";
 import { economyScore, nationWeek, projectSeats } from "./systems/nation";
+import { projectOpened, wealthWeek } from "./systems/wealth";
 import { ROLES, pollError, teamDonations, teamRaidMult, teamSalaries, teamUpkeepMult, teamWeek } from "./systems/team";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
@@ -39,7 +40,7 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
     if (ruler === s.player) income.push({ label: `State government (${STATE_BY_ID[id].name})`, amount: DUNS_BY_STATE[id].length * PRN.stateIncomePerSeat });
   for (const a of me.assets) income.push({ label: ASSETS[a.type].name, amount: assetIncome(a, gov, me.market) });
   const expenses: WeekReport["expenses"] = [{ label: "HQ & staff", amount: Math.round(ECONOMY.hqFixed + me.members * ECONOMY.hqPerMember) }];
-  if (s.team.length) expenses.push({ label: "Your team", amount: teamSalaries(s) });
+  if (s.team.length && !s.personal.payTeam) expenses.push({ label: "Your team", amount: teamSalaries(s) });
   const donations = teamDonations(s);
   if (donations) income.push({ label: `Donors (${s.team.find((x) => x.role === "fundraiser")?.name})`, amount: donations });
   const salaries = me.assets.reduce((sum, a) => sum + CEO[a.ceo].salary, 0);
@@ -202,7 +203,15 @@ export function advanceWeek(input: GameState): GameState {
   }
 
   // Your team: experience, loyalty (unpaid staff sulk), poaching and leaks
-  const tw = teamWeek(next, s.me.funds >= 0);
+  // Your money: shares, dividends, rent and mortgages (the party's land bank pays into the war chest)
+  const wl = wealthWeek(next);
+  next = wl.state;
+  for (const def of nw.opened) next = projectOpened(next, def.id);
+  next = { ...next, me: { ...next.me, funds: next.me.funds + wl.partyIncome, integrity: clamp(next.me.integrity + wl.integrity) } };
+  if (next.personal.payTeam) next = { ...next, personal: { ...next.personal, cash: next.personal.cash - teamSalaries(next) } };
+  lines.push(...wl.lines);
+
+  const tw = teamWeek(next, next.personal.payTeam ? next.personal.cash >= 0 : s.me.funds >= 0);
   next = { ...tw.state, me: { ...tw.state.me, scandal: clamp(tw.state.me.scandal + tw.scandal) } };
   lines.push(...tw.lines);
 

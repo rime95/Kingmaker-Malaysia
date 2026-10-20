@@ -15,6 +15,8 @@ import type { PortfolioId } from "./data/people";
 import type { PartyRace } from "./systems/partyrace";
 import { initTeam, pollError, type Staff } from "./systems/team";
 import { NATION, initNation, type Nation } from "./systems/nation";
+import { initBursa, type Stock } from "./systems/bursa";
+import { initPersonal, type Personal } from "./systems/wealth";
 import type { SeatRecord } from "./systems/results";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
@@ -26,7 +28,7 @@ import { COALITIONS, COALITION_INFO, SEATS, type CoalitionId } from "./world";
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -181,6 +183,9 @@ export interface GameState {
   nextStaffId: number;
   /** The country: growth, prices, jobs, the ringgit, debt, approval, projects and crises. */
   nation: Nation;
+  /** Bursa Malaysia, and your own money: cash, shares and property (plus the party's land bank). */
+  bursa: Stock[];
+  personal: Personal;
 }
 
 export interface NewGameOptions {
@@ -265,6 +270,8 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     race: null,
     ...initTeam(seed),
     nation: initNation(),
+    bursa: initBursa(),
+    personal: initPersonal({ player, career: initCareer(player, seed, opts.mode ?? "leader", opts.name, opts.homeSeat) }),
   };
   Object.assign(state, initPeople(state));
   Object.assign(state, syncYou(state));
@@ -324,6 +331,8 @@ export function migrateGame(g: GameState): GameState {
     teamMarket: g.teamMarket ?? initTeam(g.seed).teamMarket,
     nextStaffId: g.nextStaffId ?? initTeam(g.seed).nextStaffId,
     nation: g.nation ?? initNation(),
+    bursa: g.bursa ?? initBursa(),
+    personal: g.personal ?? initPersonal(g),
   };
   if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));

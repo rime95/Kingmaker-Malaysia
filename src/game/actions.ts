@@ -15,6 +15,7 @@ import { CAREER as CAREER_LOYALTY, RUNGS, addPoints, isPresident } from "./syste
 import { raceMove, type RaceMove } from "./systems/partyrace";
 import { fire, hire, pollError, raise, teamAp } from "./systems/team";
 import { NATION, PROJECT_BY_ID, type Nation } from "./systems/nation";
+import { insiderCheck, policySector } from "./systems/wealth";
 import { startFormation } from "./systems/formation";
 import { seatCounts } from "./state";
 import { hash01 } from "./rng";
@@ -311,7 +312,8 @@ export function startProject(s: GameState, id: string): ActionResult {
   if (s.me.capital < 10) return { ok: false, error: "Needs 10 political capital." };
   const nation: Nation = { ...s.nation, projects: [...s.nation.projects, { id, progress: 0, startWeek: s.week, done: false }] };
   const me = { ...s.me, capital: s.me.capital - 10, risk: clamp(s.me.risk + 3), nationalBuzz: clamp(s.me.nationalBuzz + 4) };
-  return { ok: true, state: { ...s, nation, me, fiscal: clamp(s.fiscal - 3) }, message: `Ground is broken on the ${def.name}.` };
+  const ins = insiderCheck({ ...s, nation, me, fiscal: clamp(s.fiscal - 3) }, "Construction", `breaking ground on the ${def.name}`);
+  return { ok: true, state: ins.state, message: `Ground is broken on the ${def.name}.${ins.line ? ` ${ins.line}` : ""}` };
 }
 
 export function setCivilPay(s: GameState, stance: Nation["civilPay"]): ActionResult {
@@ -890,6 +892,12 @@ export function adoptPolicy(s: GameState, policyId: string, option: number): Act
     ? `${policy.name}: "${opt.label}" passes the Dewan ${vote.yes}–${vote.no}.`
     : `${policy.name}: you pledge "${opt.label}". Voters give it ${Math.round(PLEDGE_WEIGHT * 100)}% credit until you can deliver.`;
   const career = vote ? addPoints(s.career, s.week, 3, `passed ${policy.name.toLowerCase()} reform`) : s.career;
+  // Moving a sector you have just bought into is insider trading.
+  const sector = gov ? policySector(policyId) : undefined;
+  if (sector) {
+    const ins = insiderCheck({ ...s, me, economy, fiscal, career }, sector, `your ${policy.name.toLowerCase()} decision`);
+    return { ok: true, state: ins.state, message: ins.line ? `${message} ${ins.line}` : message };
+  }
   return { ok: true, state: { ...s, me, economy, fiscal, career }, message };
 }
 

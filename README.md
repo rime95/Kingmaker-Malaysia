@@ -50,6 +50,18 @@ Or double-click `Start Game.bat`.
 - **Scenarios and difficulty**: present day, snap election, underdog (unlocks after a Gold result); easy, normal, hard.
 - **Advisor**: what deserves attention this week, with one-click moves ranked by the game's own preview.
 - **Saves**: autosave, named save slots in the browser, and save files to move a game between computers.
+- **Polls, not crystal balls**: the seat card shows the real GE15 result (then each election you play), and your chance of
+  winning from polls you commission, monthly national polls and free branch reports where your machinery is strong.
+- **Parties inside coalitions**: PKR, DAP, Amanah, UMNO, MCA, PAS, Bersatu and the rest, each with its leaders and goodwill.
+  Unhappy partners walk out and their MPs cross the floor; winners rename their coalition and pick a colour.
+- **People**: every MP from GE15 and each party's real leadership, with generated members below. Vacancies are filled from the
+  rank below, down to new branch chiefs. The cabinet is shared by seats; as Prime Minister you reshuffle it.
+- **Party life**: each rank has its own moves; party elections are four-week delegate races with a live AGM count; ministerial
+  posts come by presidential appointment.
+- **Your team**: seven staff jobs (political secretary, press, strategist, fundraiser, lawyer, organiser, social media).
+- **Governing**: growth, inflation, jobs, the ringgit, debt and approval; Bank Negara; mega projects; crises; no-confidence motions.
+- **Bursa and property**: a personal share portfolio of real Bursa companies and property in every state, with mortgages,
+  insider-trading risk and asset declarations; the party keeps a land bank.
 - **Bahasa Malaysia / English** for navigation, controls and Election Night.
 
 ## Map data
