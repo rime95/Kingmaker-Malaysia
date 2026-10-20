@@ -2,16 +2,40 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { adoptPolicy, answerCard, applyAction, backForPm, buyAsset, callGeneralElection, callStateElection, closeNight, goToAgong, makeOffer, nextTalksRound, sellAsset, setCeo, setSyncWithGE, tableBudget, tapAsset, upgradeAsset, type ActionResult, type OfferKind, type Target } from "@/game/actions";
+import {
+  adoptPolicy,
+  answerCard,
+  applyAction,
+  backForPm,
+  buyAsset,
+  callGeneralElection,
+  callStateElection,
+  claimBubble,
+  closeNight,
+  goToAgong,
+  makeOffer,
+  nextTalksRound,
+  sellAsset,
+  setCeo,
+  setSyncWithGE,
+  tableBudget,
+  tapAsset,
+  upgradeAsset,
+  type ActionResult,
+  type OfferKind,
+  type Target,
+} from "@/game/actions";
 import { advanceMonth } from "@/game/month";
 import { migrateGame, newGame, simulateElection, SAVE_VERSION, type GameState, type NewGameOptions } from "@/game/state";
 import { recordTier } from "./meta";
 import type { AssetType, CeoKind } from "@/game/systems/business";
 import { advanceWeek } from "@/game/week";
 import type { CoalitionId } from "@/game/world";
+import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
-export type View = "overview" | "map" | "dewan" | "states" | "policy" | "rivals" | "treasury" | "career";
+/** Side panels that open over the map. */
+export type Panel = "campaign" | "party" | "policy" | "states" | "parliament" | "rivals" | "treasury";
 
 export interface Toast {
   id: number;
@@ -19,29 +43,46 @@ export interface Toast {
   error?: boolean;
 }
 
+/** A "+RM 250k" that floats up from a claimed bubble. */
+export interface Floater {
+  id: number;
+  seat: number;
+  text: string;
+}
+
 interface Store {
   game: GameState | null;
   lens: Lens;
-  view: View;
+  panel: Panel | null;
   selected: number | null;
+  /** Where the map should fly next. */
+  mapFocus: MapFocus;
   toast: Toast | null;
-  /** Shown after a skip until dismissed. */
+  floater: Floater | null;
+  /** Week in review, shown after time moves on. */
   reportOpen: boolean;
+  /** Decision cards you put off ("decide later") until you open them again. */
+  snoozed: number[];
+  budgetSnoozed: boolean;
   lang: "en" | "ms";
   sound: boolean;
   setLang: (lang: "en" | "ms") => void;
   setSound: (on: boolean) => void;
-  skipToEvent: () => void;
   start: (player: CoalitionId, opts?: NewGameOptions) => void;
   quit: () => void;
   simulate: () => void;
   skipWeek: () => void;
   skipMonth: () => void;
+  skipToEvent: () => void;
   act: (id: string, target: Target) => void;
+  claim: (bubbleId: number) => void;
   business: (op: "buy" | "upgrade" | "sell" | "tap" | "ceo", type: AssetType, ceo?: CeoKind) => void;
   policy: (policyId: string, option: number) => void;
   budget: (alloc: Record<string, number>) => void;
   answer: (cardId: number, choice: number) => void;
+  snooze: (cardId: number) => void;
+  snoozeBudget: () => void;
+  unsnooze: () => void;
   dissolveParliament: () => void;
   dissolveAssembly: (stateId: string) => void;
   syncAssembly: (stateId: string, sync: boolean) => void;
@@ -53,8 +94,11 @@ interface Store {
   load: (game: GameState) => void;
   notify: (text: string, error?: boolean) => void;
   select: (seatIndex: number | null) => void;
+  /** Select a seat and fly the map to it (closes a panel that would cover it on small screens). */
+  focusSeat: (seatIndex: number) => void;
+  focusState: (stateId: string) => void;
   setLens: (lens: Lens) => void;
-  setView: (view: View) => void;
+  openPanel: (panel: Panel | null) => void;
   closeReport: () => void;
   clearToast: () => void;
 }
@@ -81,6 +125,8 @@ const safeStorage = createJSONStorage(() => ({
 }));
 
 let toastId = 0;
+let nonce = 0;
+const BLOCKED = "Finish Election Night and the coalition talks first.";
 
 export const useGame = create<Store>()(
   persist(
@@ -89,50 +135,63 @@ export const useGame = create<Store>()(
         if (r.ok) set({ game: r.state, toast: { id: ++toastId, text: r.message } });
         else set({ toast: { id: ++toastId, text: r.error, error: true } });
       };
+      const moved = (game: GameState) => set({ game, reportOpen: true, budgetSnoozed: false });
       return {
         game: null,
         lens: "holder",
-        view: "overview",
+        panel: null,
         selected: null,
+        mapFocus: null,
         toast: null,
+        floater: null,
         reportOpen: false,
+        snoozed: [],
+        budgetSnoozed: false,
         lang: "en",
         sound: false,
         setLang: (lang) => set({ lang }),
         setSound: (sound) => set({ sound }),
+        start: (player, opts) => set({ game: newGame(player, undefined, opts), lens: "holder", panel: null, selected: null, reportOpen: false, snoozed: [], mapFocus: { kind: "reset", nonce: ++nonce } }),
+        quit: () => set({ game: null, selected: null, panel: null }),
+        simulate: () => {
+          const g = get().game;
+          if (g) set({ game: simulateElection(g), lens: "result", toast: { id: ++toastId, text: "Test election done: the map shows who would win. Seats don't change hands." } });
+        },
+        skipWeek: () => {
+          const g = get().game;
+          if (g?.night || g?.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
+          if (g) moved(advanceWeek(g));
+        },
+        skipMonth: () => {
+          const g = get().game;
+          if (g?.night || g?.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
+          if (g) moved(advanceMonth(g));
+        },
         skipToEvent: () => {
           let g = get().game;
           if (!g) return;
-          if (g.night || g.formation) return set({ toast: { id: ++toastId, text: "Finish Election Night and the coalition talks first.", error: true } });
+          if (g.night || g.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
           const start = g.week;
           // Up to 12 weeks, stopping at anything that needs you.
           for (let i = 0; i < 12; i++) {
             g = advanceWeek(g);
-            const report = g.report!;
-            const alarming = report.lines.some((l) => /MACC|in debt|Couldn.t pay|state election|by-election|leadership|retires|Achievement|Objective complete/.test(l.text));
+            const alarming = g.report!.lines.some((l) => /MACC|in debt|Couldn.t pay|state election|by-election|leadership|retires|Achievement|Objective complete/.test(l.text));
             if (g.cards.length || g.budgetDue !== null || g.night || g.parliament.status === "campaign" || alarming) break;
           }
-          set({ game: g, reportOpen: true, toast: { id: ++toastId, text: `Skipped ${g.week - start} week${g.week - start === 1 ? "" : "s"}.` } });
-        },
-        start: (player, opts) => set({ game: newGame(player, undefined, opts), lens: "holder", view: "overview", selected: null, reportOpen: false }),
-        quit: () => set({ game: null, selected: null }),
-        simulate: () => {
-          const g = get().game;
-          if (g) set({ game: simulateElection(g), lens: "result", view: get().view === "dewan" ? "dewan" : "map" });
-        },
-        skipWeek: () => {
-          const g = get().game;
-          if (g?.night || g?.formation) return set({ toast: { id: ++toastId, text: "Finish Election Night and the coalition talks first.", error: true } });
-          if (g) set({ game: advanceWeek(g), reportOpen: true });
-        },
-        skipMonth: () => {
-          const g = get().game;
-          if (g?.night || g?.formation) return set({ toast: { id: ++toastId, text: "Finish Election Night and the coalition talks first.", error: true } });
-          if (g) set({ game: advanceMonth(g), reportOpen: true });
+          moved(g);
+          set({ toast: { id: ++toastId, text: `Skipped ${g.week - start} week${g.week - start === 1 ? "" : "s"}.` } });
         },
         act: (id, target) => {
           const g = get().game;
           if (g) result(applyAction(g, id, target));
+        },
+        claim: (bubbleId) => {
+          const g = get().game;
+          if (!g) return;
+          const b = g.bubbles.find((x) => x.id === bubbleId);
+          const r = claimBubble(g, bubbleId);
+          result(r);
+          if (r.ok && b) set({ floater: { id: ++toastId, seat: b.seat, text: r.message.split(": ").at(-1)!.replace(/\.$/, "") } });
         },
         business: (op, type, ceo) => {
           const g = get().game;
@@ -155,6 +214,9 @@ export const useGame = create<Store>()(
           const g = get().game;
           if (g) result(answerCard(g, cardId, choice));
         },
+        snooze: (cardId) => set({ snoozed: [...get().snoozed, cardId] }),
+        snoozeBudget: () => set({ budgetSnoozed: true }),
+        unsnooze: () => set({ snoozed: [], budgetSnoozed: false }),
         dissolveParliament: () => {
           const g = get().game;
           if (g) result(callGeneralElection(g));
@@ -190,11 +252,13 @@ export const useGame = create<Store>()(
           const g = get().game;
           if (g) set({ game: closeNight(g) });
         },
-        load: (game) => set({ game, selected: null, reportOpen: false, view: "overview", toast: { id: ++toastId, text: "Game loaded." } }),
+        load: (game) => set({ game, selected: null, reportOpen: false, panel: null, snoozed: [], toast: { id: ++toastId, text: "Game loaded." }, mapFocus: { kind: "reset", nonce: ++nonce } }),
         notify: (text, error) => set({ toast: { id: ++toastId, text, error } }),
         select: (selected) => set({ selected }),
+        focusSeat: (i) => set({ selected: i, mapFocus: { kind: "seat", index: i, nonce: ++nonce }, panel: typeof window !== "undefined" && window.innerWidth < 900 ? null : get().panel }),
+        focusState: (id) => set({ mapFocus: { kind: "state", id, nonce: ++nonce } }),
         setLens: (lens) => set({ lens }),
-        setView: (view) => set({ view }),
+        openPanel: (panel) => set({ panel: get().panel === panel ? null : panel }),
         closeReport: () => set({ reportOpen: false }),
         clearToast: () => set({ toast: null }),
       };
@@ -203,13 +267,13 @@ export const useGame = create<Store>()(
       name: "mpr-save",
       version: SAVE_VERSION,
       storage: safeStorage,
-      partialize: (s) => ({ game: s.game, lens: s.lens, view: s.view, lang: s.lang, sound: s.sound }),
+      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound }),
       // Saves from before the turn loop can't be upgraded: start fresh.
-      migrate: (persisted, version) => (version < 2 ? { game: null, lens: "holder", view: "overview" } : persisted) as Store,
+      migrate: (persisted, version) => (version < 2 ? { game: null, lens: "holder" } : persisted) as Store,
       // Every load fills fields added since the save was made (safe to repeat).
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<Store>;
-        return { ...current, ...p, game: p.game ? migrateGame(p.game) : null };
+        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound };
       },
     },
   ),

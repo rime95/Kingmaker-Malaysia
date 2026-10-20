@@ -1,80 +1,65 @@
 @import "tailwindcss";
 
+/* One dark, map-first theme. Panels float over the map as frosted glass. */
 :root {
-  --surface: #fcfcfb;
-  --surface-2: #f2f1ee;
-  --raised: #ffffff;
-  --ink: #1b1b1f;
-  --ink-2: #4a4a52;
-  --muted: #7a7a84;
-  --line: #e2e0dc;
-  --accent: #b8860b;
+  --bg: #0b0e1a;
+  --land: #1b2135;
+  --surface: rgb(16 20 34 / 0.88);
+  --surface-2: rgb(255 255 255 / 0.05);
+  --raised: #151a2b;
+  --ink: #eceef6;
+  --ink-2: #aab0c4;
+  --muted: #6f7790;
+  --line: rgb(255 255 255 / 0.08);
+  --accent: #f5a524;
+  --primary-a: #3b82f6;
+  --primary-b: #8b5cf6;
   /* Status colours: reserved for good / bad news, always shown with an icon. */
-  --good: #1a7f37;
-  --bad: #c62828;
+  --good: #34d17a;
+  --bad: #f2555a;
 
-  /* Coalition identity colours (validated, light surface). Order on charts: PH, BN, GPS, GRS, Warisan, MUDA, PN; Others is the neutral bucket. */
-  --c-PH: #d62839;
-  --c-BN: #3456c4;
-  --c-GPS: #e8871e;
-  --c-GRS: #8a4fd6;
-  --c-WARISAN: #17a2d8;
-  --c-MUDA: #a8680a;
-  --c-PN: #0f8a4f;
-  --c-OTHERS: #9a9a9a;
+  /* Coalition identity (validated against --land). Order on charts: PH, BN, GPS, GRS, Warisan, MUDA, PN; Others is neutral. */
+  --c-PH: #e5383b;
+  --c-BN: #4f74e8;
+  --c-GPS: #cf7317;
+  --c-GRS: #c94f9c;
+  --c-WARISAN: #1a9fd0;
+  --c-MUDA: #a8932a;
+  --c-PN: #159a7c;
+  --c-OTHERS: #8a8f9c;
 
   /* Ethnic-majority lens. */
   --e-malay: #2a9d8f;
   --e-chinese: #e76f51;
-  --e-indian: #8e44ad;
+  --e-indian: #9d5bd2;
   --e-sabah: #3a86ff;
   --e-sarawak: #c9a227;
-  --e-mixed: #a3a3a3;
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --surface: #141417;
-    --surface-2: #1c1c21;
-    --raised: #222228;
-    --ink: #ececf0;
-    --ink-2: #b4b4bd;
-    --muted: #85858f;
-    --line: #34343c;
-    --good: #4cc26b;
-    --bad: #f0605a;
-    --c-GPS: #c96f14;
-    --c-OTHERS: #7c7c7c;
-    --e-mixed: #6e6e6e;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --surface: #141417;
-  --surface-2: #1c1c21;
-  --raised: #222228;
-  --ink: #ececf0;
-  --ink-2: #b4b4bd;
-  --muted: #85858f;
-  --line: #34343c;
-  --good: #4cc26b;
-  --bad: #f0605a;
-  --c-GPS: #c96f14;
-  --c-OTHERS: #7c7c7c;
-  --e-mixed: #6e6e6e;
+  --e-mixed: #5d6478;
   color-scheme: dark;
 }
 
+html,
 body {
-  background: var(--surface);
+  background: var(--bg);
   color: var(--ink);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
+body {
+  background: radial-gradient(1200px 700px at 70% 10%, rgb(59 130 246 / 0.08), transparent 60%), var(--bg);
+}
+
+/* Surfaces */
 .panel {
-  background: var(--raised);
+  background: var(--surface);
   border: 1px solid var(--line);
+  border-radius: 16px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.35);
+}
+.inset {
+  background: var(--surface-2);
   border-radius: 12px;
 }
 
@@ -82,35 +67,50 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 3px 10px;
+  padding: 4px 11px;
   font-size: 12px;
   color: var(--ink-2);
-  background: var(--raised);
+  background: var(--surface-2);
+  border: 1px solid transparent;
   cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.chip:hover {
+  color: var(--ink);
+  background: rgb(255 255 255 / 0.09);
 }
 .chip[aria-pressed="true"],
 .chip[data-on="true"] {
   background: var(--ink);
-  color: var(--surface);
-  border-color: var(--ink);
+  color: var(--bg);
 }
 
 .btn {
-  border-radius: 8px;
-  padding: 7px 14px;
+  border-radius: 10px;
+  padding: 8px 16px;
   font-size: 14px;
-  font-weight: 600;
-  background: var(--ink);
-  color: var(--surface);
+  font-weight: 650;
+  color: #fff;
+  background: linear-gradient(90deg, var(--primary-a), var(--primary-b));
+  box-shadow: 0 6px 20px rgb(99 102 241 / 0.35);
+  transition: filter 120ms, transform 120ms;
 }
 .btn:hover {
-  opacity: 0.88;
+  filter: brightness(1.08);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
 }
 .btn-ghost {
-  background: transparent;
+  background: var(--surface-2);
   color: var(--ink);
+  box-shadow: none;
   border: 1px solid var(--line);
 }
 
@@ -122,27 +122,280 @@ body {
   flex: none;
 }
 
-.map-label {
-  font-size: 10px;
+.eyebrow {
+  font-size: 11px;
   font-weight: 700;
-  fill: var(--ink);
-  paint-order: stroke;
-  stroke: var(--surface);
-  stroke-width: 3px;
-  pointer-events: none;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 .tooltip {
   position: fixed;
-  z-index: 50;
+  z-index: 60;
   pointer-events: none;
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 8px 10px;
   font-size: 12px;
   color: var(--ink);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
-  max-width: 240px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.4);
+  max-width: 260px;
+}
+
+/* Text on maps and charts */
+.map-label {
+  font-weight: 650;
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: rgb(11 14 26 / 0.85);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+/* The map */
+.map-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 200px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.map-seat {
+  cursor: pointer;
+  transition: filter 120ms;
+}
+.map-seat:hover {
+  filter: brightness(1.35);
+}
+.map-seat-line {
+  fill: none;
+  stroke: rgb(11 14 26 / 0.55);
+  stroke-width: 0.6px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.map-state-line {
+  fill: none;
+  stroke: rgb(236 238 246 / 0.55);
+  stroke-width: 1.3px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.map-dun {
+  stroke: rgb(236 238 246 / 0.28);
+  stroke-width: 0.6px;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+.map-dun-filled {
+  stroke: rgb(11 14 26 / 0.6);
+  stroke-dasharray: none;
+  cursor: pointer;
+}
+.map-dun-filled:hover {
+  filter: brightness(1.3);
+}
+.map-flip {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.4px;
+  stroke-dasharray: 3 2;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.map-selected {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.6px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.map-label-state {
+  fill: rgb(236 238 246 / 0.8);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.map-bubble {
+  cursor: pointer;
+  animation: bubble-in 300ms ease-out;
+}
+.map-bubble-ring {
+  fill: rgb(245 165 36 / 0.25);
+  animation: ring 1.6s ease-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.map-bubble-icon {
+  font-size: 14px;
+  pointer-events: none;
+}
+.map-bubble-label {
+  font-size: 11px;
+  font-weight: 700;
+  fill: #fff;
+  paint-order: stroke;
+  stroke: rgb(11 14 26 / 0.9);
+  stroke-width: 3px;
+  pointer-events: none;
+}
+.map-pulse {
+  pointer-events: none;
+}
+.map-pulse-ring {
+  fill: none;
+  stroke-width: 2px;
+  animation: ring 2s ease-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+@keyframes ring {
+  from {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+  }
+}
+.map-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.map-controls button {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 18px;
+  backdrop-filter: blur(10px);
+}
+.map-controls button:hover {
+  background: var(--raised);
+}
+
+/* Floating "+RM 250k" after claiming a bubble */
+.float-up {
+  animation: float-up 1.4s ease-out forwards;
+}
+@keyframes float-up {
+  to {
+    transform: translate(-50%, -48px);
+    opacity: 0;
+  }
+}
+
+/* News ticker */
+.ticker-track {
+  display: inline-flex;
+  gap: 48px;
+  white-space: nowrap;
+  animation: ticker 50s linear infinite;
+}
+.ticker:hover .ticker-track {
+  animation-play-state: paused;
+}
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.slide-in {
+  animation: slide-in 180ms ease-out;
+}
+@keyframes slide-in {
+  from {
+    transform: translateX(-12px);
+    opacity: 0;
+  }
+}
+.pop-in,
+.toast-in {
+  animation: pop-in 180ms ease-out;
+}
+@keyframes pop-in {
+  from {
+    transform: scale(0.97);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track,
+  .map-bubble-ring,
+  .map-pulse-ring,
+  .slide-in,
+  .pop-in,
+  .toast-in,
+  .float-up {
+    animation: none;
+  }
+}
+
+/* Thin scrollbars inside panels */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.15) transparent;
+}
+
+.map-float {
+  font-size: 15px;
+  font-weight: 800;
+  fill: var(--accent);
+  paint-order: stroke;
+  stroke: rgb(11 14 26 / 0.9);
+  stroke-width: 4px;
+  animation: float-svg 1.6s ease-out forwards;
+}
+@keyframes float-svg {
+  to {
+    transform: translateY(-36px);
+    opacity: 0;
+  }
+}
+
+/* Panels inside the side panel are flat sections, not glass on glass. */
+.side-panel .panel {
+  background: var(--surface-2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+/* Keep the map's zoom buttons clear of the news ticker (and the phone navigation). */
+.main-map .map-controls {
+  bottom: 76px;
+}
+@media (max-width: 767px) {
+  .main-map .map-controls {
+    bottom: 132px;
+  }
+}
+
+/* The map may draw past its box when zoomed; the page itself never scrolls. */
+.main-map {
+  overflow: hidden;
 }

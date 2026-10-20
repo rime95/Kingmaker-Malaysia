@@ -5,7 +5,7 @@ import { newGame, type GameState } from "./state";
 import { ASSEMBLY_STATES, stateRule, weekOf, weeksToElection } from "./systems/assemblies";
 import { DUNS, DUNS_BY_STATE } from "./systems/dun";
 import { advanceWeek } from "./week";
-import { STATES, TOTAL_SEATS } from "./world";
+import { SEATS, STATES, TOTAL_SEATS } from "./world";
 
 function weeks(g: GameState, n: number) {
   for (let i = 0; i < n; i++) g = advanceWeek(g);
@@ -17,6 +17,17 @@ describe("state assemblies", () => {
   it("have 600 seats split as in real life", () => {
     expect(DUNS).toHaveLength(600);
     for (const st of STATES) expect(DUNS_BY_STATE[st.id].length, st.id).toBe(st.dunSeats);
+  });
+
+  it("are the real seats, with real names and parliamentary seats", () => {
+    const first = DUNS[DUNS_BY_STATE.PLS[0]];
+    expect(first.code).toBe("N.01");
+    expect(first.name).toBe("Titi Tinggi");
+    expect(SEATS[first.parent].code).toBe("P.001");
+    const buloh = DUNS.find((d) => d.state === "JHR" && d.code === "N.01")!;
+    expect(buloh.name).toBe("Buloh Kasap");
+    expect(SEATS[buloh.parent].name).toBe("Segamat");
+    expect(new Set(DUNS.map((d) => d.mapKey)).size).toBe(600);
   });
 
   it("start with each state's real government", () => {

@@ -11,8 +11,7 @@ import { fmtRM } from "./common";
 
 export function Career() {
   const game = useGame((s) => s.game)!;
-  const select = useGame((s) => s.select);
-  const setView = useGame((s) => s.setView);
+  const focusSeat = useGame((s) => s.focusSeat);
   const c = game.career;
   const inGov = game.government.includes(game.player);
   const names = inGov ? RUNGS : RUNGS_OPP;
@@ -28,7 +27,7 @@ export function Career() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+      <div className="grid gap-4 @2xl:grid-cols-[1.2fr_1fr]">
         <section className="panel p-4 flex flex-col gap-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
@@ -98,10 +97,7 @@ export function Career() {
           <button
             className="text-left rounded-lg border p-3"
             style={{ borderColor: "var(--line)" }}
-            onClick={() => {
-              select(c.homeSeat);
-              setView("map");
-            }}
+            onClick={() => focusSeat(c.homeSeat)}
           >
             <div className="text-xs" style={{ color: "var(--muted)" }}>
               Home seat · {home.code} · {STATE_BY_ID[home.state].name}
@@ -148,7 +144,7 @@ export function Career() {
         </p>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+      <div className="grid gap-4 @2xl:grid-cols-[1fr_1.4fr]">
         <section className="panel p-4">
           <h2 className="font-semibold mb-2">Election record & bests</h2>
           {game.tiers.length === 0 ? (
@@ -179,7 +175,7 @@ export function Career() {
               {earned.length} of {ACHIEVEMENTS.length}
             </span>
           </h2>
-          <div className="grid gap-1.5 sm:grid-cols-2">
+          <div className="grid gap-1.5 @md:grid-cols-2">
             {ACHIEVEMENTS.map((a) => {
               const got = game.achievements[a.id] !== undefined;
               return (

@@ -17,7 +17,7 @@ export function Policy() {
   const vote = dewanVote(game);
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-2 @md:grid-cols-3">
         <Gauge label="Economy" value={game.economy} note={gov ? "Your government gets the credit and the blame" : "Hard times help the opposition a little"} rest={ECONOMY_REST} />
         <Gauge label="Fiscal space" value={game.fiscal} note={`Sets the Budget envelope: ${budgetEnvelope(game.fiscal)} points`} rest={50} />
         <div className="panel p-3">
@@ -55,7 +55,7 @@ export function Policy() {
             {MULTIRACIAL.includes(game.player) ? " Identity plays strain your multiracial coalition." : ""}
           </span>
         </div>
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3 @2xl:grid-cols-2">
           {POLICIES.map((p) => (
             <PolicyRow key={p.id} policy={p} />
           ))}
@@ -161,7 +161,7 @@ function BudgetPanel() {
           ? `Spend ${envelope} points. You may overspend by up to ${BUDGET.overspendMax}: each extra point costs ${BUDGET.overspendFiscal} fiscal space and ${BUDGET.overspendEconomy} economy. Effects last about a year.`
           : `Costs ${BUDGET.shadowAp} AP. No vote, ${Math.round(BUDGET.shadowWeight * 100)}% of the effect: voters judge your alternative.`}
       </p>
-      <div className="grid gap-1.5 md:grid-cols-2">
+      <div className="grid gap-1.5 @lg:grid-cols-2">
         {BUDGET_LINES.map((l) => (
           <div key={l.id} className="flex items-center gap-2 rounded-md border p-2" style={{ borderColor: "var(--line)" }}>
             <div className="flex-1 min-w-0">

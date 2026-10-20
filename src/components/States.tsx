@@ -20,13 +20,23 @@ export function States() {
   const game = useGame((s) => s.game)!;
   const [picked, setPicked] = useState<string>(() => ASSEMBLY_STATES.find((id) => game.assemblies[id].status === "campaign") ?? "SGR");
   const proj = useDunProjections();
+  const focusState = useGame((s) => s.focusState);
   return (
     <div className="flex flex-col gap-4">
       <ParliamentPanel />
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr] items-start">
-        <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-4 @2xl:grid-cols-[1fr_1.1fr] items-start">
+        <div className="grid gap-2 @md:grid-cols-2">
           {ASSEMBLY_STATES.map((id) => (
-            <StateCard key={id} id={id} proj={proj} active={picked === id} onPick={() => setPicked(id)} />
+            <StateCard
+              key={id}
+              id={id}
+              proj={proj}
+              active={picked === id}
+              onPick={() => {
+                setPicked(id);
+                focusState(id);
+              }}
+            />
           ))}
         </div>
         <StateDetail id={picked} proj={proj} />

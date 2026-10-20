@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { HEX_MAP, STATE_BORDERS, hexPath } from "@/game/hexLayout";
+import { MalaysiaMap } from "./map/MalaysiaMap";
 import { fmtRM } from "@/game/money";
 import { TIER_TEXT } from "@/game/systems/formation";
 import { useGame } from "@/store/gameStore";
@@ -26,7 +26,7 @@ export function ElectionNight() {
     return <Verdict onClose={endNight} />;
   }
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--surface)" }} role="dialog" aria-label="Election Night">
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--bg)" }} role="dialog" aria-label="Election Night">
       {stage === "count" ? <Count onDone={() => setStage("talks")} /> : <CoalitionTalks />}
     </div>
   );
@@ -70,6 +70,10 @@ function Count({ onDone }: { onDone: () => void }) {
   const counts = Object.fromEntries(CHART_ORDER.map((c) => [c, 0])) as Record<CoalitionId, number>;
   for (const r of called) counts[r.winner]++;
   const revealed = new Set(called.map((r) => r.seatIndex));
+  const nightFills = SEATS.map((_, i) => {
+    const r = revealed.has(i) ? result.seats[i] : null;
+    return r ? { fill: coalColor(r.winner), flipped: prev[i] !== r.winner } : { fill: "var(--land)" };
+  });
   const done = k >= TOTAL_SEATS;
   const gains = called.filter((r) => r.winner === player && prev[r.seatIndex] !== player);
   const losses = called.filter((r) => r.winner !== player && prev[r.seatIndex] === player);
@@ -121,23 +125,7 @@ function Count({ onDone }: { onDone: () => void }) {
 
       <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
         <div className="panel p-3">
-          <svg viewBox={`0 0 ${HEX_MAP.width} ${HEX_MAP.height}`} className="w-full h-auto" role="img" aria-label="Seats declared so far">
-            {HEX_MAP.cells.map((cell) => {
-              const r = revealed.has(cell.seatIndex) ? result.seats[cell.seatIndex] : null;
-              const flipped = r && prev[cell.seatIndex] !== r.winner;
-              return (
-                <path
-                  key={cell.seatIndex}
-                  d={hexPath(cell.x, cell.y)}
-                  fill={r ? coalColor(r.winner) : "var(--surface-2)"}
-                  stroke={flipped ? "var(--ink)" : "var(--surface)"}
-                  strokeWidth={flipped ? 2 : 1.5}
-                  strokeDasharray={flipped ? "3 2" : undefined}
-                />
-              );
-            })}
-            <path d={STATE_BORDERS} fill="none" stroke="var(--ink-2)" strokeWidth={1.4} pointerEvents="none" />
-          </svg>
+          <MalaysiaMap className="relative h-[52vh] min-h-[320px]" fills={nightFills} showDuns="never" ariaLabel="Seats declared so far" />
           <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>
             Grey: still counting. Dashed outline: the seat changed hands.
           </div>

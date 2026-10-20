@@ -7,6 +7,7 @@ import { DUN_START } from "./systems/dun";
 import type { Formation, WinTier } from "./systems/formation";
 import { AP_BY_RUNG, initCareer, type Career } from "./systems/career";
 import { newObjectives, type Objective } from "./systems/goals";
+import { newBubbles, type Bubble } from "./systems/bubbles";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
 import { policyVoters } from "./systems/policies";
@@ -137,6 +138,8 @@ export interface GameState {
   /** Achievement id → week earned. */
   achievements: Record<string, number>;
   settings: { scenario: ScenarioId; difficulty: Difficulty };
+  /** This week's opportunity bubbles on the map. */
+  bubbles: Bubble[];
 }
 
 export interface NewGameOptions {
@@ -206,6 +209,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     objectives: [],
     achievements: {},
     settings: { scenario: opts.scenario ?? "present", difficulty: opts.difficulty ?? "normal" },
+    bubbles: [],
   };
   state.me.apMax = state.me.ap = AP_BY_RUNG[state.career.rung];
   // Difficulty and scenario
@@ -216,6 +220,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
   }
   state.history.push({ week: 0, funds: state.me.funds, seats: projectedSeats(state) });
   state.objectives = newObjectives(state);
+  state.bubbles = newBubbles(state);
   return state;
 }
 
@@ -243,6 +248,7 @@ export function migrateGame(g: GameState): GameState {
     objectives: g.objectives ?? [],
     achievements: g.achievements ?? {},
     settings: g.settings ?? { scenario: "present", difficulty: "normal" },
+    bubbles: g.bubbles ?? [],
   };
   if (!migrated.objectives.length) migrated.objectives = newObjectives(migrated);
   return migrated;

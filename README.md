@@ -21,9 +21,13 @@ Or double-click `Start Game.bat`.
 
 ## What's in the game
 
-- **The map and the Dewan**: all 222 Dewan Rakyat seats with their GE15 winners and majorities on a hex map with lenses (holder,
-  projection, your support, strongholds, rival pressure, ethnic majority, urban/rural, test election), and a Dewan chart (hemicycle
-  or chamber benches). Seat demographics are estimates.
+- **The map**: the real map of Malaysia from DOSM boundary data, full screen and dark (map-first, like the GE16 Simulator).
+  Smooth zoom and pan (wheel, pinch, buttons), seat names as you zoom in, the 600 state seats at close zoom, lenses (holder,
+  today, your support, strongholds, rival pressure, ethnic, urban/rural, test election), pulses where rivals are working your
+  seats, and gold **opportunity bubbles** (Plague Inc style) to click for free bonuses each week.
+- **Clean, map-first UI**: a slim status bar (seat race to 112, war chest, AP, Next week), an icon rail that opens one panel at
+  a time over the map (Campaign, Party, Policy, States, Dewan, Rivals, Money), a seat card when you click a seat, a news ticker,
+  breaking-news decision alerts and a compact week in review. Phones get bottom navigation and sheets.
 - **Voter model**: each seat's vote share comes from voter blocs × regional lean, calibrated so the untouched world reproduces GE15.
   Service (permanent), machinery (turnout, needs upkeep), buzz (fades), policies, the Budget and public mood all move it.
 - **Weekly turns**: Skip 1 week / 1 month (exactly four weeks) / to the next event, action points, reports that explain changes.
@@ -35,8 +39,8 @@ Or double-click `Start Game.bat`.
   houses and the June party AGM, each with numbered choices and a default.
 - **Rival parties**: every other coalition earns money, targets close seats, builds early and campaigns late, defends where you
   campaign and attacks you when hostile.
-- **State elections**: 600 state seats (generated inside the parliamentary seats until real boundaries are added) starting from each
-  state's real seat split; assemblies dissolve at the end of their term, early by an AI ruler, or by you.
+- **State elections**: the real 600 state seats (names, boundaries and parliamentary seats from DOSM) starting from each state's
+  real seat split; assemblies dissolve at the end of their term, early by an AI ruler, or by you.
 - **Election Night**: seats declared one by one in counting order, the map filling in, race bars, upsets, recounts and "SEAT
   STOLEN!", optional sound. Then **coalition talks**: gather 112 statutory declarations as a candidate (offer DPM, ministries, MA63)
   or play kingmaker, and the Agong appoints the government. Results are graded Bronze to Diamond.
@@ -47,6 +51,13 @@ Or double-click `Start Game.bat`.
 - **Advisor**: what deserves attention this week, with one-click moves ranked by the game's own preview.
 - **Saves**: autosave, named save slots in the browser, and save files to move a game between computers.
 - **Bahasa Malaysia / English** for navigation, controls and Election Night.
+
+## Map data
+
+`public/data/malaysia.topo.json` and `src/game/data/duns.ts` are built from the Department of Statistics Malaysia's open data
+([dosm-malaysia/data-open](https://github.com/dosm-malaysia/data-open), DOSM Open Data License): `electoral_0_parlimen.geojson`,
+`electoral_1_dun.geojson` and `state_parlimen_dun.csv`. To rebuild, download them into `data/raw/` and run
+`node scripts/build-map.mjs` (simplified to about 280 KB, 75 KB compressed). This game is not an official DOSM product.
 
 ## Where things live
 
@@ -60,7 +71,9 @@ Or double-click `Start Game.bat`.
 | `src/game/actions.ts` | Every player decision and its preview |
 | `src/game/progress.ts`, `advice.ts` | Career, objectives and achievements each week; the advisor |
 | `src/game/systems/` | Business, policies, Budget, events, segments, rivals, state seats (`dun.ts`), dissolution and polling (`assemblies.ts`), government formation, career, goals |
-| `src/components/` | The screens: start, overview, map, Dewan, states, policy, rivals, treasury, career, Election Night, coalition talks |
+| `src/components/map/` | The zoomable map (`MalaysiaMap`), geometry loading (`geo.ts`) and lenses |
+| `src/components/shell/` | Map-first layout: status bar, nav rail, side panel, seat card, news ticker, alerts, week in review |
+| `src/components/` | Panel contents (policy, states, rivals, money, career, Dewan), Election Night, coalition talks, start screen |
 | `src/store/` | Zustand store with autosave, save slots, cross-game profile |
 
 Real parties and leaders are used for flavour; every result and event in the game is simulated, and scandals are never attributed

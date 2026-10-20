@@ -19,7 +19,7 @@ export function Treasury() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr]">
+      <div className="grid gap-4 @2xl:grid-cols-[1fr_1.3fr]">
         <section className="panel p-4">
           <div className="text-xs" style={{ color: "var(--muted)" }}>
             Party war chest
@@ -59,14 +59,14 @@ export function Treasury() {
             The party owns nothing yet. Every business below keeps paying while you campaign.
           </p>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 mb-4">
+          <div className="grid gap-3 @lg:grid-cols-2 mb-4">
             {owned.map((a) => (
               <OwnedAsset key={a.type} asset={a} />
             ))}
           </div>
         )}
         <h3 className="text-sm font-semibold mb-2">Buy</h3>
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-2 @lg:grid-cols-2 @4xl:grid-cols-3">
           {available.map((t) => (
             <BuyCard key={t} type={t} owned={owned.some((a) => a.type === t)} />
           ))}

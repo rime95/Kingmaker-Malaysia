@@ -40,7 +40,7 @@ function Bar({ label, counts, player, government }: { label: string; counts: Rec
   const [hover, setHover] = useState<CoalitionId | null>(null);
   const gov = CHART_ORDER.filter((c) => government.includes(c)).reduce((s, c) => s + counts[c], 0);
   return (
-    <div className="grid grid-cols-[96px_1fr_auto] sm:grid-cols-[110px_1fr_160px] items-center gap-3">
+    <div className="grid grid-cols-[96px_1fr_auto] @md:grid-cols-[110px_1fr_160px] items-center gap-3">
       <span className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
         {label}
       </span>

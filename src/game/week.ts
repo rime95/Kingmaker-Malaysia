@@ -5,6 +5,7 @@ import { assembliesWeek, campaignStates, stateRulers, weeksToElection } from "./
 import { DUNS_BY_STATE } from "./systems/dun";
 import { autoResolveFormation, tableBudget } from "./actions";
 import { careerAfterGE, careerWeek, goalsWeek } from "./progress";
+import { newBubbles } from "./systems/bubbles";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
 import { rivalsWeek } from "./systems/rivals";
@@ -182,6 +183,8 @@ export function advanceWeek(input: GameState): GameState {
   next = career.state;
   next = { ...next, me: { ...next.me, ap: next.me.apMax } };
   lines.push(...career.lines);
+  // New opportunity bubbles (last week's expire unclaimed)
+  next = { ...next, bubbles: newBubbles(next) };
   const goals = goalsWeek(next);
   next = goals.state;
   lines.push(...goals.lines);

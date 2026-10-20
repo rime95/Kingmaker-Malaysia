@@ -12,6 +12,7 @@ import { ASSEMBLY_STATES, dissolveAssembly, dissolveParliament, stateRule } from
 import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, deciding, endRound, winTier, type Offer } from "./systems/formation";
 import { CAREER as CAREER_LOYALTY, addPoints, isPresident } from "./systems/career";
 import { careerAfterFormation } from "./progress";
+import { BUBBLE_INFO, applyBubble } from "./systems/bubbles";
 import { ASSETS, MAX_LEVEL, assetIncome, newAsset, saleValue, upgradeCost, type AssetType, type CeoKind } from "./systems/business";
 import { COALITION_INFO, MAJORITY, SEATS, STATE_BY_ID, contestingIn, type CoalitionId } from "./world";
 
@@ -736,4 +737,12 @@ export function autoResolveFormation(s: GameState): GameState {
 /** Closes the Election Night screen (the result is already applied). */
 export function closeNight(s: GameState): GameState {
   return { ...s, night: null };
+}
+
+/** Collect an opportunity bubble from the map (no AP). */
+export function claimBubble(s: GameState, id: number): ActionResult {
+  const b = s.bubbles.find((x) => x.id === id);
+  if (!b) return { ok: false, error: "That opportunity has passed." };
+  const info = BUBBLE_INFO[b.kind];
+  return { ok: true, state: applyBubble(s, b), message: `${info.title} in ${SEATS[b.seat].name}: ${info.reward(b.value)}.` };
 }

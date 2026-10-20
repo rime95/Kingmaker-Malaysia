@@ -21,7 +21,7 @@ export function Rivals() {
         Every other party plays too. They build service early, save their buzz for the run-up to the election, defend seats where you
         campaign, and go after seats you hold when they are hostile. Government partners stay friendly while coalition trust is above 40.
       </p>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 @lg:grid-cols-2 @4xl:grid-cols-3">
         {ids.map((c) => (
           <RivalCard key={c} c={c} r={game.rivals[c]!} />
         ))}
@@ -32,8 +32,7 @@ export function Rivals() {
 
 function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
   const game = useGame((s) => s.game)!;
-  const select = useGame((s) => s.select);
-  const setView = useGame((s) => s.setView);
+  const focusSeat = useGame((s) => s.focusSeat);
   const projections = useProjections();
   const info = COALITION_INFO[c];
   const hostile = isHostile(c, game.player, game.me.trust, game.government);
@@ -92,10 +91,7 @@ function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
                 <button
                   key={i}
                   className="chip"
-                  onClick={() => {
-                    select(i);
-                    setView("map");
-                  }}
+                  onClick={() => focusSeat(i)}
                   style={yours ? { borderColor: "var(--bad)" } : undefined}
                   title={yours ? "One of your seats" : undefined}
                 >
