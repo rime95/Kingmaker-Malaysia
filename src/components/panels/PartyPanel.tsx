@@ -4,6 +4,7 @@ import { MACC } from "@/game/config";
 import { useGame } from "@/store/gameStore";
 import { Career } from "../Career";
 import { CoalitionCard } from "../CoalitionCard";
+import { PartyRaceCard } from "../PartyRace";
 import { fmt, fmtRM } from "../common";
 
 /** Your party's health at a glance, then your career. */
@@ -13,6 +14,7 @@ export function PartyPanel() {
   const maccChance = Math.max(0, me.risk - MACC.threshold) / MACC.divisor;
   return (
     <div className="flex flex-col gap-5">
+      <PartyRaceCard />
       <section>
         <h3 className="eyebrow mb-2">Party health</h3>
         <div className="grid grid-cols-2 gap-2">

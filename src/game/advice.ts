@@ -72,6 +72,8 @@ export function advise(s: GameState): Tip[] {
 
   // Career
   const c = s.career;
-  if (c.rung < PRESIDENT && isFinite(CONTEST_POINTS[c.rung] ?? Infinity) && c.points >= CONTEST_POINTS[c.rung]) tips.push({ text: "You have the support to contest the next party post at the June AGM.", tone: "good" });
+  if (s.race && !s.race.result) tips.unshift({ text: `Party election in ${s.race.voteWeek - s.week} weeks. Court delegates, and meet division chiefs who are on the fence (People panel).`, tone: "info" });
+  else if ((c.rung === 2 || c.rung === 3) && c.points >= CONTEST_POINTS[c.rung]) tips.push({ text: "You have earned a ministerial post. Your party president appoints you once they are loyal enough (45+): meet them in the People panel.", tone: "good" });
+  else if (c.rung < PRESIDENT && isFinite(CONTEST_POINTS[c.rung] ?? Infinity) && c.points >= CONTEST_POINTS[c.rung]) tips.push({ text: "You have the support to stand for the next party post when nominations open in May.", tone: "good" });
   return tips;
 }

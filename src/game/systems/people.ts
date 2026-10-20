@@ -263,6 +263,18 @@ function replaceMp(m: Mutable, party: string, seat: number, seed: number, week: 
   pick.seat = seat;
 }
 
+/** Someone takes a higher post directly (e.g. wins a party election); their old post is filled from below. */
+export function promoteTo(s: GameState, id: number, rank: number, lines: ReportLine[]): GameState {
+  const m: Mutable = { people: s.people.map((p) => ({ ...p })), nextPersonId: s.nextPersonId, cabinet: { ...s.cabinet }, youId: s.youId };
+  const p = m.people.find((x) => x.id === id);
+  if (!p || p.rank >= rank) return s;
+  const from = p.rank;
+  p.rank = rank;
+  p.since = s.week;
+  if (from >= 1) fill(m, p.party, from, s.seed, s.week, s, lines);
+  return { ...s, ...m };
+}
+
 /** Someone leaves their party post (and the party, unless they keep a seat as a retired MP). */
 export function leave(s: GameState, id: number, reason: "retires" | "resigns" | "defects" | "removed", lines: ReportLine[]): GameState {
   const m: Mutable = { people: s.people.map((p) => ({ ...p })), nextPersonId: s.nextPersonId, cabinet: { ...s.cabinet }, youId: s.youId };
@@ -506,7 +518,9 @@ export function syncYou(s: GameState, lines: ReportLine[] = []): GameState {
     const was = you.rank;
     you.rank = rank;
     you.since = s.week;
-    if (was === PRESIDENT_RANK && rank < PRESIDENT_RANK) fill(m, lead, PRESIDENT_RANK, s.seed, s.week, s, lines);
+    // Moving up leaves your old post open; it is filled from the rank below.
+    if (rank > was && was >= 2) fill(m, lead, was, s.seed, s.week, s, lines);
+    if (was === PRESIDENT_RANK && rank < PRESIDENT_RANK && !m.people.some((p) => p.party === lead && p.rank === PRESIDENT_RANK && p.id !== you!.id)) fill(m, lead, PRESIDENT_RANK, s.seed, s.week, s, lines);
   }
   // Your seat: once you have won your home seat.
   const home = c.homeSeat;

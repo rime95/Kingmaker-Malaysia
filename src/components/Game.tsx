@@ -17,6 +17,7 @@ import { NewsTicker } from "./shell/NewsTicker";
 import { WeekReview } from "./shell/WeekReview";
 import { AlertModal } from "./shell/AlertModal";
 import { NameCoalition } from "./shell/NameCoalition";
+import { PartyRaceCount } from "./PartyRace";
 
 const noop = () => () => {};
 
@@ -104,6 +105,7 @@ function Main() {
         </div>
       )}
       <AlertModal />
+      {!game.night && <PartyRaceCount />}
       {game.namePending && !game.night && !game.formation && <NameCoalition />}
       <ElectionNight />
       <Toast />

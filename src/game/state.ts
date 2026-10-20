@@ -12,6 +12,7 @@ import { initPolls, type Polls } from "./systems/polls";
 import { initCoalitions, initPartySat, type Coalitions } from "./systems/coalitions";
 import { initPeople, syncYou, type Person } from "./systems/people";
 import type { PortfolioId } from "./data/people";
+import type { PartyRace } from "./systems/partyrace";
 import type { SeatRecord } from "./systems/results";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
@@ -23,7 +24,7 @@ import { COALITIONS, COALITION_INFO, SEATS, type CoalitionId } from "./world";
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -170,6 +171,8 @@ export interface GameState {
   cabinet: Partial<Record<PortfolioId, number>>;
   /** Leader mode: the person who is you. */
   youId: number | null;
+  /** A party election you are fighting (four weeks before the June AGM). */
+  race: PartyRace | null;
 }
 
 export interface NewGameOptions {
@@ -251,6 +254,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     nextPersonId: 1,
     cabinet: {},
     youId: null,
+    race: null,
   };
   Object.assign(state, initPeople(state));
   Object.assign(state, syncYou(state));
@@ -305,6 +309,7 @@ export function migrateGame(g: GameState): GameState {
     nextPersonId: g.nextPersonId ?? 1,
     cabinet: g.cabinet ?? {},
     youId: g.youId ?? null,
+    race: g.race ?? null,
   };
   if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, DIFFICULTY[migrated.settings.difficulty].pollError);

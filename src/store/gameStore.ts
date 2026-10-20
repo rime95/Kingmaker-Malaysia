@@ -8,6 +8,8 @@ import {
   applyAction,
   appoint,
   askFavour,
+  closeRace,
+  raceAct,
   meet,
   backForPm,
   buyAsset,
@@ -38,6 +40,7 @@ import type { AssetType, CeoKind } from "@/game/systems/business";
 import { advanceWeek } from "@/game/week";
 import type { CoalitionId } from "@/game/world";
 import type { PortfolioId } from "@/game/data/people";
+import type { RaceMove } from "@/game/systems/partyrace";
 import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
@@ -85,6 +88,8 @@ interface Store {
   claim: (bubbleId: number) => void;
   poll: (seat: number) => void;
   meet: (id: number) => void;
+  race: (move: RaceMove) => void;
+  endRace: () => void;
   favour: (id: number) => void;
   appoint: (post: PortfolioId, id: number | null) => void;
   rename: (name: string, short: string, color: string) => void;
@@ -219,6 +224,14 @@ export const useGame = create<Store>()(
         keepName: () => {
           const g = get().game;
           if (g) set({ game: { ...g, namePending: false } });
+        },
+        race: (move) => {
+          const g = get().game;
+          if (g) result(raceAct(g, move));
+        },
+        endRace: () => {
+          const g = get().game;
+          if (g) set({ game: closeRace(g) });
         },
         meet: (id) => {
           const g = get().game;

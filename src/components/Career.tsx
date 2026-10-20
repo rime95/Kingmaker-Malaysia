@@ -58,7 +58,17 @@ export function Career() {
                   </span>
                   <span className={here ? "font-semibold" : undefined}>{name}</span>
                   <span className="ml-auto text-[11px]" style={{ color: "var(--muted)" }}>
-                    {i === MP ? "win your home seat at a GE" : i > 0 && isFinite(CONTEST_POINTS[i - 1]) ? `${CONTEST_POINTS[i - 1]} pts at the AGM` : i === 0 ? "start" : ""}
+                    {i === MP
+                      ? "win your home seat at a GE"
+                      : i === 3 || i === 4
+                        ? `${CONTEST_POINTS[i - 1]} pts, appointed by the president`
+                        : i === 1
+                          ? `${CONTEST_POINTS[i - 1]} pts, division election`
+                          : i > 0 && isFinite(CONTEST_POINTS[i - 1])
+                            ? `${CONTEST_POINTS[i - 1]} pts, party election`
+                            : i === 0
+                              ? "start"
+                              : ""}
                   </span>
                 </li>
               );
@@ -79,9 +89,11 @@ export function Career() {
                 : "You control the party: policy, the Budget, dissolution and coalition talks are yours."
               : c.rung === MP - 1
                 ? `Next: win ${home.name} at the general election to become a Wakil Rakyat.`
-                : chance !== null && need !== undefined
-                  ? `Next: ${names[c.rung + 1]} at the June AGM. You need ${need} points${c.points >= need ? ` and have them: about ${Math.round(chance * 100)}% chance today.` : ` (you have ${c.points}).`}`
-                  : ""}
+                : c.rung === 2 || c.rung === 3
+                  ? `Next: ${names[c.rung + 1]}. The party president appoints you once you have ${need} points and their loyalty (45+). Meet them in the People panel.`
+                  : chance !== null && need !== undefined
+                    ? `Next: ${names[c.rung + 1]}. Nominations open in May with ${need} points (you have ${c.points}); then four weeks of courting delegates.`
+                    : ""}
           </p>
           {c.rung < PRESIDENT && (
             <p className="text-xs" style={{ color: "var(--muted)" }}>

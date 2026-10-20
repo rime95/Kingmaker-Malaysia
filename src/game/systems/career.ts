@@ -66,6 +66,8 @@ export interface Career {
   /** Set when the party is restless: the next AGM is a leadership challenge. */
   challenge: boolean;
   log: { week: number; text: string }[];
+  /** Last week a role move earned career points. */
+  roleWeek?: number;
 }
 
 /** Leaders' parliamentary seats in leader mode (real where the leader is an MP; otherwise a party stronghold). */

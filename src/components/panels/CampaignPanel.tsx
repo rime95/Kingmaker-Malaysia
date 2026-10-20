@@ -6,6 +6,8 @@ import { ACTIONS, type ActionGroup } from "@/game/actions";
 import { useGame } from "@/store/gameStore";
 import { winChance } from "@/game/systems/polls";
 import { SEATS, STATES, STATE_BY_ID, contestingIn } from "@/game/world";
+import { RUNGS } from "@/game/systems/career";
+import { PartyRaceCard } from "../PartyRace";
 import { ActionCard } from "../ActionCard";
 import { pct, useReads } from "../common";
 
@@ -64,6 +66,24 @@ export function CampaignPanel() {
           ))}
         </ul>
       </section>
+
+      <PartyRaceCard />
+
+      {ACTIONS.some((a) => a.rungs?.includes(game.career.rung)) && (
+        <section>
+          <h3 className="eyebrow mb-2">Your role · {RUNGS[game.career.rung]}</h3>
+          <div className="grid gap-2 @md:grid-cols-2">
+            {ACTIONS.filter((a) => a.group === "role" && a.rungs?.includes(game.career.rung)).map((a) => (
+              <ActionCard key={a.id} id={a.id} target={a.target === "state" ? { kind: "state", state: tourState } : { kind: "none" }} compact />
+            ))}
+          </div>
+          {ACTIONS.some((a) => a.group === "role" && a.target === "state" && a.rungs?.includes(game.career.rung)) && (
+            <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+              Ministry projects go to the state picked under Ceramah tour below.
+            </p>
+          )}
+        </section>
+      )}
 
       {battle.length > 0 && (
         <section>

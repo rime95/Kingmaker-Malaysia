@@ -8,7 +8,9 @@ import { careerAfterGE, careerWeek, goalsWeek } from "./progress";
 import { newBubbles } from "./systems/bubbles";
 import { pollsWeek } from "./systems/polls";
 import { coalitionsWeek, syncNames } from "./systems/coalitions";
-import { peopleMonth, syncYou } from "./systems/people";
+import { leaderOfParty, peopleMonth, syncYou } from "./systems/people";
+import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
+import { CONTEST_POINTS } from "./systems/career";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
 import { rivalsWeek } from "./systems/rivals";
@@ -83,6 +85,8 @@ export function advanceWeek(input: GameState): GameState {
   // States you govern build service in their parliamentary seats
   for (const [id, ruler] of Object.entries(stateRulers(s.dunHolders, s.government)))
     if (ruler === s.player) for (const seat of SEATS) if (seat.state === id) me.service[seat.index] = clamp(me.service[seat.index] + PRN.stateServicePerWeek);
+  // As an MP, your constituency allocation keeps building service in your own seat.
+  if (s.career.rung >= 2 && s.holders[s.career.homeSeat] === s.player) me.service[s.career.homeSeat] = clamp(me.service[s.career.homeSeat] + 0.5);
   const foundation = me.assets.find((a) => a.type === "foundation");
   if (foundation) for (const i of contested) me.buzz[i] = clamp(me.buzz[i] + 0.4 * foundation.level * (SEATS[i].demo.youth / 0.3));
 
@@ -187,7 +191,7 @@ export function advanceWeek(input: GameState): GameState {
   const coal = coalitionsWeek(next);
   next = coal.state;
   lines.push(...coal.lines);
-  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping" };
+  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president" };
   const addCard = (kind: string, party?: string, person?: number, seat?: number) => {
     const id = Math.max(0, ...next.cards.map((c) => c.id), next.week * 10) + 1;
     next = { ...next, cards: [...next.cards, { id, kind, week: next.week, deadline: next.week + 2, party, person, seat }], cardLast: { ...next.cardLast, [kind]: next.week } };
@@ -208,6 +212,19 @@ export function advanceWeek(input: GameState): GameState {
     const jumper = next.people.find((p) => p.seat !== null && p.id !== next.youId && mine.includes(p.party) && next.holders[p.seat] === next.player && p.loyalty < 18 && !p.retired);
     if (you?.rank === 5 && deputy && deputy.loyalty < 30 && deputy.ambition > 55 && (next.cardLast.deputyRestless ?? -99) < next.week - 26) addCard("deputyRestless", undefined, deputy.id);
     else if (jumper && hash01("jump", next.seed, next.week) < 0.35 && (next.cardLast.mpJump ?? -99) < next.week - 12) addCard("mpJump", undefined, jumper.id, jumper.seat!);
+  }
+
+  // Party elections: the race opens in mid-May; rivals campaign; the vote is at the AGM
+  if (next.race?.result && next.week > next.race.voteWeek) next = { ...next, race: null };
+  const race = raceWeek(next);
+  next = race.state;
+  lines.push(...race.lines);
+  if (!next.race && raceOpens(next.week) && raceOnOffer(next) && next.cards.length < 4) addCard("partyRace");
+  // Ministerial posts are in the president's gift: a loyal president appoints you once you have earned it.
+  const c0 = next.career;
+  if (next.week % 4 === 1 && (c0.rung === 2 || c0.rung === 3) && c0.points >= CONTEST_POINTS[c0.rung] && next.cards.length < 4 && (next.cardLast.appointment ?? -99) < next.week - 12) {
+    const pres = leaderOfParty(next, next.coalitions[next.player].members[0]);
+    if (pres && pres.id !== next.youId && pres.loyalty >= 45) addCard("appointment", undefined, pres.id);
   }
 
   // Your career, term objectives and achievements

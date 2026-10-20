@@ -11,7 +11,8 @@ import { fmtRM } from "./money";
 import { isGovernment, projectAllFor, simulateElection, weekDate, weekLabel, type GameState, type Player } from "./state";
 import { ASSEMBLY_STATES, dissolveAssembly, dissolveParliament, stateRule } from "./systems/assemblies";
 import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, deciding, endRound, winTier, type Offer } from "./systems/formation";
-import { CAREER as CAREER_LOYALTY, addPoints, isPresident } from "./systems/career";
+import { CAREER as CAREER_LOYALTY, RUNGS, addPoints, isPresident } from "./systems/career";
+import { raceMove, type RaceMove } from "./systems/partyrace";
 import { careerAfterFormation } from "./progress";
 import { aiRebrand } from "./systems/coalitions";
 import { PEOPLE, byId, favourBlocked, favourOf, formCabinet, meetPerson, mpOf, syncYou } from "./systems/people";
@@ -21,7 +22,7 @@ import { ASSETS, MAX_LEVEL, assetIncome, newAsset, saleValue, upgradeCost, type 
 import { contestingIn, cshort, MAJORITY, SEATS, STATE_BY_ID, type CoalitionId } from "./world";
 
 export type Target = { kind: "none" } | { kind: "seat"; seat: number } | { kind: "state"; state: string };
-export type ActionGroup = "local" | "national" | "party" | "finance";
+export type ActionGroup = "local" | "national" | "party" | "finance" | "role";
 
 export interface ActionDef {
   id: string;
@@ -36,6 +37,8 @@ export interface ActionDef {
   run: (me: Player, s: GameState, t: Target) => string;
   /** Extra reason the action can't be taken here. */
   blocked?: (s: GameState, t: Target) => string | null;
+  /** Only at these career rungs (your role's own moves). */
+  rungs?: number[];
   /** Changes beyond your own stats (e.g. an ally's campaign), applied after run. */
   after?: (s: GameState, t: Target) => GameState;
 }
@@ -71,6 +74,141 @@ export function allyIn(s: GameState, i: number): CoalitionId | null {
 }
 
 export const ALLY_BUZZ = 12;
+
+/** Role moves earn career points at most once a week (the work counts, not the number of photo-ops). */
+const careerPoints = (n: number, why: string) => (s: GameState) => (s.career.roleWeek === s.week ? s : { ...s, career: { ...addPoints(s.career, s.week, n, why), roleWeek: s.week } });
+const home = (s: GameState) => s.career.homeSeat;
+
+/** What only your current post lets you do, from branch chief to vice president. */
+const ROLE_ACTIONS: ActionDef[] = [
+  {
+    id: "kenduri",
+    name: "Kenduri for the branch",
+    group: "role",
+    target: "none",
+    ap: 1,
+    rungs: [0, 1],
+    blurb: "Feed the kampung, meet every family. Buzz and members in your home seat, and the branch remembers who fed them.",
+    cost: () => 15_000,
+    run: (me, s) => {
+      me.buzz[home(s)] = addBuzz(me.buzz[home(s)], 6);
+      me.members += 300;
+      return `A kenduri in ${SEATS[home(s)].name}: three hundred new members sign up.`;
+    },
+    after: careerPoints(1, "a well-attended kenduri"),
+  },
+  {
+    id: "membership",
+    name: "Membership drive",
+    group: "role",
+    target: "none",
+    ap: 1,
+    rungs: [0],
+    blurb: "Sign up new members door to door. Members pay dues and every one is a vote in branch elections.",
+    cost: () => 8_000,
+    run: (me) => {
+      me.members += 800;
+      return "Your branch signs up 800 new members.";
+    },
+    after: careerPoints(1, "grew the branch"),
+  },
+  {
+    id: "divisionDrive",
+    name: "Division machinery drive",
+    group: "role",
+    target: "none",
+    ap: 1,
+    rungs: [1],
+    blurb: "As division chief you command the branches: machinery in your home seat at a third of the usual price.",
+    cost: () => 25_000,
+    run: (me, s) => {
+      me.machinery[home(s)] = clamp(me.machinery[home(s)] + 12);
+      return `Machinery in ${SEATS[home(s)].name} is now ${Math.round(me.machinery[home(s)])}.`;
+    },
+    after: careerPoints(1, "organised the division"),
+  },
+  {
+    id: "dewanQuestion",
+    name: "Question in the Dewan",
+    group: "role",
+    target: "none",
+    ap: 1,
+    rungs: [2, 3, 4],
+    blurb: "A sharp question at question time makes the evening news.",
+    cost: () => 0,
+    blocked: (s) => (s.parliament.status !== "sitting" ? "Parliament is dissolved." : null),
+    run: (me) => {
+      me.nationalBuzz = clamp(me.nationalBuzz + 3);
+      return "Your question makes the evening news.";
+    },
+    after: careerPoints(1, "a question in the Dewan"),
+  },
+  {
+    id: "ministryProject",
+    name: "Ministry project",
+    group: "role",
+    target: "state",
+    ap: 2,
+    rungs: [3, 4],
+    only: "gov",
+    blurb: "Your ministry's budget builds roads, clinics and schools across a state. Free service in every seat you contest there.",
+    cost: () => 0,
+    run: (me, s, t) => {
+      const idx = stateSeats(s, t);
+      for (const i of idx) me.service[i] = clamp(me.service[i] + 2.5);
+      me.risk = clamp(me.risk + 1);
+      return `Your ministry breaks ground in ${STATE_BY_ID[(t as { state: string }).state].name}.`;
+    },
+    after: careerPoints(2, "a ministry project"),
+  },
+  {
+    id: "shadowAttack",
+    name: "Shadow minister's attack",
+    group: "role",
+    target: "none",
+    ap: 1,
+    rungs: [3, 4],
+    only: "opp",
+    blurb: "Tear into the minister you shadow. National buzz, and the press starts calling you a minister-in-waiting.",
+    cost: () => 20_000,
+    run: (me) => {
+      me.nationalBuzz = clamp(me.nationalBuzz + 6);
+      return "Your press conference leads the news.";
+    },
+    after: careerPoints(1, "a shadow minister's attack"),
+  },
+  {
+    id: "wingRally",
+    name: "Rally the youth wing",
+    group: "role",
+    target: "none",
+    ap: 1,
+    rungs: [5],
+    blurb: "As vice president you run a wing: a youth convention wins over young voters everywhere.",
+    cost: () => 100_000,
+    run: (me) => {
+      me.mood = addSeg(me.mood, { youth: 0.04 });
+      return "The youth convention trends all weekend.";
+    },
+    after: careerPoints(2, "a youth convention"),
+  },
+  {
+    id: "broker",
+    name: "Broker a deal",
+    group: "role",
+    target: "none",
+    ap: 1,
+    rungs: [5],
+    blurb: "Settle a feud between warlords and smooth things over with partners. Unity and trust, and the president owes you.",
+    cost: () => 0,
+    run: (me) => {
+      me.unity = clamp(me.unity + 4);
+      me.trust = clamp(me.trust + 3);
+      return "You settle a feud between two division chiefs.";
+    },
+    after: careerPoints(2, "brokered a deal"),
+  },
+];
 
 export const ACTIONS: ActionDef[] = [
   // Local: one seat
@@ -364,6 +502,8 @@ export const ACTIONS: ActionDef[] = [
   },
 ];
 
+ACTIONS.push(...ROLE_ACTIONS);
+
 export const ACTION_BY_ID: Record<string, ActionDef> = Object.fromEntries(ACTIONS.map((a) => [a.id, a]));
 
 function stateSeats(s: GameState, t: Target): number[] {
@@ -379,6 +519,7 @@ function cloneMe(me: Player): Player {
 export function actionBlocked(s: GameState, def: ActionDef, t: Target): string | null {
   if (def.only === "gov" && !isGovernment(s)) return "Government only.";
   if (def.only === "opp" && isGovernment(s)) return "Opposition only.";
+  if (def.rungs && !def.rungs.includes(s.career.rung)) return `Only as ${def.rungs.map((r) => RUNGS[r]).join(" or ")}.`;
   if (def.target !== t.kind) return "Pick a target first.";
   if (s.me.ap < def.ap) return `Needs ${def.ap} AP (you have ${s.me.ap}).`;
   const cost = def.cost(s, t);
@@ -404,7 +545,7 @@ export function applyAction(s: GameState, id: string, t: Target): ActionResult {
   // ...and of the MPs themselves.
   const mps = new Set(seats.filter((i) => s.holders[i] === s.player).map((i) => mpOf(s, i)?.id));
   const people = mps.size ? base.people.map((p) => (mps.has(p.id) && p.id !== s.youId ? { ...p, loyalty: Math.min(100, p.loyalty + gain * 0.5) } : p)) : base.people;
-  return { ok: true, state: { ...base, me, people, career: { ...s.career, loyalty } }, message };
+  return { ok: true, state: { ...base, me, people, career: { ...base.career, loyalty } }, message };
 }
 
 export const WAR_ROOM_COST = 100_000;
@@ -414,6 +555,17 @@ export function warRoom(s: GameState): ActionResult {
   if (s.me.funds < WAR_ROOM_COST) return { ok: false, error: `Needs ${fmtRM(WAR_ROOM_COST)}.` };
   const next = simulateElection({ ...s, me: { ...s.me, funds: s.me.funds - WAR_ROOM_COST } });
   return { ok: true, state: next, message: `War-room simulation done (${fmtRM(WAR_ROOM_COST)}): the map shows who would win. Seats don't change hands.` };
+}
+
+/** A campaign move in a party election. */
+export function raceAct(s: GameState, move: RaceMove): ActionResult {
+  const r = raceMove(s, move);
+  return "error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message };
+}
+
+/** Close the party election count. */
+export function closeRace(s: GameState): GameState {
+  return s.race?.result ? { ...s, race: null } : s;
 }
 
 /** Commission a constituency poll (money only, no AP). One per seat per week. */
