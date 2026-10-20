@@ -5,7 +5,6 @@ import { COALITION_RULES, PALETTE, aiRebrand, bestHome, coalitionOf, colorDistan
 import { advanceWeek } from "./week";
 import { COALITIONS, SEATS, cshort } from "./world";
 
-const seat = (code: string) => SEATS.find((s) => s.code === code)!.index;
 
 describe("parties inside coalitions", () => {
   it("starts with the real line-ups, the first party leading", () => {
