@@ -28,7 +28,7 @@ export const MP = 2;
 
 /** Career points needed to contest the next rung at the AGM (index = current rung). MP has no AGM route. */
 export const CONTEST_POINTS = [10, Infinity, 30, 55, 85, 130];
-export const AP_BY_RUNG = [3, 4, 4, 5, 5, 6, 6];
+export const AP_BY_RUNG = [4, 4, 5, 5, 6, 6, 6];
 
 export const CAREER = {
   /** Loyalty an MP gains when you campaign in their seat, and the share lost each week. */

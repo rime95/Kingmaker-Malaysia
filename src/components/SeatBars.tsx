@@ -4,17 +4,15 @@ import { useState } from "react";
 import { useGame } from "@/store/gameStore";
 import { seatCounts } from "@/game/state";
 import { COALITION_INFO, MAJORITY, TOTAL_SEATS, type CoalitionId } from "@/game/world";
-import { CHART_ORDER, coalColor, useProjections } from "./common";
+import { CHART_ORDER, coalColor } from "./common";
 
-/** Stacked seat bars (holders now, projection, last test election) with the 112 majority line. */
+/** Stacked seat bars (holders now, the latest national poll, the last war-room simulation) with the 112 majority line. */
 export function SeatBars() {
   const game = useGame((s) => s.game)!;
-  const projections = useProjections();
-  const rows: { label: string; counts: Record<CoalitionId, number> }[] = [
-    { label: "Dewan today", counts: seatCounts(game.holders) },
-    { label: "If held today", counts: seatCounts(projections.map((p) => p.leader)) },
-  ];
-  if (game.lastElection) rows.push({ label: "Test election", counts: game.lastElection.totals });
+  const poll = game.polls.national[0];
+  const rows: { label: string; counts: Record<CoalitionId, number> }[] = [{ label: "Dewan today", counts: seatCounts(game.holders) }];
+  if (poll) rows.push({ label: "Latest poll", counts: poll.seats });
+  if (game.lastElection) rows.push({ label: "War room", counts: game.lastElection.totals });
 
   return (
     <div className="panel p-3 flex flex-col gap-2">

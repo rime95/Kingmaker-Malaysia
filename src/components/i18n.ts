@@ -17,7 +17,7 @@ const STRINGS = {
   skipWeek: { en: "Next week", ms: "Minggu depan" },
   skipMonth: { en: "Skip 1 month", ms: "Langkau 1 bulan" },
   skipEvent: { en: "To next event", ms: "Ke peristiwa seterusnya" },
-  testElection: { en: "Test election", ms: "Pilihan raya ujian" },
+  testElection: { en: "War-room simulation (RM 100k)", ms: "Simulasi bilik gerakan (RM 100k)" },
   newGame: { en: "New game", ms: "Permainan baharu" },
   saves: { en: "Saves", ms: "Simpanan" },
   warChest: { en: "War chest", ms: "Dana perang" },

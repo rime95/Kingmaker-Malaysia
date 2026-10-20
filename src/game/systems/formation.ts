@@ -4,6 +4,7 @@
 // offered. Talks run for up to three rounds; then the Agong appoints whoever can command the House.
 // You are either one of the two candidates (you make offers) or the kingmaker (you choose a side and name a price).
 
+import { DIFFICULTY } from "../config";
 import type { GameState } from "../state";
 import { COALITIONS, COALITION_INFO, MAJORITY, SUPERMAJORITY, type CoalitionId } from "../world";
 import { stateRulers } from "./assemblies";
@@ -61,6 +62,8 @@ export interface Formation {
   log: string[];
   /** Kingmaker: the price you asked for. */
   askedDpm?: boolean;
+  /** Difficulty: extra willingness partners need before backing you. */
+  greed?: number;
 }
 
 export interface WinTier {
@@ -102,6 +105,7 @@ export function willingness(f: Formation, joiner: CoalitionId, leader: Coalition
     if (o?.dpm) w += OFFERS.dpm.willingness;
     w += (o?.ministries ?? 0) * OFFERS.ministries.willingness;
     if (o?.ma63) w += OFFERS.ma63.willingness;
+    w -= f.greed ?? 0;
   } else w += f.rivalOffers[joiner] ?? 0;
   return w;
 }
@@ -120,6 +124,7 @@ export function startFormation(s: GameState, seats: Record<CoalitionId, number>,
     round: 1,
     oldGovernment: s.government,
     seatsBefore,
+    greed: DIFFICULTY[s.settings.difficulty].greed,
     log: [`${COALITION_INFO[candidates[0]].short} (${seats[candidates[0]]} seats) and ${COALITION_INFO[candidates[1]].short} (${seats[candidates[1]]}) are racing to ${MAJORITY}.`],
   };
   // Natural partners sign straight away for the candidate they like most (never on your behalf).

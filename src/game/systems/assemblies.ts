@@ -7,10 +7,11 @@
 
 import { ASSEMBLY_TERMS, GE, PRN, START_DATE } from "../config";
 import { runElection, type ElectionResult } from "../election";
+import { recordFrom } from "./results";
 import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
 import { projectAll, type VoterInputs } from "../voter";
-import { COALITIONS, COALITION_INFO, MAJORITY, SEATS, STATES, STATE_BY_ID, type CoalitionId } from "../world";
+import { COALITIONS, COALITION_INFO, MAJORITY, SEATS, STATES, STATE_BY_ID, candidateParty, contestingIn, type CoalitionId } from "../world";
 import { DUNS_BY_STATE, projectDuns, runStateElection } from "./dun";
 import { startFormation } from "./formation";
 import { addPoints } from "./career";
@@ -191,11 +192,18 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
   const before = countSeats(s.holders);
   const holders = result.seats.map((r) => r.winner);
   const holderParties = result.seats.map((r) => r.winnerParty);
+  const geCount = s.geCount + 1;
+  const seatResults = result.seats.map((r) => {
+    const seat = SEATS[r.seatIndex];
+    return recordFrom(r, `GE${geCount}`, s.week, Object.fromEntries(contestingIn(seat).map((c) => [c, candidateParty(seat, c)])));
+  });
   let next: GameState = {
     ...s,
     rng: rngState,
     holders,
     holderParties,
+    seatResults,
+    geCount,
     lastElection: result,
     parliament: { ...s.parliament, status: "sitting", pollWeek: null, lastPollWeek: s.week, deadlineWeek: s.week + GE.termWeeks },
   };

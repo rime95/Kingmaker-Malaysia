@@ -2,12 +2,13 @@
 // takes its default after a few weeks. Random cards are drawn with hash01 (no game-RNG draws), festivals arrive on
 // their dates. Scandals are always generic ("an MP from your party"), never about a real person. All numbers TEMPORARY.
 
-import { CARDS } from "../config";
+import { CARDS, DIFFICULTY } from "../config";
 import { runSeatElection } from "../election";
+import { recordFrom } from "./results";
 import { fmtRM } from "../money";
 import { hash01 } from "../rng";
 import { isGovernment, voterInputs, weekDate, type CardInstance, type GameState, type ReportLine } from "../state";
-import { COALITION_INFO, SEATS, STATE_BY_ID, contestingIn } from "../world";
+import { COALITION_INFO, SEATS, STATE_BY_ID, candidateParty, contestingIn } from "../world";
 import { MULTIRACIAL } from "./policies";
 import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, addPoints, contestChance, factionSize, promote, succession } from "./career";
 import { addSeg, describeSeg, type SegEffects } from "./segments";
@@ -388,7 +389,9 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
     const holderParties = [...state.holderParties];
     holders[i] = result.winner;
     holderParties[i] = result.winnerParty;
-    state = { ...state, rng: rngState, holders, holderParties };
+    const seatResults = [...state.seatResults];
+    seatResults[i] = recordFrom(result, "By-election", s.week, Object.fromEntries(contestingIn(SEATS[i]).map((c) => [c, candidateParty(SEATS[i], c)])));
+    state = { ...state, rng: rngState, holders, holderParties, seatResults };
     const won = result.winner === s.player;
     const name = SEATS[i].name;
     state.me = { ...state.me, capital: clamp(state.me.capital + (won ? 10 : -3), 0, 200), unity: clamp(state.me.unity + (won ? 4 : -2)) };
@@ -484,7 +487,7 @@ export function cardsWeek(s: GameState): { state: GameState; lines: ReportLine[]
   const fest = festivalOn(date);
   if (fest) add(fest.kind);
 
-  if (s.week >= CARDS.firstWeek && state.cards.length < CARDS.maxPending && hash01("card", s.seed, s.week) < CARDS.chance) {
+  if (s.week >= CARDS.firstWeek && state.cards.length < CARDS.maxPending && hash01("card", s.seed, s.week) < CARDS.chance * DIFFICULTY[s.settings.difficulty].cards) {
     const open = CARD_DEFS.filter(
       (d) =>
         (d.eligible?.(state) ?? true) &&

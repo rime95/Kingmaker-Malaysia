@@ -4,19 +4,20 @@ import { serviceBase } from "@/game/bases";
 import { FORTRESS } from "@/game/config";
 import type { GameState } from "@/game/state";
 import { isHostile, type Rival } from "@/game/systems/rivals";
-import type { Projection, Rating } from "@/game/voter";
+import { leaderOf, winChance, type SeatRead } from "@/game/systems/polls";
+import type { Rating } from "@/game/voter";
 import { BLOC_LABEL, COALITION_INFO, SEATS, contestingIn, majorityBloc, type CoalitionId } from "@/game/world";
 import type { Lens } from "@/store/gameStore";
 
 export const LENSES: { id: Lens; label: string; short: string }[] = [
   { id: "holder", label: "Who holds each seat", short: "Holder" },
-  { id: "projection", label: "If the election were today", short: "Today" },
-  { id: "support", label: "Your vote share", short: "Support" },
+  { id: "projection", label: "Latest polls and branch reports", short: "Polls" },
+  { id: "support", label: "Your polled vote share", short: "Support" },
   { id: "presence", label: "Your strongholds (service)", short: "Strongholds" },
   { id: "pressure", label: "Hostile rivals at work", short: "Rivals" },
   { id: "ethnic", label: "Ethnic majority (estimate)", short: "Ethnic" },
   { id: "urban", label: "Urban to rural", short: "Urban" },
-  { id: "result", label: "Last test election", short: "Test" },
+  { id: "result", label: "Last war-room simulation", short: "War room" },
 ];
 
 export const RATING_OPACITY: Record<Rating, number> = { safe: 1, likely: 0.78, lean: 0.55, tossup: 0.32 };
@@ -43,15 +44,24 @@ export function rivalPressure(game: GameState, i: number): number {
   return max;
 }
 
-export function lensFill(game: GameState, projections: Projection[], lens: Lens, i: number): SeatFill {
+/** How sure a read is that its leader wins, as a rating. */
+export function readRating(r: SeatRead, week: number): { leader: CoalitionId; rating: Rating; chance: number } {
+  const [leader] = leaderOf(r.shares);
+  const chance = winChance(r, leader, week) ?? 0.5;
+  return { leader, chance, rating: chance >= 0.9 ? "safe" : chance >= 0.7 ? "likely" : chance >= 0.56 ? "lean" : "tossup" };
+}
+
+export function lensFill(game: GameState, reads: SeatRead[], lens: Lens, i: number): SeatFill {
   const seat = SEATS[i];
   switch (lens) {
     case "holder":
       return { fill: coalColor(game.holders[i]) };
-    case "projection":
-      return { fill: coalColor(projections[i].leader), opacity: RATING_OPACITY[projections[i].rating], flipped: projections[i].leader !== game.holders[i] };
+    case "projection": {
+      const r = readRating(reads[i], game.week);
+      return { fill: coalColor(r.leader), opacity: RATING_OPACITY[r.rating] * (reads[i].source === "estimate" ? 0.7 : 1), flipped: r.leader !== game.holders[i] };
+    }
     case "support":
-      return { fill: ramp(coalColor(game.player), (projections[i].shares[game.player] ?? 0) / 0.7) };
+      return { fill: ramp(coalColor(game.player), (reads[i].shares[game.player] ?? 0) / 0.7) };
     case "presence":
       return contestingIn(seat).includes(game.player) ? { fill: ramp(coalColor(game.player), game.me.service[i] / 90) } : { fill: "var(--land)" };
     case "pressure":
@@ -79,7 +89,7 @@ export function lensLegend(game: GameState, lens: Lens): { items: LegendItem[]; 
     case "holder":
       return { items: [...new Set(game.holders)].map((c) => ({ color: coalColor(c), label: COALITION_INFO[c].short })) };
     case "projection":
-      return { items: (Object.keys(RATING_OPACITY) as Rating[]).map((r) => ({ color: "var(--ink-2)", label: RATING_LABEL[r], opacity: RATING_OPACITY[r] })), note: "Colour = who leads. Dashed = would change hands." };
+      return { items: (Object.keys(RATING_OPACITY) as Rating[]).map((r) => ({ color: "var(--ink-2)", label: RATING_LABEL[r], opacity: RATING_OPACITY[r] })), note: "Who leads in your polls. Faded = rough estimate only. Dashed = would change hands." };
     case "support":
       return { items: [0.1, 0.3, 0.5, 0.7].map((v) => ({ color: ramp(coalColor(player), v / 0.7), label: `${Math.round(v * 100)}%` })) };
     case "presence":
@@ -91,6 +101,6 @@ export function lensLegend(game: GameState, lens: Lens): { items: LegendItem[]; 
     case "urban":
       return { items: [0.15, 0.5, 0.95].map((v) => ({ color: ramp("var(--ink-2)", v), label: v < 0.3 ? "Rural" : v > 0.9 ? "City" : "Town" })) };
     case "result":
-      return { items: [], note: game.lastElection ? "Colour = test-election winner. Dashed = would change hands." : "Run a test election first." };
+      return { items: [], note: game.lastElection ? "Colour = simulated winner. Dashed = would change hands." : "Run a war-room simulation from the menu first." };
   }
 }

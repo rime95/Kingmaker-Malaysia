@@ -5,16 +5,14 @@ import { fmtRM } from "@/game/money";
 import { isHostile, rivalIds, type Rival } from "@/game/systems/rivals";
 import { useGame } from "@/store/gameStore";
 import { COALITION_INFO, SEATS, type CoalitionId } from "@/game/world";
-import { coalColor, useProjections } from "./common";
+import { coalColor } from "./common";
 
 const MOOD_TEXT = { confident: "Confident", rattled: "Rattled", desperate: "Desperate" } as const;
 
 export function Rivals() {
   const game = useGame((s) => s.game)!;
-  const projections = useProjections();
-  const ids = rivalIds(game.player).sort(
-    (a, b) => SEATS.filter((s) => projections[s.index].leader === b).length - SEATS.filter((s) => projections[s.index].leader === a).length,
-  );
+  const polled = game.polls.national[0]?.seats;
+  const ids = rivalIds(game.player).sort((a, b) => (polled?.[b] ?? 0) - (polled?.[a] ?? 0));
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm" style={{ color: "var(--ink-2)" }}>
@@ -33,11 +31,10 @@ export function Rivals() {
 function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
   const game = useGame((s) => s.game)!;
   const focusSeat = useGame((s) => s.focusSeat);
-  const projections = useProjections();
   const info = COALITION_INFO[c];
   const hostile = isHostile(c, game.player, game.me.trust, game.government);
   const held = game.holders.filter((h) => h === c).length;
-  const projected = projections.filter((p) => p.leader === c).length;
+  const projected = game.polls.national[0]?.seats[c] ?? 0;
   const builtService = r.service.reduce((sum, v, i) => sum + Math.max(0, v - serviceBase(c, i)), 0);
   const targets = [...new Set(r.targets)];
 
@@ -60,7 +57,7 @@ function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
 
       <div className="grid grid-cols-3 gap-2 text-xs">
         <Stat label="Seats now" value={String(held)} />
-        <Stat label="If held today" value={`${projected}`} delta={projected - held} />
+        <Stat label="In the polls" value={`${projected}`} delta={projected - held} />
         <Stat label="War chest" value={fmtRM(r.funds)} />
       </div>
 

@@ -289,11 +289,44 @@ export const GE = {
 export type Difficulty = "easy" | "normal" | "hard";
 export type ScenarioId = "present" | "snap" | "underdog";
 
-export const DIFFICULTY: Record<Difficulty, { label: string; aiAggression: number; funds: number; text: string }> = {
-  easy: { label: "Easy", aiAggression: 0.7, funds: 1.5, text: "Rivals campaign less and you start richer." },
-  normal: { label: "Normal", aiAggression: 1, funds: 1, text: "As designed." },
-  hard: { label: "Hard", aiAggression: 1.35, funds: 0.75, text: "Rivals campaign harder and money is tight." },
+export interface DifficultyDef {
+  label: string;
+  text: string;
+  /** Rival campaigning strength. */
+  aiAggression: number;
+  /** Starting money. */
+  funds: number;
+  /** Starting party unity. */
+  unity: number;
+  /** Poll error (1 = as designed). */
+  pollError: number;
+  /** How often news and crises land on your desk. */
+  cards: number;
+  /** MACC raid odds. */
+  raids: number;
+  /** How fast buzz fades. */
+  decay: number;
+  /** Extra willingness partners need before backing you in coalition talks. */
+  greed: number;
+}
+
+export const DIFFICULTY: Record<Difficulty, DifficultyDef> = {
+  easy: { label: "Easy", text: "Gentle rivals, sharper polls, fewer crises, loyal partners.", aiAggression: 0.7, funds: 1.5, unity: 70, pollError: 0.7, cards: 0.8, raids: 0.6, decay: 0.8, greed: -0.1 },
+  normal: { label: "Normal", text: "As designed.", aiAggression: 1, funds: 1, unity: 60, pollError: 1, cards: 1, raids: 1, decay: 1, greed: 0 },
+  hard: { label: "Hard", text: "Hungry rivals, fuzzy polls, more crises and partners who drive a hard bargain.", aiAggression: 1.35, funds: 0.75, unity: 50, pollError: 1.4, cards: 1.25, raids: 1.5, decay: 1.25, greed: 0.12 },
 };
+
+/** How each difficulty compares, for the start screen. */
+export const DIFFICULTY_ROWS: { label: string; get: (d: DifficultyDef) => string }[] = [
+  { label: "Rival campaigning", get: (d) => `${Math.round(d.aiAggression * 100)}%` },
+  { label: "Starting money", get: (d) => `${Math.round(d.funds * 100)}%` },
+  { label: "Starting unity", get: (d) => String(d.unity) },
+  { label: "Poll error", get: (d) => `${Math.round(d.pollError * 100)}%` },
+  { label: "Crises and news", get: (d) => `${Math.round(d.cards * 100)}%` },
+  { label: "MACC raid odds", get: (d) => `${Math.round(d.raids * 100)}%` },
+  { label: "Buzz fades", get: (d) => `${Math.round(d.decay * 100)}%` },
+  { label: "Partners in talks", get: (d) => (d.greed < 0 ? "Eager" : d.greed > 0 ? "Demanding" : "Fair") },
+];
 
 export const SCENARIOS: Record<ScenarioId, { label: string; text: string }> = {
   present: { label: "Present day (Oct 2026)", text: "The real situation: the unity government, a year before Parliament's term ends." },

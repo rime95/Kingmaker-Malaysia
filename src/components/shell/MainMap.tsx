@@ -6,18 +6,20 @@ import { DUNS } from "@/game/systems/dun";
 import { isHostile } from "@/game/systems/rivals";
 import { useGame } from "@/store/gameStore";
 import { COALITION_INFO, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
-import { pct, useProjections } from "../common";
+import { pct, useReads } from "../common";
+import { winChance, type SeatRead } from "@/game/systems/polls";
+import { resultView } from "@/game/systems/results";
 import { MalaysiaMap, type MapMarker } from "../map/MalaysiaMap";
-import { RATING_LABEL, coalColor, lensFill } from "../map/lenses";
+import { coalColor, lensFill } from "../map/lenses";
 
 /** The full-screen map behind everything: coloured by the current lens, with bubbles and rival pulses. */
 export function MainMap() {
   const game = useGame((s) => s.game)!;
   const { lens, selected, focusSeat, mapFocus, claim, panel, floater } = useGame();
-  const projections = useProjections();
+  const reads = useReads();
   const [hover, setHover] = useState<{ i: number; x: number; y: number; dun?: boolean } | null>(null);
 
-  const fills = useMemo(() => SEATS.map((_, i) => lensFill(game, projections, lens, i)), [game, projections, lens]);
+  const fills = useMemo(() => SEATS.map((_, i) => lensFill(game, reads, lens, i)), [game, reads, lens]);
   // The States panel colours the 600 state seats by who holds them.
   const statesMode = panel === "states";
   const dunFills = useMemo(() => (statesMode ? DUNS.map((d) => coalColor(game.dunHolders[d.index])) : null), [statesMode, game.dunHolders]);
@@ -61,15 +63,16 @@ export function MainMap() {
         floater={floater}
         safeArea={SAFE_AREA()}
       />
-      {hover && (hover.dun ? <DunTip {...hover} /> : <SeatTip {...hover} projections={projections} />)}
+      {hover && (hover.dun ? <DunTip {...hover} /> : <SeatTip {...hover} reads={reads} />)}
     </>
   );
 }
 
-function SeatTip({ i, x, y, projections }: { i: number; x: number; y: number; projections: ReturnType<typeof useProjections> }) {
+function SeatTip({ i, x, y, reads }: { i: number; x: number; y: number; reads: SeatRead[] }) {
   const game = useGame((s) => s.game)!;
   const seat = SEATS[i];
-  const p = projections[i];
+  const last = resultView(game.seatResults, i);
+  const chance = winChance(reads[i], game.player, game.week);
   const bubble = game.bubbles.find((b) => b.seat === i);
   return (
     <div className="tooltip" style={{ left: x + 14, top: y + 14 }}>
@@ -79,11 +82,12 @@ function SeatTip({ i, x, y, projections }: { i: number; x: number; y: number; pr
       <div style={{ color: "var(--muted)" }}>{STATE_BY_ID[seat.state].name}</div>
       <div className="mt-1 flex items-center gap-1.5">
         <span className="swatch" style={{ background: coalColor(game.holders[i]) }} />
-        {game.holderParties[i]} ({COALITION_INFO[game.holders[i]].short})
+        {last.candidates[0].name} · {game.holderParties[i]} ({COALITION_INFO[game.holders[i]].short})
       </div>
       <div style={{ color: "var(--ink-2)" }}>
-        Today: {COALITION_INFO[p.leader].short} by {pct(p.margin, 1)} · {RATING_LABEL[p.rating]}
+        {last.label}: won by {last.majority.toLocaleString("en-MY")} votes
       </div>
+      {chance !== null && <div style={{ color: "var(--ink-2)" }}>Your chance: {pct(chance)}{reads[i].source === "estimate" ? " (rough)" : ""}</div>}
       {bubble && <div style={{ color: "var(--accent)" }}>{BUBBLE_INFO[bubble.kind].title}: click the bubble</div>}
     </div>
   );

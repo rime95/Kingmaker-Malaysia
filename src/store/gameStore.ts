@@ -12,6 +12,7 @@ import {
   callStateElection,
   claimBubble,
   closeNight,
+  commissionPoll,
   goToAgong,
   makeOffer,
   nextTalksRound,
@@ -21,12 +22,13 @@ import {
   tableBudget,
   tapAsset,
   upgradeAsset,
+  warRoom,
   type ActionResult,
   type OfferKind,
   type Target,
 } from "@/game/actions";
 import { advanceMonth } from "@/game/month";
-import { migrateGame, newGame, simulateElection, SAVE_VERSION, type GameState, type NewGameOptions } from "@/game/state";
+import { migrateGame, newGame, SAVE_VERSION, type GameState, type NewGameOptions } from "@/game/state";
 import { recordTier } from "./meta";
 import type { AssetType, CeoKind } from "@/game/systems/business";
 import { advanceWeek } from "@/game/week";
@@ -76,6 +78,7 @@ interface Store {
   skipToEvent: () => void;
   act: (id: string, target: Target) => void;
   claim: (bubbleId: number) => void;
+  poll: (seat: number) => void;
   business: (op: "buy" | "upgrade" | "sell" | "tap" | "ceo", type: AssetType, ceo?: CeoKind) => void;
   policy: (policyId: string, option: number) => void;
   budget: (alloc: Record<string, number>) => void;
@@ -155,7 +158,10 @@ export const useGame = create<Store>()(
         quit: () => set({ game: null, selected: null, panel: null }),
         simulate: () => {
           const g = get().game;
-          if (g) set({ game: simulateElection(g), lens: "result", toast: { id: ++toastId, text: "Test election done: the map shows who would win. Seats don't change hands." } });
+          if (!g) return;
+          const r = warRoom(g);
+          result(r);
+          if (r.ok) set({ lens: "result" });
         },
         skipWeek: () => {
           const g = get().game;
@@ -192,6 +198,10 @@ export const useGame = create<Store>()(
           const r = claimBubble(g, bubbleId);
           result(r);
           if (r.ok && b) set({ floater: { id: ++toastId, seat: b.seat, text: r.message.split(": ").at(-1)!.replace(/\.$/, "") } });
+        },
+        poll: (seat) => {
+          const g = get().game;
+          if (g) result(commissionPoll(g, seat));
         },
         business: (op, type, ceo) => {
           const g = get().game;

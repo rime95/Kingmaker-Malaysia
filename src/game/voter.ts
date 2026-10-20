@@ -38,7 +38,7 @@ function sharesFrom(seat: Seat, adjust: (c: CoalitionId) => number): Partial<Rec
 
 /** Expected margin of the GE15 winner, as a share of votes cast. */
 export function ge15MarginShare(seat: Seat): number {
-  return Math.min(0.8, Math.max(0.002, seat.ge15Majority / (seat.electorate * 0.75)));
+  return Math.min(0.8, Math.max(0.002, seat.ge15Majority / seat.ge15Valid));
 }
 
 function topTwo(shares: Partial<Record<CoalitionId, number>>): [CoalitionId, number, CoalitionId | null, number] {

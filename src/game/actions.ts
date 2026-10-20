@@ -1,13 +1,14 @@
 // Every player decision, as pure functions: (state, target) → new state + a message.
 // Actions cost Action Points (AP) and money. Business decisions cost money only.
 
-import { ECONOMY } from "./config";
+import { DIFFICULTY, ECONOMY } from "./config";
+import { POLLS, commissionedRead } from "./systems/polls";
 import { BUDGET, BUDGET_LINES, budgetEnvelope } from "./systems/budget";
 import { resolveCard } from "./systems/events";
 import { MULTIRACIAL, PLEDGE_WEIGHT, POLICY_BY_ID, POLICY_COST, UNFUNDED_INTEGRITY_PER_FISCAL } from "./systems/policies";
 import { addSeg, type SegEffects } from "./systems/segments";
 import { fmtRM } from "./money";
-import { isGovernment, projectAllFor, weekDate, weekLabel, type GameState, type Player } from "./state";
+import { isGovernment, projectAllFor, simulateElection, weekDate, weekLabel, type GameState, type Player } from "./state";
 import { ASSEMBLY_STATES, dissolveAssembly, dissolveParliament, stateRule } from "./systems/assemblies";
 import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, deciding, endRound, winTier, type Offer } from "./systems/formation";
 import { CAREER as CAREER_LOYALTY, addPoints, isPresident } from "./systems/career";
@@ -32,6 +33,8 @@ export interface ActionDef {
   run: (me: Player, s: GameState, t: Target) => string;
   /** Extra reason the action can't be taken here. */
   blocked?: (s: GameState, t: Target) => string | null;
+  /** Changes beyond your own stats (e.g. an ally's campaign), applied after run. */
+  after?: (s: GameState, t: Target) => GameState;
 }
 
 export type ActionResult = { ok: true; state: GameState; message: string } | { ok: false; error: string };
@@ -48,6 +51,23 @@ const notContesting = (s: GameState, t: Target) => {
   const seat = seatOf(t);
   return seat && !contestingIn(seat).includes(s.player) ? "Your coalition does not contest this seat." : null;
 };
+
+/** The friendliest coalition standing in a seat your coalition doesn't contest. */
+export function allyIn(s: GameState, i: number): CoalitionId | null {
+  let best: CoalitionId | null = null;
+  let score = 0.2;
+  for (const c of contestingIn(SEATS[i])) {
+    if (c === s.player || c === "OTHERS") continue;
+    const v = (AFFINITY[s.player][c] ?? 0) + (s.government.includes(c) === s.government.includes(s.player) ? 0.3 : 0);
+    if (v > score) {
+      score = v;
+      best = c;
+    }
+  }
+  return best;
+}
+
+export const ALLY_BUZZ = 12;
 
 export const ACTIONS: ActionDef[] = [
   // Local: one seat
@@ -80,6 +100,37 @@ export const ACTIONS: ActionDef[] = [
       me.buzz[i] = addBuzz(me.buzz[i], 7 * eff(me));
       me.service[i] = clamp(me.service[i] + 1);
       return `Walkabout in ${SEATS[i].name}.`;
+    },
+  },
+  {
+    id: "ally",
+    name: "Back an ally",
+    group: "local",
+    target: "seat",
+    ap: 1,
+    blurb: "Your coalition has no candidate here. Campaign for a friendly party's candidate: their vote rises, and so does their trust in you.",
+    cost: () => 45_000,
+    blocked: (s, t) => {
+      const seat = seatOf(t);
+      if (!seat) return null;
+      if (contestingIn(seat).includes(s.player)) return "You field a candidate here. Use your own moves.";
+      return allyIn(s, seat.index) ? null : "No friendly party stands here.";
+    },
+    run: (me, s, t) => {
+      const i = (t as { seat: number }).seat;
+      const ally = allyIn(s, i)!;
+      me.trust = clamp(me.trust + 2);
+      me.favours += 1;
+      return `You campaign for the ${COALITION_INFO[ally].short} candidate in ${SEATS[i].name}. They will remember it.`;
+    },
+    after: (s, t) => {
+      const i = (t as { seat: number }).seat;
+      const ally = allyIn(s, i);
+      const r = ally ? s.rivals[ally] : undefined;
+      if (!ally || !r) return s;
+      const buzz = [...r.buzz];
+      buzz[i] = clamp(buzz[i] + ALLY_BUZZ);
+      return { ...s, rivals: { ...s.rivals, [ally]: { ...r, buzz } } };
     },
   },
   {
@@ -341,12 +392,37 @@ export function applyAction(s: GameState, id: string, t: Target): ActionResult {
   me.funds -= def.cost(s, t);
   me.ap -= def.ap;
   const message = def.run(me, s, t);
+  const base = def.after ? def.after({ ...s, me }, t) : s;
   // Campaigning in your own coalition's seats wins the loyalty of their MPs (your faction).
   const loyalty = [...s.career.loyalty];
   const seats = t.kind === "seat" ? [t.seat] : t.kind === "state" ? SEATS.filter((x) => x.state === t.state).map((x) => x.index) : [];
   const gain = t.kind === "seat" ? CAREER_LOYALTY.loyaltyPerAction : CAREER_LOYALTY.loyaltyPerAction / 3;
   for (const i of seats) if (s.holders[i] === s.player) loyalty[i] = Math.min(100, loyalty[i] + gain);
-  return { ok: true, state: { ...s, me, career: { ...s.career, loyalty } }, message };
+  return { ok: true, state: { ...base, me, career: { ...s.career, loyalty } }, message };
+}
+
+export const WAR_ROOM_COST = 100_000;
+
+/** A war-room simulation: a full test election from today's true support (seats don't change hands). */
+export function warRoom(s: GameState): ActionResult {
+  if (s.me.funds < WAR_ROOM_COST) return { ok: false, error: `Needs ${fmtRM(WAR_ROOM_COST)}.` };
+  const next = simulateElection({ ...s, me: { ...s.me, funds: s.me.funds - WAR_ROOM_COST } });
+  return { ok: true, state: next, message: `War-room simulation done (${fmtRM(WAR_ROOM_COST)}): the map shows who would win. Seats don't change hands.` };
+}
+
+/** Commission a constituency poll (money only, no AP). One per seat per week. */
+export function commissionPoll(s: GameState, seat: number): ActionResult {
+  const old = s.polls.seats[seat];
+  if (old?.source === "poll" && old.week === s.week) return { ok: false, error: "You already have this week's poll." };
+  if (s.me.funds < POLLS.seatCost) return { ok: false, error: `Needs ${fmtRM(POLLS.seatCost)}.` };
+  const read = commissionedRead(projectAllFor(s)[seat], s.seed, s.week, seat, s.me.machinery[seat], DIFFICULTY[s.settings.difficulty].pollError);
+  const seats = [...s.polls.seats];
+  seats[seat] = read;
+  return {
+    ok: true,
+    state: { ...s, me: { ...s.me, funds: s.me.funds - POLLS.seatCost }, polls: { ...s.polls, seats } },
+    message: `${read.pollster} polled ${SEATS[seat].name} (±${Math.round(read.moe * 100)}%).`,
+  };
 }
 
 const LEADERSHIP_ONLY = "Only the party president decides this. Climb the party ladder (Career tab).";

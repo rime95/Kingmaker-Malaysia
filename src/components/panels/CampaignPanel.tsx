@@ -4,8 +4,10 @@ import { useMemo, useState } from "react";
 import { advise } from "@/game/advice";
 import { ACTIONS, type ActionGroup } from "@/game/actions";
 import { useGame } from "@/store/gameStore";
-import { SEATS, STATES } from "@/game/world";
+import { winChance } from "@/game/systems/polls";
+import { SEATS, STATES, STATE_BY_ID, contestingIn } from "@/game/world";
 import { ActionCard } from "../ActionCard";
+import { pct, useReads } from "../common";
 
 const TONE = { good: "var(--good)", bad: "var(--bad)", info: "var(--ink-2)" } as const;
 const ICON = { good: "▲", bad: "▼", info: "•" } as const;
@@ -22,6 +24,17 @@ export function CampaignPanel() {
   const { act, focusSeat } = useGame();
   const tips = useMemo(() => advise(game).slice(0, 4), [game]);
   const [tourState, setTourState] = useState(STATES[0].id);
+  const reads = useReads();
+  // Battlegrounds: seats you contest where your polled chance is closest to a coin flip.
+  const battle = useMemo(
+    () =>
+      SEATS.filter((seat) => contestingIn(seat).includes(game.player))
+        .map((seat) => ({ i: seat.index, chance: reads.length ? (winChance(reads[seat.index], game.player, game.week) ?? 0) : 0 }))
+        .filter((x) => x.chance > 0.2 && x.chance < 0.8)
+        .sort((a, b) => Math.abs(a.chance - 0.5) - Math.abs(b.chance - 0.5))
+        .slice(0, 6),
+    [game, reads],
+  );
 
   return (
     <div className="flex flex-col gap-5">
@@ -51,6 +64,26 @@ export function CampaignPanel() {
           ))}
         </ul>
       </section>
+
+      {battle.length > 0 && (
+        <section>
+          <h3 className="eyebrow mb-2">Battleground seats</h3>
+          <ul className="flex flex-col gap-1">
+            {battle.map((x) => (
+              <li key={x.i}>
+                <button className="inset w-full px-2.5 py-1.5 text-sm flex items-center gap-2 text-left hover:brightness-125" onClick={() => focusSeat(x.i)}>
+                  <span className="flex-1 truncate">
+                    {SEATS[x.i].name} <span className="text-xs" style={{ color: "var(--muted)" }}>{STATE_BY_ID[SEATS[x.i].state].name}</span>
+                  </span>
+                  <span className="text-xs tabular-nums font-semibold" style={{ color: x.chance >= 0.5 ? "var(--good)" : "var(--bad)" }}>
+                    {pct(x.chance)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <p className="text-xs" style={{ color: "var(--muted)" }}>
         For a single seat, click it on the map. Gold bubbles on the map are free bonuses this week.

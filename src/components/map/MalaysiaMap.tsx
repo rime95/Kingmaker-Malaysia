@@ -165,6 +165,7 @@ function MapView({ geo, fills, dunFills, showDuns = "auto", selected, selectedDu
           <SeatsLayer geo={geo} fills={fills} onSelect={onSelect} onHover={onHover} interactive={!(dunsOn && dunFills)} />
           {dunsOn && <DunsLayer geo={geo} fills={dunFills ?? null} onSelect={onSelectDun} onHover={onHoverDun} />}
           <path d={geo.seatBorders} className="map-seat-line" />
+          <path d={geo.stateBorders} className="map-state-halo" />
           <path d={geo.stateBorders} className="map-state-line" />
           {fills.map((f, i) => (f.flipped && geo.seats[i].d ? <path key={i} d={geo.seats[i].d} className="map-flip" /> : null))}
           {selected != null && geo.seats[selected]?.d && <path d={geo.seats[selected].d} className="map-selected" filter="url(#seat-glow)" />}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
-import { DIFFICULTY, SCENARIOS, type Difficulty, type ScenarioId } from "@/game/config";
+import { Fragment, useMemo, useState, useSyncExternalStore } from "react";
+import { DIFFICULTY, DIFFICULTY_ROWS, SCENARIOS, type Difficulty, type ScenarioId } from "@/game/config";
 import { defaultHomeSeat } from "@/game/systems/career";
 import { TIER_TEXT } from "@/game/systems/formation";
 import { useGame } from "@/store/gameStore";
@@ -119,13 +119,32 @@ export function NewGame() {
           <p className="text-xs -mt-2" style={{ color: "var(--muted)" }}>
             {SCENARIOS[scenario].text}
           </p>
-          <Choice label="Difficulty">
-            {(Object.keys(DIFFICULTY) as Difficulty[]).map((d) => (
-              <button key={d} className="chip" aria-pressed={difficulty === d} title={DIFFICULTY[d].text} onClick={() => setDifficulty(d)}>
-                {DIFFICULTY[d].label}
-              </button>
-            ))}
-          </Choice>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Difficulty</span>
+            <div className="grid grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))] text-xs rounded-xl overflow-hidden" style={{ border: "1px solid var(--line)" }}>
+              <div />
+              {(Object.keys(DIFFICULTY) as Difficulty[]).map((d) => (
+                <button key={d} className="px-2 py-2 font-semibold text-sm" aria-pressed={difficulty === d} onClick={() => setDifficulty(d)} style={{ background: difficulty === d ? "var(--raised)" : undefined, color: difficulty === d ? "var(--ink)" : "var(--ink-2)", boxShadow: difficulty === d ? "inset 0 -2px 0 var(--primary-a)" : undefined }}>
+                  {DIFFICULTY[d].label}
+                </button>
+              ))}
+              {DIFFICULTY_ROWS.map((row) => (
+                <Fragment key={row.label}>
+                  <div className="px-2 py-1" style={{ color: "var(--muted)", borderTop: "1px solid var(--line)" }}>
+                    {row.label}
+                  </div>
+                  {(Object.keys(DIFFICULTY) as Difficulty[]).map((d) => (
+                    <div key={d} className="px-2 py-1 text-center tabular-nums cursor-pointer" onClick={() => setDifficulty(d)} style={{ borderTop: "1px solid var(--line)", background: difficulty === d ? "var(--raised)" : undefined, color: difficulty === d ? "var(--ink)" : "var(--ink-2)" }}>
+                      {row.get(DIFFICULTY[d])}
+                    </div>
+                  ))}
+                </Fragment>
+              ))}
+            </div>
+            <p className="text-xs" style={{ color: "var(--muted)" }}>
+              {DIFFICULTY[difficulty].text}
+            </p>
+          </div>
           <button className="btn self-start" onClick={() => start(pick, { mode, name, homeSeat: home ?? undefined, scenario, difficulty })}>
             Start
           </button>

@@ -3,6 +3,7 @@
 // Demographics are ESTIMATES built from state averages and each seat's GE15 result (see buildDemographics),
 // not census figures. Swap in real data later without touching the engine.
 
+import { GE15_RESULTS } from "./data/ge15";
 import { hash01 } from "./rng";
 
 export const COALITIONS = ["PH", "BN", "PN", "GPS", "GRS", "WARISAN", "MUDA", "OTHERS"] as const;
@@ -131,6 +132,8 @@ export interface Seat {
   ge15Party: string;
   ge15Coalition: CoalitionId;
   ge15Majority: number;
+  /** Valid votes cast at GE15. */
+  ge15Valid: number;
 }
 
 // code number|name|state|GE15 winning party|majority (votes). Source: Wikipedia, GE15 results by constituency.
@@ -163,7 +166,7 @@ const SEAT_DATA = `1|Padang Besar|PLS|PAS|12514
 27|Tanah Merah|KTN|BERSATU|44485
 28|Pasir Puteh|KTN|PAS|29109
 29|Machang|KTN|BERSATU|10154
-30|Jeli|KTN|PAS|12464
+30|Jeli|KTN|BERSATU|12464
 31|Kuala Krai|KTN|PAS|25188
 32|Gua Musang|KTN|BERSATU|163
 33|Besut|TRG|PAS|18666
@@ -179,7 +182,7 @@ const SEAT_DATA = `1|Padang Besar|PLS|PAS|12514
 43|Bagan|PNG|DAP|49648
 44|Permatang Pauh|PNG|PAS|5272
 45|Bukit Mertajam|PNG|DAP|57685
-46|Batu Kawan|PNG|PKR|40400
+46|Batu Kawan|PNG|DAP|40400
 47|Nibong Tebal|PNG|PKR|16293
 48|Bukit Bendera|PNG|DAP|42610
 49|Tanjong|PNG|DAP|28754
@@ -269,7 +272,7 @@ const SEAT_DATA = `1|Padang Besar|PLS|PAS|12514
 133|Tampin|NSN|UMNO|1276
 134|Masjid Tanah|MLK|BERSATU|4411
 135|Alor Gajah|MLK|AMANAH|890
-136|Tangga Batu|MLK|PKR|8849
+136|Tangga Batu|MLK|PAS|8849
 137|Hang Tuah Jaya|MLK|PKR|8638
 138|Kota Melaka|MLK|DAP|46420
 139|Jasin|MLK|PAS|322
@@ -278,7 +281,7 @@ const SEAT_DATA = `1|Padang Besar|PLS|PAS|12514
 142|Labis|JHR|DAP|2833
 143|Pagoh|JHR|BERSATU|10007
 144|Ledang|JHR|PKR|9769
-145|Bakri|JHR|PKR|19254
+145|Bakri|JHR|DAP|19254
 146|Muar|JHR|MUDA|1345
 147|Parit Sulong|JHR|UMNO|2021
 148|Ayer Hitam|JHR|MCA|2963
@@ -411,9 +414,8 @@ function buildSeats(): Seat[] {
     const state = STATE_BY_ID[stateId];
     const majority = Number(maj);
     const demo = buildDemographics(n, state, party);
-    // Urban seats are bigger (malapportionment). A seat must be big enough to hold its majority.
-    const base = 45000 + demo.urbanity * 120000 + hash01("elec", n) * 30000;
-    const electorate = Math.round(Math.max(base, majority / 0.42) / 100) * 100;
+    // Registered electors and valid votes are the real GE15 figures.
+    const [, electorate, valid] = GE15_RESULTS[index];
     return {
       index,
       code: `P.${String(n).padStart(3, "0")}`,
@@ -424,6 +426,7 @@ function buildSeats(): Seat[] {
       ge15Party: party,
       ge15Coalition: PARTIES[party].coalition,
       ge15Majority: majority,
+      ge15Valid: valid,
     };
   });
 }

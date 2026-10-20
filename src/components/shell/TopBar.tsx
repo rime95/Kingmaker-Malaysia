@@ -6,7 +6,7 @@ import { isGovernment, weekLabel } from "@/game/state";
 import { weeksToElection } from "@/game/systems/assemblies";
 import { useGame } from "@/store/gameStore";
 import { COALITIONS, COALITION_INFO, MAJORITY, TOTAL_SEATS, type CoalitionId } from "@/game/world";
-import { CHART_ORDER, fmtRM, useProjections } from "../common";
+import { CHART_ORDER, fmtRM } from "../common";
 import { coalColor } from "../map/lenses";
 import { useT } from "../i18n";
 import { Icon } from "./icons";
@@ -16,13 +16,10 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
   const game = useGame((s) => s.game)!;
   const { skipWeek, unsnooze, snoozed, budgetSnoozed } = useGame();
   const t = useT();
-  const projections = useProjections();
-  const counts = Object.fromEntries(COALITIONS.map((c) => [c, 0])) as Record<CoalitionId, number>;
-  let marginal = 0;
-  for (const p of projections) {
-    counts[p.leader]++;
-    if (p.rating === "tossup" || p.rating === "lean") marginal++;
-  }
+  // The race as the latest national poll sees it (not the hidden true numbers).
+  const poll = game.polls.national[0];
+  const counts = poll?.seats ?? (Object.fromEntries(COALITIONS.map((c) => [c, 0])) as Record<CoalitionId, number>);
+  const marginal = poll?.marginal ?? 0;
   const top: CoalitionId[] = COALITIONS.filter((c) => c !== "OTHERS")
     .sort((a, b) => counts[b] - counts[a])
     .slice(0, 3);
@@ -57,7 +54,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
         </div>
       </div>
 
-      {/* If the election were today */}
+      {/* The latest national poll */}
       <div className="hidden lg:flex flex-1 min-w-0 flex-col items-center gap-1">
         <div className="flex items-end gap-6">
           {top.map((c) => (
@@ -81,7 +78,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
             </div>
           </div>
         </div>
-        <div className="relative h-1.5 w-full max-w-[420px] rounded-full overflow-hidden flex gap-px" title="Seats if the election were held today" style={{ background: "var(--surface-2)" }}>
+        <div className="relative h-1.5 w-full max-w-[420px] rounded-full overflow-hidden flex gap-px" title={poll ? `${poll.pollster} poll, ${weekLabel(poll.week)}: seats if the election were held then` : undefined} style={{ background: "var(--surface-2)" }}>
           {CHART_ORDER.filter((c) => counts[c]).map((c) => (
             <div key={c} style={{ width: `${(counts[c] / TOTAL_SEATS) * 100}%`, background: coalColor(c) }} />
           ))}
@@ -158,7 +155,7 @@ function Menu({ onSaves }: { onSaves: () => void }) {
         <div className="panel absolute right-0 top-full mt-2 w-56 p-1.5 z-50 pop-in">
           {item(t("skipMonth"), skipMonth)}
           {item(t("skipEvent"), skipToEvent, "Skips up to 12 weeks, stopping at anything that needs you.")}
-          {item(t("testElection"), simulate, "A test general election from today's support. Seats do not change hands.")}
+          {item(t("testElection"), simulate, "Your strategists run a full test election on the true numbers. Seats do not change hands.")}
           <div className="h-px my-1" style={{ background: "var(--line)" }} />
           {item(t("saves"), onSaves)}
           {item(lang === "en" ? "Bahasa Malaysia" : "English", () => setLang(lang === "en" ? "ms" : "en"))}

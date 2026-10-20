@@ -6,6 +6,7 @@ import { DUNS_BY_STATE } from "./systems/dun";
 import { autoResolveFormation, tableBudget } from "./actions";
 import { careerAfterGE, careerWeek, goalsWeek } from "./progress";
 import { newBubbles } from "./systems/bubbles";
+import { pollsWeek } from "./systems/polls";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
 import { rivalsWeek } from "./systems/rivals";
@@ -50,6 +51,7 @@ export function advanceWeek(input: GameState): GameState {
   const contested = SEATS.filter((seat) => contestingIn(seat).includes(s.player)).map((seat) => seat.index);
   const held = s.holders.map((h, i) => (h === s.player ? i : -1)).filter((i) => i >= 0);
 
+  const diff = DIFFICULTY[s.settings.difficulty];
   const { income, expenses, upkeep } = weeklyCashFlow(s);
 
   const totalIn = income.reduce((x, l) => x + l.amount, 0);
@@ -66,7 +68,7 @@ export function advanceWeek(input: GameState): GameState {
 
   // Presence: buzz fades, service holds, your MPs keep serving their seats
   for (let i = 0; i < SEATS.length; i++) {
-    me.buzz[i] *= 1 - DECAY.buzz;
+    me.buzz[i] *= 1 - DECAY.buzz * diff.decay;
     const base = serviceBase(s.player, i);
     if (me.service[i] > base) me.service[i] -= (me.service[i] - base) * DECAY.service;
   }
@@ -81,7 +83,7 @@ export function advanceWeek(input: GameState): GameState {
   const foundation = me.assets.find((a) => a.type === "foundation");
   if (foundation) for (const i of contested) me.buzz[i] = clamp(me.buzz[i] + 0.4 * foundation.level * (SEATS[i].demo.youth / 0.3));
 
-  me.nationalBuzz *= 1 - DECAY.nationalBuzz;
+  me.nationalBuzz *= 1 - DECAY.nationalBuzz * diff.decay;
   me.scandal *= 1 - DECAY.scandal;
 
   // Party
@@ -101,7 +103,7 @@ export function advanceWeek(input: GameState): GameState {
   me.risk = clamp(me.risk + assetRiskSum - DECAY.riskPerWeek);
   const rng = new Rng(s.rng);
   const roll = rng.next(); // always one draw per week
-  if (roll < Math.max(0, me.risk - MACC.threshold) / MACC.divisor) {
+  if (roll < (Math.max(0, me.risk - MACC.threshold) / MACC.divisor) * diff.raids) {
     const fine = Math.round(Math.max(0, me.funds) * MACC.fineShare);
     me.funds -= fine;
     me.integrity = clamp(me.integrity - MACC.integrityHit);
@@ -135,7 +137,7 @@ export function advanceWeek(input: GameState): GameState {
     campaignStates: campaignStates(s),
     rulers: stateRulers(s.dunHolders, s.government),
     government: s.government,
-    aggression: DIFFICULTY[s.settings.difficulty].aiAggression,
+    aggression: diff.aiAggression,
   });
   me.nationalBuzz = clamp(me.nationalBuzz + ai.playerBuzzHit);
   me.scandal = clamp(me.scandal + ai.playerScandalHit);
@@ -189,18 +191,24 @@ export function advanceWeek(input: GameState): GameState {
   next = goals.state;
   lines.push(...goals.lines);
 
-  // Report
+  // Polls: a national poll every four weeks, branch reports where your machinery is strong
   const after = projectAllFor(next);
-  const seatsBefore = before.filter((p) => p.leader === s.player).length;
-  const seatsAfter = after.filter((p) => p.leader === s.player).length;
+  next = { ...next, polls: pollsWeek(next.polls, after, next.seed, next.week, next.player, next.me.machinery, diff.pollError) };
+
+  // Report (seat counts are what the latest national poll says, not the hidden truth)
+  const seatsBefore = s.polls.national[0]?.seats[s.player] ?? 0;
+  const seatsAfter = next.polls.national[0]?.seats[s.player] ?? 0;
   const movers = SEATS.map((seat) => ({ seatIndex: seat.index, delta: (after[seat.index].shares[s.player] ?? 0) - (before[seat.index].shares[s.player] ?? 0) }))
     .filter((m) => Math.abs(m.delta) > 0.0005)
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
     .slice(0, 5);
-  const fadedBuzz = s.me.buzz.reduce((x, b) => x + b, 0) * DECAY.buzz;
-  if (fadedBuzz > 5) lines.unshift({ text: `Buzz is fading: last week's rallies count for about ${Math.round(DECAY.buzz * 100)}% less.`, tone: "info" });
-  if (seatsAfter !== seatsBefore)
-    lines.unshift({ text: `If the election were held today you would win ${seatsAfter} seats (${seatsAfter > seatsBefore ? "+" : "−"}${Math.abs(seatsAfter - seatsBefore)}).`, tone: seatsAfter > seatsBefore ? "good" : "bad" });
+  const fadedBuzz = s.me.buzz.reduce((x, b) => x + b, 0) * DECAY.buzz * diff.decay;
+  if (fadedBuzz > 5) lines.unshift({ text: `Buzz is fading: last week's rallies count for about ${Math.round(DECAY.buzz * diff.decay * 100)}% less.`, tone: "info" });
+  const poll = next.polls.national[0];
+  if (poll && poll.week === next.week && poll !== s.polls.national[0]) {
+    const d = seatsAfter - seatsBefore;
+    lines.unshift({ text: `New ${poll.pollster} poll: you would win about ${seatsAfter} seats${d ? ` (${d > 0 ? "+" : "−"}${Math.abs(d)} since the last poll)` : ", no change"}.`, tone: d > 0 ? "good" : d < 0 ? "bad" : "info" });
+  }
   for (const i of contested) {
     if (me.machinery[i] < machineryBase(s.player, i) * 0.6 && s.me.machinery[i] >= machineryBase(s.player, i) * 0.6) {
       lines.push({ text: `Machinery in ${SEATS[i].name} has collapsed below 60% of its starting strength.`, tone: "bad" });

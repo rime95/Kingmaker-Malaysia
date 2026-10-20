@@ -2,6 +2,8 @@
 
 import { useGame } from "@/store/gameStore";
 import { projectAllFor } from "@/game/state";
+import { DIFFICULTY } from "@/game/config";
+import { bestRead, type SeatRead } from "@/game/systems/polls";
 import type { Projection } from "@/game/voter";
 export { fmtRM } from "@/game/money";
 import { COALITION_INFO, PARTIES, SEATS, type CoalitionId } from "@/game/world";
@@ -15,6 +17,16 @@ export const CHART_ORDER: CoalitionId[] = ["PH", "BN", "GPS", "GRS", "OTHERS", "
 export function useProjections(): Projection[] {
   const game = useGame((s) => s.game);
   return useMemo(() => (game ? projectAllFor(game) : []), [game]);
+}
+
+/** Your best read of every seat: a poll or branch report, else an estimate from the national poll. */
+export function useReads(): SeatRead[] {
+  const game = useGame((s) => s.game);
+  const projections = useProjections();
+  return useMemo(
+    () => (game ? SEATS.map((_, i) => bestRead(game.polls, projections, game.seed, i, game.week, DIFFICULTY[game.settings.difficulty].pollError)) : []),
+    [game, projections],
+  );
 }
 
 export function pct(v: number, digits = 0) {

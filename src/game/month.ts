@@ -17,14 +17,10 @@ export function advanceMonth(s: GameState): GameState {
     reports.push(state.report!);
   }
   const last = reports[3];
-  // One seat summary for the month instead of one per week.
-  const isSeatLine = (text: string) => text.startsWith("If the election were held today");
-  const all = reports.flatMap((r) => r.lines.filter((l) => !isSeatLine(l.text)));
+  // The month's lines, without repeats. Seat counts come from the national poll, which appears once a month.
+  const all = reports.flatMap((r) => r.lines);
   const events = all.filter((l, i) => all.findIndex((x) => x.text === l.text) === i);
   const before = reports[0].seatsBefore;
-  const after = last.seatsAfter;
-  if (after !== before)
-    events.unshift({ text: `If the election were held today you would win ${after} seats (${after > before ? "+" : "−"}${Math.abs(after - before)} this month).`, tone: after > before ? "good" : "bad" });
   return {
     ...state,
     report: {

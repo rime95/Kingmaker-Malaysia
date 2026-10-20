@@ -8,6 +8,8 @@ import type { Formation, WinTier } from "./systems/formation";
 import { AP_BY_RUNG, initCareer, type Career } from "./systems/career";
 import { newObjectives, type Objective } from "./systems/goals";
 import { newBubbles, type Bubble } from "./systems/bubbles";
+import { initPolls, type Polls } from "./systems/polls";
+import type { SeatRecord } from "./systems/results";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
 import { policyVoters } from "./systems/policies";
@@ -18,7 +20,7 @@ import { COALITIONS, COALITION_INFO, SEATS, type CoalitionId } from "./world";
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -140,6 +142,12 @@ export interface GameState {
   settings: { scenario: ScenarioId; difficulty: Difficulty };
   /** This week's opportunity bubbles on the map. */
   bubbles: Bubble[];
+  /** What you know of the race: national polls and per-seat reads. */
+  polls: Polls;
+  /** Latest simulated result per seat (null = the real GE15 result still stands). */
+  seatResults: (SeatRecord | null)[];
+  /** Number of the last general election held (15 = GE15). */
+  geCount: number;
 }
 
 export interface NewGameOptions {
@@ -210,10 +218,14 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     achievements: {},
     settings: { scenario: opts.scenario ?? "present", difficulty: opts.difficulty ?? "normal" },
     bubbles: [],
+    polls: { national: [], seats: [] },
+    seatResults: SEATS.map(() => null),
+    geCount: 15,
   };
   state.me.apMax = state.me.ap = AP_BY_RUNG[state.career.rung];
   // Difficulty and scenario
   state.me.funds = Math.round(state.me.funds * DIFFICULTY[state.settings.difficulty].funds);
+  state.me.unity = DIFFICULTY[state.settings.difficulty].unity;
   if (state.settings.scenario === "snap") state.parliament = { ...state.parliament, deadlineWeek: 3 };
   if (state.settings.scenario === "underdog") {
     state.me = { ...state.me, funds: Math.round(state.me.funds * 0.25), members: Math.round(state.me.members * 0.6), unity: 40, trust: 40 };
@@ -221,6 +233,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
   state.history.push({ week: 0, funds: state.me.funds, seats: projectedSeats(state) });
   state.objectives = newObjectives(state);
   state.bubbles = newBubbles(state);
+  state.polls = initPolls(projectAllFor(state), seed, 0, DIFFICULTY[state.settings.difficulty].pollError);
   return state;
 }
 
@@ -249,7 +262,11 @@ export function migrateGame(g: GameState): GameState {
     achievements: g.achievements ?? {},
     settings: g.settings ?? { scenario: "present", difficulty: "normal" },
     bubbles: g.bubbles ?? [],
+    polls: g.polls ?? { national: [], seats: [] },
+    seatResults: g.seatResults ?? SEATS.map(() => null),
+    geCount: g.geCount ?? 15,
   };
+  if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, DIFFICULTY[migrated.settings.difficulty].pollError);
   if (!migrated.objectives.length) migrated.objectives = newObjectives(migrated);
   return migrated;
 }
