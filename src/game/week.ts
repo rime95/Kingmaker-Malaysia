@@ -11,6 +11,7 @@ import { coalitionsWeek, syncNames } from "./systems/coalitions";
 import { leaderOfParty, peopleMonth, syncYou } from "./systems/people";
 import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
 import { CONTEST_POINTS } from "./systems/career";
+import { ROLES, pollError, teamDonations, teamRaidMult, teamSalaries, teamUpkeepMult, teamWeek } from "./systems/team";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
 import { rivalsWeek } from "./systems/rivals";
@@ -37,10 +38,13 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
     if (ruler === s.player) income.push({ label: `State government (${STATE_BY_ID[id].name})`, amount: DUNS_BY_STATE[id].length * PRN.stateIncomePerSeat });
   for (const a of me.assets) income.push({ label: ASSETS[a.type].name, amount: assetIncome(a, gov, me.market) });
   const expenses: WeekReport["expenses"] = [{ label: "HQ & staff", amount: Math.round(ECONOMY.hqFixed + me.members * ECONOMY.hqPerMember) }];
+  if (s.team.length) expenses.push({ label: "Your team", amount: teamSalaries(s) });
+  const donations = teamDonations(s);
+  if (donations) income.push({ label: `Donors (${s.team.find((x) => x.role === "fundraiser")?.name})`, amount: donations });
   const salaries = me.assets.reduce((sum, a) => sum + CEO[a.ceo].salary, 0);
   if (salaries) expenses.push({ label: "Company CEOs", amount: salaries });
   const upkeep = Math.round(
-    SEATS.reduce((sum, seat) => sum + (contestingIn(seat).includes(s.player) ? me.machinery[seat.index] : 0), 0) * ECONOMY.machineryUpkeep,
+    SEATS.reduce((sum, seat) => sum + (contestingIn(seat).includes(s.player) ? me.machinery[seat.index] : 0), 0) * ECONOMY.machineryUpkeep * teamUpkeepMult(s),
   );
   return { income, expenses, upkeep };
 }
@@ -91,7 +95,11 @@ export function advanceWeek(input: GameState): GameState {
   if (foundation) for (const i of contested) me.buzz[i] = clamp(me.buzz[i] + 0.4 * foundation.level * (SEATS[i].demo.youth / 0.3));
 
   me.nationalBuzz *= 1 - DECAY.nationalBuzz * diff.decay;
-  me.scandal *= 1 - DECAY.scandal;
+  // Your team: a press secretary buries scandals, a lawyer calms MACC, a social media lead keeps the young listening.
+  const skill = (r: keyof typeof ROLES) => s.team.filter((x) => x.role === r).reduce((m, x) => Math.max(m, x.skill), 0);
+  me.scandal *= 1 - DECAY.scandal - skill("press") * 0.02;
+  me.risk = clamp(me.risk - skill("legal") * 0.4);
+  if (skill("social")) me.mood = { ...me.mood, youth: Math.min(0.08, (me.mood.youth ?? 0) + skill("social") * 0.002) };
 
   // Party
   me.unity += (DECAY.unityRest - me.unity) * DECAY.unityDrift;
@@ -110,7 +118,7 @@ export function advanceWeek(input: GameState): GameState {
   me.risk = clamp(me.risk + assetRiskSum - DECAY.riskPerWeek);
   const rng = new Rng(s.rng);
   const roll = rng.next(); // always one draw per week
-  if (roll < (Math.max(0, me.risk - MACC.threshold) / MACC.divisor) * diff.raids) {
+  if (roll < (Math.max(0, me.risk - MACC.threshold) / MACC.divisor) * diff.raids * teamRaidMult(s)) {
     const fine = Math.round(Math.max(0, me.funds) * MACC.fineShare);
     me.funds -= fine;
     me.integrity = clamp(me.integrity - MACC.integrityHit);
@@ -187,6 +195,11 @@ export function advanceWeek(input: GameState): GameState {
     lines.push(...ge.lines);
   }
 
+  // Your team: experience, loyalty (unpaid staff sulk), poaching and leaks
+  const tw = teamWeek(next, s.me.funds >= 0);
+  next = { ...tw.state, me: { ...tw.state.me, scandal: clamp(tw.state.me.scandal + tw.scandal) } };
+  lines.push(...tw.lines);
+
   // Coalitions: partners' satisfaction, walkouts, and seat talks once Parliament is dissolved
   const coal = coalitionsWeek(next);
   next = coal.state;
@@ -240,7 +253,7 @@ export function advanceWeek(input: GameState): GameState {
 
   // Polls: a national poll every four weeks, branch reports where your machinery is strong
   const after = projectAllFor(next);
-  next = { ...next, polls: pollsWeek(next.polls, after, next.seed, next.week, next.player, next.me.machinery, diff.pollError) };
+  next = { ...next, polls: pollsWeek(next.polls, after, next.seed, next.week, next.player, next.me.machinery, pollError(next)) };
 
   // Report (seat counts are what the latest national poll says, not the hidden truth)
   const seatsBefore = s.polls.national[0]?.seats[s.player] ?? 0;

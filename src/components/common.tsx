@@ -2,7 +2,7 @@
 
 import { useGame } from "@/store/gameStore";
 import { projectAllFor } from "@/game/state";
-import { DIFFICULTY } from "@/game/config";
+import { pollError } from "@/game/systems/team";
 import { bestRead, type SeatRead } from "@/game/systems/polls";
 import type { Projection } from "@/game/voter";
 export { fmtRM } from "@/game/money";
@@ -24,7 +24,7 @@ export function useReads(): SeatRead[] {
   const game = useGame((s) => s.game);
   const projections = useProjections();
   return useMemo(
-    () => (game ? SEATS.map((_, i) => bestRead(game.polls, projections, game.seed, i, game.week, DIFFICULTY[game.settings.difficulty].pollError)) : []),
+    () => (game ? SEATS.map((_, i) => bestRead(game.polls, projections, game.seed, i, game.week, pollError(game))) : []),
     [game, projections],
   );
 }

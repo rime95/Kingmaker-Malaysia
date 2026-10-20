@@ -13,6 +13,7 @@ import { initCoalitions, initPartySat, type Coalitions } from "./systems/coaliti
 import { initPeople, syncYou, type Person } from "./systems/people";
 import type { PortfolioId } from "./data/people";
 import type { PartyRace } from "./systems/partyrace";
+import { initTeam, pollError, type Staff } from "./systems/team";
 import type { SeatRecord } from "./systems/results";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
@@ -24,7 +25,7 @@ import { COALITIONS, COALITION_INFO, SEATS, type CoalitionId } from "./world";
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -173,6 +174,10 @@ export interface GameState {
   youId: number | null;
   /** A party election you are fighting (four weeks before the June AGM). */
   race: PartyRace | null;
+  /** Your personal staff, and who is looking for work this month. */
+  team: Staff[];
+  teamMarket: Staff[];
+  nextStaffId: number;
 }
 
 export interface NewGameOptions {
@@ -255,6 +260,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     cabinet: {},
     youId: null,
     race: null,
+    ...initTeam(seed),
   };
   Object.assign(state, initPeople(state));
   Object.assign(state, syncYou(state));
@@ -269,7 +275,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
   state.history.push({ week: 0, funds: state.me.funds, seats: projectedSeats(state) });
   state.objectives = newObjectives(state);
   state.bubbles = newBubbles(state);
-  state.polls = initPolls(projectAllFor(state), seed, 0, DIFFICULTY[state.settings.difficulty].pollError);
+  state.polls = initPolls(projectAllFor(state), seed, 0, pollError(state));
   return state;
 }
 
@@ -310,9 +316,12 @@ export function migrateGame(g: GameState): GameState {
     cabinet: g.cabinet ?? {},
     youId: g.youId ?? null,
     race: g.race ?? null,
+    team: g.team ?? [],
+    teamMarket: g.teamMarket ?? initTeam(g.seed).teamMarket,
+    nextStaffId: g.nextStaffId ?? initTeam(g.seed).nextStaffId,
   };
   if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
-  if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, DIFFICULTY[migrated.settings.difficulty].pollError);
+  if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));
   if (!migrated.objectives.length) migrated.objectives = newObjectives(migrated);
   return migrated;
 }

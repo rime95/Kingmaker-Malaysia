@@ -5,6 +5,7 @@ import { AP_BY_RUNG, CAREER, MP, PRESIDENT, addPoints, factionSize, promote, run
 import { ACHIEVEMENTS, OBJECTIVE_REWARD, newAchievements, newObjectives, objectiveMet } from "./systems/goals";
 import type { Formation, FormationOutcome } from "./systems/formation";
 import { SEATS } from "./world";
+import { teamAp } from "./systems/team";
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 
@@ -32,7 +33,7 @@ export function careerWeek(s: GameState): { state: GameState; lines: ReportLine[
     c.challenge = true;
     lines.push({ text: "Party unity has collapsed. Rivals inside the party will challenge your leadership at the next AGM.", tone: "bad" });
   }
-  const apMax = AP_BY_RUNG[c.rung] + (pm ? 2 : 0);
+  const apMax = AP_BY_RUNG[c.rung] + (pm ? 2 : 0) + teamAp(s);
   return { state: { ...s, career: c, me: { ...s.me, apMax } }, lines };
 }
 

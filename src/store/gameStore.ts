@@ -9,7 +9,10 @@ import {
   appoint,
   askFavour,
   closeRace,
+  fireStaff,
+  hireStaff,
   raceAct,
+  raiseStaff,
   meet,
   backForPm,
   buyAsset,
@@ -45,7 +48,7 @@ import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
 /** Side panels that open over the map. */
-export type Panel = "campaign" | "party" | "people" | "policy" | "states" | "parliament" | "rivals" | "treasury";
+export type Panel = "campaign" | "party" | "people" | "team" | "policy" | "states" | "parliament" | "rivals" | "treasury";
 
 export interface Toast {
   id: number;
@@ -88,6 +91,9 @@ interface Store {
   claim: (bubbleId: number) => void;
   poll: (seat: number) => void;
   meet: (id: number) => void;
+  hireStaff: (id: number) => void;
+  fireStaff: (id: number) => void;
+  raiseStaff: (id: number) => void;
   race: (move: RaceMove) => void;
   endRace: () => void;
   favour: (id: number) => void;
@@ -232,6 +238,18 @@ export const useGame = create<Store>()(
         endRace: () => {
           const g = get().game;
           if (g) set({ game: closeRace(g) });
+        },
+        hireStaff: (id) => {
+          const g = get().game;
+          if (g) result(hireStaff(g, id));
+        },
+        fireStaff: (id) => {
+          const g = get().game;
+          if (g) result(fireStaff(g, id));
+        },
+        raiseStaff: (id) => {
+          const g = get().game;
+          if (g) result(raiseStaff(g, id));
         },
         meet: (id) => {
           const g = get().game;

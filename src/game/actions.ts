@@ -1,7 +1,7 @@
 // Every player decision, as pure functions: (state, target) → new state + a message.
 // Actions cost Action Points (AP) and money. Business decisions cost money only.
 
-import { DIFFICULTY, ECONOMY } from "./config";
+import { ECONOMY } from "./config";
 import { POLLS, commissionedRead } from "./systems/polls";
 import { BUDGET, BUDGET_LINES, budgetEnvelope } from "./systems/budget";
 import { resolveCard } from "./systems/events";
@@ -13,6 +13,7 @@ import { ASSEMBLY_STATES, dissolveAssembly, dissolveParliament, stateRule } from
 import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, deciding, endRound, winTier, type Offer } from "./systems/formation";
 import { CAREER as CAREER_LOYALTY, RUNGS, addPoints, isPresident } from "./systems/career";
 import { raceMove, type RaceMove } from "./systems/partyrace";
+import { fire, hire, pollError, raise, teamAp } from "./systems/team";
 import { careerAfterFormation } from "./progress";
 import { aiRebrand } from "./systems/coalitions";
 import { PEOPLE, byId, favourBlocked, favourOf, formCabinet, meetPerson, mpOf, syncYou } from "./systems/people";
@@ -557,6 +558,17 @@ export function warRoom(s: GameState): ActionResult {
   return { ok: true, state: next, message: `War-room simulation done (${fmtRM(WAR_ROOM_COST)}): the map shows who would win. Seats don't change hands.` };
 }
 
+const teamResult = (r: { state: GameState; message: string } | { error: string }): ActionResult => ("error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message });
+/** A political secretary changes your action points straight away. */
+const withAp = (before: GameState, r: ActionResult): ActionResult => {
+  if (!r.ok) return r;
+  const d = teamAp(r.state) - teamAp(before);
+  return d ? { ...r, state: { ...r.state, me: { ...r.state.me, apMax: r.state.me.apMax + d, ap: Math.max(0, r.state.me.ap + d) } } } : r;
+};
+export const hireStaff = (s: GameState, id: number) => withAp(s, teamResult(hire(s, id)));
+export const fireStaff = (s: GameState, id: number) => withAp(s, teamResult(fire(s, id)));
+export const raiseStaff = (s: GameState, id: number) => teamResult(raise(s, id));
+
 /** A campaign move in a party election. */
 export function raceAct(s: GameState, move: RaceMove): ActionResult {
   const r = raceMove(s, move);
@@ -573,7 +585,7 @@ export function commissionPoll(s: GameState, seat: number): ActionResult {
   const old = s.polls.seats[seat];
   if (old?.source === "poll" && old.week === s.week) return { ok: false, error: "You already have this week's poll." };
   if (s.me.funds < POLLS.seatCost) return { ok: false, error: `Needs ${fmtRM(POLLS.seatCost)}.` };
-  const read = commissionedRead(projectAllFor(s)[seat], s.seed, s.week, seat, s.me.machinery[seat], DIFFICULTY[s.settings.difficulty].pollError);
+  const read = commissionedRead(projectAllFor(s)[seat], s.seed, s.week, seat, s.me.machinery[seat], pollError(s));
   const seats = [...s.polls.seats];
   seats[seat] = read;
   return {
