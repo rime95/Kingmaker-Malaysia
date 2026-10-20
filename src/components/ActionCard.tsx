@@ -28,7 +28,7 @@ export function ActionCard({ id, target, compact = false }: { id: string; target
       onClick={() => act(id, target)}
       disabled={!!blocked}
       title={def.blurb}
-      className="text-left rounded-lg p-2.5 border transition-colors disabled:cursor-not-allowed"
+      className="card card-action text-left rounded-lg p-2.5 border disabled:cursor-not-allowed"
       style={{ borderColor: "var(--line)", background: "var(--surface-2)", opacity: blocked ? 0.55 : 1 }}
     >
       <div className="flex items-baseline justify-between gap-2">

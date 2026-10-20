@@ -30,7 +30,7 @@ export function DecisionCards() {
                 <button
                   key={i}
                   onClick={() => answer(card.id, i)}
-                  className="text-left rounded-lg border p-2.5 hover:shadow-sm transition-shadow"
+                  className="card card-action text-left rounded-lg border p-2.5"
                   style={{ borderColor: "var(--line)", background: "var(--surface-2)" }}
                 >
                   <div className="text-sm font-semibold">

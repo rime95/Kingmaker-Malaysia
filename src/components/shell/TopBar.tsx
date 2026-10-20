@@ -91,7 +91,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
         <div className="text-[11px]" style={{ color: "var(--muted)" }}>
           {t("warChest")}
         </div>
-        <div className="font-bold tabular-nums" style={{ color: me.funds < 0 ? "var(--bad)" : "var(--ink)" }}>
+        <div key={Math.round(me.funds / 10_000)} className="font-bold tabular-nums flash" style={{ color: me.funds < 0 ? "var(--bad)" : "var(--ink)" }}>
           {fmtRM(me.funds)}
         </div>
       </div>
@@ -101,7 +101,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
         </div>
         <div className="flex gap-1 mt-1">
           {Array.from({ length: me.apMax }, (_, i) => (
-            <span key={i} className="w-2.5 h-2.5 rounded-full" style={{ background: i < me.ap ? "var(--ink)" : "var(--surface-2)", border: "1px solid var(--line)" }} />
+            <span key={i} className="w-2.5 h-2.5 rounded-full transition-colors duration-300" style={{ background: i < me.ap ? "var(--ink)" : "var(--surface-2)", border: "1px solid var(--line)", boxShadow: i < me.ap ? "0 0 6px rgb(236 238 246 / 0.5)" : "none" }} />
           ))}
         </div>
       </div>
@@ -114,7 +114,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
           </span>
         </button>
       )}
-      <button className="btn flex-none !px-3 sm:!px-4" onClick={skipWeek}>
+      <button className={`btn flex-none !px-3 sm:!px-4 ${me.ap === 0 && !pending ? "btn-ready" : ""}`} onClick={skipWeek} title="Next week (N or Space)">
         <span className="hidden sm:inline">{t("skipWeek")}</span>
         <span className="sm:hidden" aria-label={t("skipWeek")}>Next ▸</span>
       </button>

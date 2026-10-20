@@ -86,7 +86,7 @@ export function CoalitionTalks() {
                 const wy = willingness(f, c, y, player);
                 const lean = wx >= wy ? x : y;
                 return (
-                  <div key={c} className="rounded-lg border p-3 flex flex-wrap items-center gap-3" style={{ borderColor: "var(--line)" }}>
+                  <div key={c} className="card rounded-lg border p-3 flex flex-wrap items-center gap-3" style={{ borderColor: "var(--line)" }}>
                     <span className="swatch" style={{ background: coalColor(c) }} />
                     <span className="font-semibold">{cname(c)}</span>
                     <span className="text-sm tabular-nums" style={{ color: "var(--ink-2)" }}>

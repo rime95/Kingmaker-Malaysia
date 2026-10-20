@@ -9,7 +9,7 @@ import { ElectionNight } from "./ElectionNight";
 import { SaveSlots } from "./SaveSlots";
 import { MainMap } from "./shell/MainMap";
 import { TopBar } from "./shell/TopBar";
-import { NavRail } from "./shell/NavRail";
+import { ITEMS, NavRail } from "./shell/NavRail";
 import { LensBar } from "./shell/LensBar";
 import { SidePanel } from "./shell/SidePanel";
 import { SeatCard } from "./shell/SeatCard";
@@ -37,6 +37,24 @@ function Main() {
   const { panel, selected } = useGame();
   const game = useGame((s) => s.game)!;
   const [savesOpen, setSavesOpen] = useState(false);
+  // Keyboard: N or Space for next week, 1–9 and 0 for the panels (not while typing or a dialog is open).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|SELECT|TEXTAREA/.test(el.tagName) || document.querySelector("[role=dialog]")) return;
+      const st = useGame.getState();
+      if (e.key === "n" || e.key === "N" || (e.key === " " && el.tagName !== "BUTTON")) {
+        e.preventDefault();
+        st.skipWeek();
+      } else if (/^[0-9]$/.test(e.key)) {
+        const it = ITEMS[e.key === "0" ? 9 : Number(e.key) - 1];
+        if (it) st.openPanel(it.id);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // Coalition colours can change (a winner rebrands): feed them to the CSS variables every view uses.
   const coalitions = game.coalitions;
   useEffect(() => {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { TAP_COOLDOWN, TAP_WEEKS } from "@/game/actions";
 import { isGovernment, weekLabel, type HistoryPoint } from "@/game/state";
-import { ASSETS, ASSET_ORDER, CEO, MAX_LEVEL, assetIncome, assetRisk, saleValue, upgradeCost, type Asset, type AssetType } from "@/game/systems/business";
+import { ASSETS, ASSET_ORDER, CEO, MAX_LEVEL, assetIncome, assetProfit, assetRisk, ceoPay, saleValue, upgradeCost, type Asset, type AssetType } from "@/game/systems/business";
 import { weeklyCashFlow } from "@/game/week";
 import { useGame } from "@/store/gameStore";
 import { fmtRM } from "./common";
@@ -94,7 +94,7 @@ function OwnedAsset({ asset }: { asset: Asset }) {
   const def = ASSETS[asset.type];
   const tapWait = asset.tappedWeek === null ? 0 : Math.max(0, TAP_COOLDOWN - (game.week - asset.tappedWeek));
   return (
-    <div className="rounded-lg border p-3 flex flex-col gap-2" style={{ borderColor: "var(--line)", background: "var(--surface-2)" }}>
+    <div className="card rounded-lg border p-3 flex flex-col gap-2" style={{ borderColor: "var(--line)", background: "var(--surface-2)" }}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-semibold text-sm">{def.name}</span>
         {asset.type !== "bursa" && (
@@ -105,17 +105,18 @@ function OwnedAsset({ asset }: { asset: Asset }) {
         )}
       </div>
       <div className="grid grid-cols-3 gap-2 text-xs">
-        <Mini label="Income / week" value={fmtRM(assetIncome(asset, gov, game.me.market))} />
+        <Mini label="Profit / week" value={fmtRM(assetProfit(asset, gov, game.me.market))} />
         <Mini label="Worth if sold" value={fmtRM(saleValue(asset))} />
         <Mini label="Risk / week" value={`+${assetRisk(asset, gov).toFixed(1)}`} />
       </div>
       <div className="text-xs" style={{ color: "var(--ink-2)" }}>
         {def.effect}
         {asset.type === "plantation" ? ` · commodity index ${game.me.market.commodity.toFixed(2)}` : ""}
+        {asset.type !== "bursa" ? ` · earns ${fmtRM(assetIncome(asset, gov, game.me.market))}, CEO takes ${fmtRM(ceoPay(asset, gov, game.me.market))}` : ""}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {(["pro", "crony"] as const).map((c) => (
-          <button key={c} className="chip" aria-pressed={asset.ceo === c} onClick={() => business("ceo", asset.type, c)} title={`${fmtRM(CEO[c].salary)}/week`}>
+          <button key={c} className="chip" aria-pressed={asset.ceo === c} onClick={() => business("ceo", asset.type, c)} title={`Takes ${Math.round(CEO[c].payShare * 100)}% of income (${fmtRM(Math.round(assetIncome({ ...asset, ceo: c }, gov, game.me.market) * CEO[c].payShare))}/week)${c === "pro" ? ", earns 15% more" : ", earns 5% less and raises MACC risk"}`}>
             {CEO[c].label}
           </button>
         ))}
@@ -158,7 +159,7 @@ function BuyCard({ type, owned }: { type: AssetType; owned: boolean }) {
   const weekly = type === "bursa" ? (def.price * 0.04) / 52 : def.income * (type === "construction" && !gov ? 0.3 : 1);
   const short = def.price > game.me.funds;
   return (
-    <div className="rounded-lg border p-3 flex flex-col gap-1.5" style={{ borderColor: "var(--line)" }}>
+    <div className="card rounded-lg border p-3 flex flex-col gap-1.5" style={{ borderColor: "var(--line)" }}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-semibold text-sm">{def.name}</span>
         <span className="text-xs tabular-nums">{fmtRM(def.price)}</span>

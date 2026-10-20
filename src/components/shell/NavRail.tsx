@@ -4,7 +4,7 @@ import { useGame, type Panel } from "@/store/gameStore";
 import { useT, type StringKey } from "../i18n";
 import { Icon } from "./icons";
 
-const ITEMS: { id: Panel; label: StringKey }[] = [
+export const ITEMS: { id: Panel; label: StringKey }[] = [
   { id: "campaign", label: "campaign" },
   { id: "party", label: "career" },
   { id: "people", label: "people" },
@@ -30,8 +30,8 @@ export function NavRail() {
             key={it.id}
             onClick={() => openPanel(it.id)}
             aria-pressed={on}
-            title={t(it.label)}
-            className="flex-none flex flex-col items-center gap-0.5 rounded-xl px-1.5 md:px-2 py-2 min-w-[44px] md:w-[58px] transition-colors"
+            title={`${t(it.label)} (${ITEMS.indexOf(it) + 1 < 10 ? ITEMS.indexOf(it) + 1 : 0})`}
+            className="nav-item flex-none flex flex-col items-center gap-0.5 rounded-xl px-1.5 md:px-2 py-2 min-w-[44px] md:w-[58px] transition-colors"
             style={{ background: on ? "linear-gradient(135deg, var(--primary-a), var(--primary-b))" : "transparent", color: on ? "#fff" : "var(--ink-2)" }}
           >
             <Icon name={it.id === "parliament" ? "parliament" : it.id} className="w-5 h-5" />

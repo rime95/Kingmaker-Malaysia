@@ -51,7 +51,7 @@ export function SaveSlots({ onDone }: { onDone?: () => void }) {
       ) : (
         <ul className="flex flex-col gap-1.5">
           {slots.map((s) => (
-            <li key={s.id} className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2" style={{ borderColor: "var(--line)" }}>
+            <li key={s.id} className="card flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2" style={{ borderColor: "var(--line)" }}>
               <div className="flex-1 min-w-[180px]">
                 <div className="text-sm font-medium">{s.name}</div>
                 <div className="text-[11px]" style={{ color: "var(--muted)" }}>

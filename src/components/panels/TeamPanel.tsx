@@ -1,6 +1,7 @@
 "use client";
 
 import { ROLES, TEAM, hireBlocked, teamSalaries, teamSlots, type Staff } from "@/game/systems/team";
+import { DELEGATE, DELEGATE_TEXT } from "@/game/systems/delegate";
 import { RUNGS } from "@/game/systems/career";
 import { useGame } from "@/store/gameStore";
 import { fmtRM } from "../common";
@@ -8,7 +9,7 @@ import { fmtRM } from "../common";
 /** Your personal staff: what each one does for you, what they cost, and who's looking for work. */
 export function TeamPanel() {
   const game = useGame((s) => s.game)!;
-  const { hireStaff, fireStaff, raiseStaff } = useGame();
+  const { hireStaff, fireStaff, raiseStaff, delegate, headhunt } = useGame();
   const slots = teamSlots(game);
   const nextRung = TEAM.slots.findIndex((n) => n > slots);
   return (
@@ -32,6 +33,15 @@ export function TeamPanel() {
             <li key={x.id} className="inset p-3 flex flex-col gap-2">
               <StaffHead x={x} />
               <Loyalty v={x.loyalty} />
+              <label className="flex items-start gap-2 text-xs cursor-pointer rounded-lg px-2 py-1.5" style={{ background: x.auto ? "rgb(52 209 122 / 0.1)" : "transparent" }}>
+                <input type="checkbox" className="mt-0.5" checked={!!x.auto} onChange={(e) => delegate(x.id, e.target.checked)} />
+                <span>
+                  <span className="font-semibold">Delegate</span>: {DELEGATE_TEXT[x.role](x.skill)}
+                  <span className="block text-[11px]" style={{ color: "var(--muted)" }}>
+                    {x.auto ? "On. Paid from the war chest; stops if it drops below " + fmtRM(DELEGATE.reserve) + "." : "Off: you do this yourself."}
+                  </span>
+                </span>
+              </label>
               <div className="flex flex-wrap gap-1.5">
                 <button className="chip !py-1 text-xs" onClick={() => raiseStaff(x.id)} title={`+${TEAM.raiseLoyalty} loyalty`}>
                   Give a raise (+{Math.round(TEAM.raise * 100)}%)
@@ -75,9 +85,14 @@ export function TeamPanel() {
             );
           })}
         </ul>
-        <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
-          New candidates every four weeks.
-        </p>
+        <div className="flex items-center gap-2 mt-2">
+          <button className="chip text-xs" disabled={game.me.funds < TEAM.headhuntCost} onClick={headhunt}>
+            Hire a headhunter · {fmtRM(TEAM.headhuntCost)}
+          </button>
+          <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+            A fresh shortlist now. Otherwise new candidates every four weeks.
+          </span>
+        </div>
       </section>
     </div>
   );

@@ -5,16 +5,14 @@ import { useGame } from "@/store/gameStore";
 import { cname, MAJORITY, SEATS, STATE_BY_ID, TOTAL_SEATS, type CoalitionId } from "@/game/world";
 import { CHART_ORDER } from "./common";
 import { coalColor } from "./common";
+import { Chamber } from "./Chamber";
 
-
-type Layout = "hemicycle" | "benches";
+type Layout = "chamber" | "hemicycle";
 interface Geo {
   dots: Dot[];
   size: number;
   w: number;
   h: number;
-  aisleY?: number;
-  left?: number;
 }
 interface Dot {
   seatIndex: number;
@@ -50,33 +48,16 @@ export function hemicycle(order: number[]): Geo {
   return { dots, size, w: 2 * R + 28, h: R + 40 };
 }
 
-/**
- * The chamber seen from above with the Speaker on the left, facing along the aisle.
- * The Speaker's right is the bottom of the picture, so the government sits below the aisle.
- * Seats fill one column (across all bench rows) at a time, so each party forms a block along the benches.
- */
-function benches(gov: number[], opp: number[]): Geo & { aisleY: number; left: number } {
-  const rows = 7;
-  const step = 18;
-  const left = 110;
-  const top = 34;
-  const aisle = 40;
-  const aisleY = top + rows * step + aisle / 2;
-  const place = (list: number[], side: -1 | 1) =>
-    list.map((seatIndex, i) => ({
-      seatIndex,
-      x: left + Math.floor(i / rows) * step + step / 2,
-      y: aisleY + side * (aisle / 2 + (i % rows) * step + step / 2),
-    }));
-  const len = Math.ceil(Math.max(gov.length, opp.length) / rows);
-  return { dots: [...place(gov, 1), ...place(opp, -1)], size: 7, w: left + len * step + 16, h: aisleY * 2 - 4, aisleY, left };
-}
-
 export function Dewan() {
   const { game, selected, select } = useGame();
-  const [layout, setLayout] = useState<Layout>("hemicycle");
+  const [layout, setLayout] = useState<Layout>("chamber");
+  const [colorBy, setColorBy] = useState<"coalition" | "party">("coalition");
   const [source, setSource] = useState<"now" | "result">("now");
-  const [hover, setHover] = useState<{ i: number; x: number; y: number } | null>(null);
+  const [hover, setHover] = useState<{
+    i: number;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const result = game?.lastElection;
   const useResult = source === "result" && !!result;
@@ -92,9 +73,8 @@ export function Dewan() {
     const govOrder = [game!.parliament.pm, ...CHART_ORDER.filter((c) => c !== game!.parliament.pm && game!.government.includes(c))];
     const oppOrder = CHART_ORDER.filter((c) => !game!.government.includes(c)).reverse();
     // Hemicycle, left to right: opposition first, the PM's coalition at the far right.
-    if (layout === "hemicycle") return hemicycle(byOrder([...oppOrder, ...[...govOrder].reverse()]));
-    return benches(byOrder(govOrder), byOrder(oppOrder));
-  }, [layout, holders, parties, game]);
+    return hemicycle(byOrder([...oppOrder, ...[...govOrder].reverse()]));
+  }, [holders, parties, game]);
 
   if (!game) return null;
   const gov = holders.filter((c) => game.government.includes(c)).length;
@@ -102,65 +82,73 @@ export function Dewan() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-2 items-center">
+        <button className="chip" aria-pressed={layout === "chamber"} onClick={() => setLayout("chamber")}>
+          Chamber
+        </button>
         <button className="chip" aria-pressed={layout === "hemicycle"} onClick={() => setLayout("hemicycle")}>
           Hemicycle
         </button>
-        <button className="chip" aria-pressed={layout === "benches"} onClick={() => setLayout("benches")}>
-          Chamber benches
-        </button>
         <span className="w-px h-5 mx-1" style={{ background: "var(--line)" }} />
-        <button className="chip" aria-pressed={!useResult} onClick={() => setSource("now")}>
-          Today
-        </button>
-        <button className="chip" aria-pressed={useResult} disabled={!result} onClick={() => setSource("result")} style={!result ? { opacity: 0.4, cursor: "not-allowed" } : undefined}>
-          After test election
-        </button>
+        {layout === "chamber" ? (
+          <>
+            <button className="chip" aria-pressed={colorBy === "coalition"} onClick={() => setColorBy("coalition")}>
+              Coalitions
+            </button>
+            <button className="chip" aria-pressed={colorBy === "party"} onClick={() => setColorBy("party")}>
+              Parties
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="chip" aria-pressed={!useResult} onClick={() => setSource("now")}>
+              Today
+            </button>
+            <button
+              className="chip"
+              aria-pressed={useResult}
+              disabled={!result}
+              onClick={() => setSource("result")}
+              style={!result ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
+            >
+              After war room
+            </button>
+          </>
+        )}
         <span className="ml-auto text-xs tabular-nums" style={{ color: "var(--ink-2)" }}>
           Government bloc {gov} · Opposition {TOTAL_SEATS - gov} · {gov >= MAJORITY ? "majority held" : `${MAJORITY - gov} short of ${MAJORITY}`}
         </span>
       </div>
 
-      <svg viewBox={`0 0 ${geo.w} ${geo.h}`} className="w-full h-auto max-h-[70vh]" role="img" aria-label={`Dewan Rakyat seating, ${layout}`}>
-        {geo.aisleY !== undefined && geo.left !== undefined && (
-          <g>
-            <rect x={14} y={geo.aisleY - 22} width={26} height={44} rx={4} fill="var(--accent)" />
-            <text x={48} y={geo.aisleY + 4} className="map-label">
-              Speaker
+      {layout === "chamber" ? (
+        <Chamber colorBy={colorBy} />
+      ) : (
+        <svg viewBox={`0 0 ${geo.w} ${geo.h}`} className="w-full h-auto max-h-[70vh]" role="img" aria-label={`Dewan Rakyat seating, ${layout}`}>
+            {layout === "hemicycle" && (
+            <text x={geo.w / 2} y={geo.h - 42} textAnchor="middle" className="map-label" style={{ fontSize: 22 }}>
+              {gov} / {TOTAL_SEATS}
             </text>
-            <rect x={geo.left} y={geo.aisleY - 6} width={geo.w - geo.left - 12} height={12} rx={3} fill="var(--accent)" opacity={0.3} />
-            <text x={geo.left} y={20} className="map-label">
-              Opposition
-            </text>
-            <text x={geo.left} y={geo.h - 2} className="map-label">
-              Government (Speaker&apos;s right)
-            </text>
-          </g>
-        )}
-        {layout === "hemicycle" && (
-          <text x={geo.w / 2} y={geo.h - 42} textAnchor="middle" className="map-label" style={{ fontSize: 22 }}>
-            {gov} / {TOTAL_SEATS}
-          </text>
-        )}
-        {geo.dots.map((d) => {
-          const isSel = selected === d.seatIndex;
-          const common = {
-            fill: coalColor(holders[d.seatIndex]),
-            stroke: isSel ? "var(--ink)" : "var(--surface)",
-            strokeWidth: isSel ? 3 : 1.5,
-            className: "cursor-pointer",
-            onMouseMove: (e: React.MouseEvent) => setHover({ i: d.seatIndex, x: e.clientX, y: e.clientY }),
-            onMouseLeave: () => setHover(null),
-            onClick: () => select(d.seatIndex),
-          };
-          return layout === "hemicycle" ? (
-            <circle key={d.seatIndex} cx={d.x} cy={d.y} r={geo.size} {...common} />
-          ) : (
-            <rect key={d.seatIndex} x={d.x - geo.size} y={d.y - geo.size} width={geo.size * 2} height={geo.size * 2} rx={3} {...common} />
-          );
-        })}
-      </svg>
+          )}
+          {geo.dots.map((d) => {
+            const isSel = selected === d.seatIndex;
+            const common = {
+              fill: coalColor(holders[d.seatIndex]),
+              stroke: isSel ? "var(--ink)" : "var(--surface)",
+              strokeWidth: isSel ? 3 : 1.5,
+              className: "cursor-pointer",
+              onMouseMove: (e: React.MouseEvent) => setHover({ i: d.seatIndex, x: e.clientX, y: e.clientY }),
+              onMouseLeave: () => setHover(null),
+              onClick: () => select(d.seatIndex),
+            };
+            return layout === "hemicycle" ? (
+              <circle key={d.seatIndex} cx={d.x} cy={d.y} r={geo.size} {...common} />
+            ) : (
+              <rect key={d.seatIndex} x={d.x - geo.size} y={d.y - geo.size} width={geo.size * 2} height={geo.size * 2} rx={3} {...common} />
+            );
+          })}
+        </svg>
+      )}
 
-      {hover && (
+      {hover && layout === "hemicycle" && (
         <div className="tooltip" style={{ left: hover.x + 14, top: hover.y + 14 }}>
           <div className="font-semibold">
             {SEATS[hover.i].code} {SEATS[hover.i].name}

@@ -39,6 +39,8 @@ export interface Staff {
   loyalty: number;
   /** Weeks employed. */
   weeks: number;
+  /** Runs the routine part of their job on their own (see delegate.ts). */
+  auto?: boolean;
 }
 
 export const TEAM = {
@@ -58,7 +60,9 @@ export const TEAM = {
   leakBelow: 25,
   leakChance: 0.1,
   leakScandal: 6,
-  marketSize: 3,
+  marketSize: 6,
+  /** A headhunter finds a fresh shortlist now. */
+  headhuntCost: 50_000,
 };
 
 export interface TeamState {
@@ -172,6 +176,18 @@ export function fire(s: GameState, id: number): { state: GameState; message: str
   if (s.me.funds < severance) return { error: "Not enough money for severance." };
   const team = s.team.filter((t) => t.id !== id).map((t) => ({ ...t, loyalty: Math.max(0, t.loyalty - 5) }));
   return { state: { ...s, team, me: { ...s.me, funds: s.me.funds - severance } }, message: `${x.name} clears their desk. The rest of the team takes note.` };
+}
+
+export function headhunt(s: GameState): { state: GameState; message: string } | { error: string } {
+  if (s.me.funds < TEAM.headhuntCost) return { error: "Not enough money." };
+  const { market, nextId } = freshMarket(s.seed, s.week * 7 + s.nextStaffId, s.nextStaffId);
+  return { state: { ...s, teamMarket: market, nextStaffId: nextId, me: { ...s.me, funds: s.me.funds - TEAM.headhuntCost } }, message: "The headhunter sends a new shortlist." };
+}
+
+export function setAuto(s: GameState, id: number, auto: boolean): { state: GameState; message: string } | { error: string } {
+  const x = s.team.find((t) => t.id === id);
+  if (!x) return { error: "Not on your team." };
+  return { state: { ...s, team: s.team.map((t) => (t.id === id ? { ...t, auto } : t)) }, message: auto ? `${x.name} will handle it from now on.` : `You take ${x.name}'s work back.` };
 }
 
 export function raise(s: GameState, id: number): { state: GameState; message: string } | { error: string } {

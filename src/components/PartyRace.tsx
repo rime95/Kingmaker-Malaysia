@@ -57,7 +57,7 @@ export function PartyRaceCard() {
         {MOVES.map((m) => {
           const why = raceMoveBlocked(game, m.id);
           return (
-            <button key={m.id} className="text-left rounded-lg p-2 border disabled:cursor-not-allowed" style={{ borderColor: "var(--line)", background: "var(--surface-2)", opacity: why ? 0.55 : 1 }} disabled={!!why} title={why ?? m.blurb} onClick={() => move(m.id)}>
+            <button key={m.id} className="card card-action text-left rounded-lg p-2 border disabled:cursor-not-allowed" style={{ borderColor: "var(--line)", background: "var(--surface-2)", opacity: why ? 0.55 : 1 }} disabled={!!why} title={why ?? m.blurb} onClick={() => move(m.id)}>
               <div className="flex justify-between gap-2 text-sm">
                 <span className="font-semibold">{m.name}</span>
                 <span className="text-[11px] whitespace-nowrap" style={{ color: "var(--ink-2)" }}>

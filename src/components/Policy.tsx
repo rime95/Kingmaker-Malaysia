@@ -72,7 +72,7 @@ function PolicyRow({ policy }: { policy: PolicyDef }) {
   const current = game.me.policies[policy.id] ?? 0;
   const previews = useMemo(() => policy.options.map((_, i) => (i === current ? 0 : previewPolicy(game, policy.id, i))), [game, policy, current]);
   return (
-    <div className="rounded-lg border p-3" style={{ borderColor: "var(--line)" }}>
+    <div className="card rounded-lg border p-3" style={{ borderColor: "var(--line)" }}>
       <div className="flex items-baseline justify-between gap-2 mb-2">
         <span className="font-semibold text-sm">{policy.name}</span>
         <span className="text-[11px]" style={{ color: "var(--muted)" }}>

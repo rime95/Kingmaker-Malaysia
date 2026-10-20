@@ -32,9 +32,10 @@ export const ASSETS: Record<AssetType, AssetDef> = {
 export const ASSET_ORDER: AssetType[] = ["property", "newspaper", "digital", "koperasi", "foundation", "plantation", "construction", "bursa"];
 export const MAX_LEVEL = 3;
 
+/** CEOs are paid a share of what their company earns, so no business loses money because of its boss. */
 export const CEO = {
-  crony: { label: "Loyal crony", salary: 5_000, incomeMult: 0.95, risk: 0.3 },
-  pro: { label: "Professional CEO", salary: 25_000, incomeMult: 1.15, risk: 0 },
+  crony: { label: "Loyal crony", payShare: 0.04, incomeMult: 0.95, risk: 0.3 },
+  pro: { label: "Professional CEO", payShare: 0.12, incomeMult: 1.15, risk: 0 },
 } as const;
 
 export interface Asset {
@@ -67,6 +68,15 @@ export function assetIncome(asset: Asset, inGovernment: boolean, market: Market)
   if (asset.type === "plantation") base *= market.commodity;
   return Math.round(base);
 }
+
+/** What the CEO takes each week (the investment fund has no CEO). */
+export function ceoPay(asset: Asset, inGovernment: boolean, market: Market): number {
+  if (asset.type === "bursa") return 0;
+  return Math.round(assetIncome(asset, inGovernment, market) * CEO[asset.ceo].payShare);
+}
+
+/** Weekly profit after the CEO is paid. */
+export const assetProfit = (asset: Asset, inGovernment: boolean, market: Market) => assetIncome(asset, inGovernment, market) - ceoPay(asset, inGovernment, market);
 
 export function assetRisk(asset: Asset, inGovernment: boolean): number {
   const def = ASSETS[asset.type];

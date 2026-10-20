@@ -13,6 +13,7 @@ import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
 import { CONTEST_POINTS } from "./systems/career";
 import { economyScore, nationWeek, projectSeats } from "./systems/nation";
 import { projectOpened, wealthWeek } from "./systems/wealth";
+import { delegateWeek } from "./systems/delegate";
 import { ROLES, pollError, teamDonations, teamRaidMult, teamSalaries, teamUpkeepMult, teamWeek } from "./systems/team";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
@@ -21,7 +22,7 @@ import { decaySeg } from "./systems/segments";
 import { fmtRM } from "./money";
 import { Rng, hash01 } from "./rng";
 import { isGovernment, machineryBase, projectAllFor, serviceBase, voterInputs, weekDate, type GameState, type ReportLine, type WeekReport } from "./state";
-import { ASSETS, CEO, assetIncome, assetRisk, marketWeek } from "./systems/business";
+import { ASSETS, assetIncome, assetRisk, ceoPay, marketWeek } from "./systems/business";
 import { MAJORITY, SEATS, STATE_BY_ID, contestingIn, cshort } from "./world";
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
@@ -43,7 +44,7 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
   if (s.team.length && !s.personal.payTeam) expenses.push({ label: "Your team", amount: teamSalaries(s) });
   const donations = teamDonations(s);
   if (donations) income.push({ label: `Donors (${s.team.find((x) => x.role === "fundraiser")?.name})`, amount: donations });
-  const salaries = me.assets.reduce((sum, a) => sum + CEO[a.ceo].salary, 0);
+  const salaries = me.assets.reduce((sum, a) => sum + ceoPay(a, gov, me.market), 0);
   if (salaries) expenses.push({ label: "Company CEOs", amount: salaries });
   const upkeep = Math.round(
     SEATS.reduce((sum, seat) => sum + (contestingIn(seat).includes(s.player) ? me.machinery[seat.index] : 0), 0) * ECONOMY.machineryUpkeep * teamUpkeepMult(s),
@@ -54,11 +55,14 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
 export function advanceWeek(input: GameState): GameState {
   // Unfinished government talks resolve before time moves on.
   syncNames(input);
-  const s = input.formation ? autoResolveFormation(input) : input;
-  const before = projectAllFor(s);
+  const resolved = input.formation ? autoResolveFormation(input) : input;
+  const before = projectAllFor(resolved);
+  // Staff you delegated to do their routine work first.
+  const delegated = delegateWeek(resolved, before);
+  const s = delegated.state;
   const gov = isGovernment(s);
   const me = { ...s.me, service: [...s.me.service], buzz: [...s.me.buzz], machinery: [...s.me.machinery], assets: s.me.assets.map((a) => ({ ...a })), policies: { ...s.me.policies } };
-  const lines: ReportLine[] = [];
+  const lines: ReportLine[] = [...delegated.lines];
   const contested = SEATS.filter((seat) => contestingIn(seat).includes(s.player)).map((seat) => seat.index);
   const held = s.holders.map((h, i) => (h === s.player ? i : -1)).filter((i) => i >= 0);
 

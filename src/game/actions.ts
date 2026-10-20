@@ -13,7 +13,7 @@ import { ASSEMBLY_STATES, dissolveAssembly, dissolveParliament, stateRule } from
 import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, deciding, endRound, winTier, type Offer } from "./systems/formation";
 import { CAREER as CAREER_LOYALTY, RUNGS, addPoints, isPresident } from "./systems/career";
 import { raceMove, type RaceMove } from "./systems/partyrace";
-import { fire, hire, pollError, raise, teamAp } from "./systems/team";
+import { fire, headhunt, hire, pollError, raise, setAuto, teamAp } from "./systems/team";
 import { NATION, PROJECT_BY_ID, type Nation } from "./systems/nation";
 import { insiderCheck, policySector } from "./systems/wealth";
 import { startFormation } from "./systems/formation";
@@ -698,6 +698,8 @@ const withAp = (before: GameState, r: ActionResult): ActionResult => {
 export const hireStaff = (s: GameState, id: number) => withAp(s, teamResult(hire(s, id)));
 export const fireStaff = (s: GameState, id: number) => withAp(s, teamResult(fire(s, id)));
 export const raiseStaff = (s: GameState, id: number) => teamResult(raise(s, id));
+export const headhuntStaff = (s: GameState) => teamResult(headhunt(s));
+export const delegateStaff = (s: GameState, id: number, auto: boolean) => teamResult(setAuto(s, id, auto));
 
 /** A campaign move in a party election. */
 export function raceAct(s: GameState, move: RaceMove): ActionResult {

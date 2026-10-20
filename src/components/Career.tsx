@@ -107,7 +107,7 @@ export function Career() {
         <section className="panel p-4 flex flex-col gap-3">
           <h2 className="font-semibold">Your power base</h2>
           <button
-            className="text-left rounded-lg border p-3"
+            className="card card-action text-left rounded-lg border p-3"
             style={{ borderColor: "var(--line)" }}
             onClick={() => focusSeat(c.homeSeat)}
           >

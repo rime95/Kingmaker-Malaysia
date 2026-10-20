@@ -9,7 +9,9 @@ import {
   appoint,
   askFavour,
   closeRace,
+  delegateStaff,
   fireStaff,
+  headhuntStaff,
   launchStimulus,
   setCivilPay,
   startProject,
@@ -113,6 +115,8 @@ interface Store {
   hireStaff: (id: number) => void;
   fireStaff: (id: number) => void;
   raiseStaff: (id: number) => void;
+  delegate: (id: number, auto: boolean) => void;
+  headhunt: () => void;
   race: (move: RaceMove) => void;
   endRace: () => void;
   favour: (id: number) => void;
@@ -265,6 +269,14 @@ export const useGame = create<Store>()(
         fireStaff: (id) => {
           const g = get().game;
           if (g) result(fireStaff(g, id));
+        },
+        delegate: (id, auto) => {
+          const g = get().game;
+          if (g) result(delegateStaff(g, id, auto));
+        },
+        headhunt: () => {
+          const g = get().game;
+          if (g) result(headhuntStaff(g));
         },
         raiseStaff: (id) => {
           const g = get().game;
