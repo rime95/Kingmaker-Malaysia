@@ -25,6 +25,8 @@ import { fmtRM } from "./money";
 import { Rng, hash01 } from "./rng";
 import { isGovernment, machineryBase, projectAllFor, serviceBase, voterInputs, weekDate, type GameState, type ReportLine, type WeekReport } from "./state";
 import { dewanWeek } from "./systems/dewan";
+import { agendaWeek, oppositionWeek } from "./systems/agenda";
+import { COUNCIL_EVERY, wingsWeek } from "./systems/partyorg";
 import { ASSETS, assetIncome, assetRisk, ceoPay, marketWeek } from "./systems/business";
 import { COALITIONS, MAJORITY, SEATS, STATE_BY_ID, contestingIn, cshort } from "./world";
 
@@ -195,6 +197,15 @@ export function advanceWeek(input: GameState): GameState {
     lines.push({ text: gov ? `Budget ${year + 1} is due in the Dewan. Allocate it in the Policy tab.` : `Budget ${year + 1} is being tabled. You can answer with a shadow budget.`, tone: "info" });
   }
 
+  // The government's promises; your opposition investigations; the party's wings
+  const ag = agendaWeek(next);
+  next = ag.state;
+  lines.push(...ag.lines);
+  const op = oppositionWeek(next);
+  next = op.state;
+  lines.push(...op.lines);
+  next = wingsWeek(next);
+
   // The Dewan Rakyat: meetings open and adjourn; the motion due this week is voted on
   const dw = dewanWeek(next, weekDate(next.week));
   next = dw.state;
@@ -237,13 +248,14 @@ export function advanceWeek(input: GameState): GameState {
   const coal = coalitionsWeek(next);
   next = coal.state;
   lines.push(...coal.lines);
-  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis", nominations: "name your candidates" };
+  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis", nominations: "name your candidates", council: "the Supreme Council meets" };
   const addCard = (kind: string, party?: string, person?: number, seat?: number) => {
     const id = Math.max(0, ...next.cards.map((c) => c.id), next.week * 10) + 1;
     next = { ...next, cards: [...next.cards, { id, kind, week: next.week, deadline: next.week + 2, party, person, seat }], cardLast: { ...next.cardLast, [kind]: next.week } };
     lines.push({ text: `Needs you: ${CARD_NEWS[kind]}.`, tone: "info" });
   };
   if (coal.warn && next.cards.length < 4) addCard("partnerWalkout", coal.warn);
+  if (next.week % COUNCIL_EVERY === 3 && next.career.rung >= 6 && !next.cards.some((c) => c.kind === "council")) addCard("council");
   if (nw.crisis) addCard("crisis");
   if (next.nominations?.open && next.nominations.closesWeek === next.week + 2 && next.career.rung >= 6 && next.cards.length < 4) addCard("nominations");
   if (next.cards.length < 4 && next.parliament.status === "campaign" && next.coalitions[next.player].members.length > 1 && (next.cardLast.seatTalks ?? -99) < next.week - 12) addCard("seatTalks");

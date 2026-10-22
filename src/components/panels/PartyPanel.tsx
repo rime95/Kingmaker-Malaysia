@@ -3,6 +3,7 @@
 import { MACC } from "@/game/config";
 import { useGame } from "@/store/gameStore";
 import { CoalitionCard } from "../CoalitionCard";
+import { WingsCard } from "../DepthCards";
 import { PartyRaceCard } from "../PartyRace";
 import { fmt, fmtRM } from "../common";
 
@@ -45,6 +46,7 @@ export function PartyPanel() {
           Your record, objectives and achievements
         </button>
       </div>
+      <WingsCard />
       <CoalitionCard />
     </div>
   );

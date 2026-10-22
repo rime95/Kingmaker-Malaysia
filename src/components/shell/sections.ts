@@ -47,6 +47,7 @@ export const SECTIONS: Section[] = [
     tabs: [
       { id: "nation", label: () => "Dashboard" },
       { id: "policy", label: () => "Policy & Budget" },
+      { id: "cabinet", label: (g) => (isGovernment(g) ? "Cabinet" : "Shadow cabinet") },
     ],
   },
   {

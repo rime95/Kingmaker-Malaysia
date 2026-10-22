@@ -17,6 +17,7 @@ import { NationPanel } from "../panels/NationPanel";
 import { NominationsPanel } from "../panels/NominationsPanel";
 import { SeatCard } from "./SeatCard";
 import { OrderPaper } from "../OrderPaper";
+import { CabinetPanel } from "../panels/CabinetPanel";
 import { AnalysisBody } from "../ElectionAnalysis";
 import { sectionOf } from "./sections";
 import { Icon } from "./icons";
@@ -87,6 +88,7 @@ export function SidePanel() {
         {panel === "treasury" && <MoneyPanel />}
         {panel === "seat" && <SeatCard embedded />}
         {panel === "orderpaper" && <OrderPaper />}
+        {panel === "cabinet" && <CabinetPanel />}
         {panel === "analysis" &&
           (game.lastAnalysis ? (
             <AnalysisBody a={game.lastAnalysis} />

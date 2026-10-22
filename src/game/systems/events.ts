@@ -17,6 +17,7 @@ import { contestingIn, cshort, PARTIES, SEATS, STATE_BY_ID, type CoalitionId } f
 import { MULTIRACIAL } from "./policies";
 import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, addPoints, contestChance, factionSize, promote, succession } from "./career";
 import { addSeg, describeSeg, type SegEffects } from "./segments";
+import { CAMPAIGN_CARDS, COUNCIL_CARD, MINISTER_SCANDAL_CARD, scandalMinister } from "./moreCards";
 
 export interface Effect {
   funds?: number;
@@ -64,6 +65,8 @@ export interface Effect {
   careerChallenge?: boolean;
   careerStepAside?: boolean;
   careerPoints?: number;
+  /** Anything else, applied last. */
+  then?: (s: GameState, card?: CardInstance) => { state: GameState; lines?: ReportLine[] };
 }
 
 export interface Choice {
@@ -80,6 +83,8 @@ export interface CardDef {
   eligible?: (s: GameState) => boolean;
   /** Random cards that need a seat pick one here. */
   pickSeat?: (s: GameState, week: number) => number | undefined;
+  /** ...or a person. */
+  pickPerson?: (s: GameState, week: number) => number | undefined;
   text: (s: GameState, c: CardInstance) => string;
   choices: (s: GameState, c: CardInstance) => Choice[];
   /** Index of the choice taken when the card expires. */
@@ -490,8 +495,11 @@ function challengeChance(s: GameState): number {
   return Math.max(0.1, Math.min(0.9, 0.3 + s.me.unity / 150 + share * 0.5));
 }
 
+CARD_DEFS.push(...CAMPAIGN_CARDS, { ...MINISTER_SCANDAL_CARD, pickPerson: scandalMinister });
+
 export const CARD_BY_KIND: Record<string, CardDef> = Object.fromEntries([
   ...CARD_DEFS.map((d) => [d.kind, d]),
+  [COUNCIL_CARD.kind, COUNCIL_CARD],
   [AGM_CARD.kind, AGM_CARD],
   [RACE_CARD.kind, RACE_CARD],
   [CRISIS_CARD.kind, CRISIS_CARD],
@@ -631,6 +639,11 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
     });
   }
   state = applyCareerEffect(state, e, lines);
+  if (e.then) {
+    const r = e.then(state, card);
+    state = r.state;
+    lines.push(...(r.lines ?? []));
+  }
   return { state, lines };
 }
 
@@ -704,8 +717,8 @@ export function cardsWeek(s: GameState): { state: GameState; lines: ReportLine[]
     }
   }
   const nextId = () => Math.max(0, ...state.cards.map((c) => c.id), s.week * 10) + 1;
-  const add = (kind: string, seat?: number) => {
-    const card: CardInstance = { id: nextId(), kind, week: s.week, deadline: s.week + CARDS.answerWeeks, seat };
+  const add = (kind: string, seat?: number, person?: number) => {
+    const card: CardInstance = { id: nextId(), kind, week: s.week, deadline: s.week + CARDS.answerWeeks, seat, person };
     state = { ...state, cards: [...state.cards, card], cardLast: { ...state.cardLast, [kind]: s.week } };
     lines.push({ text: `Needs you: ${CARD_BY_KIND[kind].title}.`, tone: "info" });
   };
@@ -725,7 +738,8 @@ export function cardsWeek(s: GameState): { state: GameState; lines: ReportLine[]
     if (open.length) {
       const def = open[Math.floor(hash01("cardpick", s.seed, s.week) * open.length)];
       const seat = def.pickSeat?.(state, s.week);
-      if (!def.pickSeat || seat !== undefined) add(def.kind, seat);
+      const person = def.pickPerson?.(state, s.week);
+      if ((!def.pickSeat || seat !== undefined) && (!def.pickPerson || person !== undefined)) add(def.kind, seat, person);
     }
   }
   return { state, lines };

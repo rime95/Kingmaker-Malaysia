@@ -134,7 +134,12 @@ export const NATION = {
   stimulusWeeks: 26,
   stimulusFiscal: -10,
   roadshowFdi: 5,
+  /** Chance a crisis leads straight into another. */
+  chainChance: 0.35,
 };
+
+/** Which crisis can follow which. */
+export const CRISIS_CHAIN: Record<string, string> = { ringgit: "recession", pandemic: "recession" };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -228,6 +233,13 @@ export function nationWeek(s: GameState): NationWeek {
     if (n.crisis.weeksLeft <= 0) {
       lines.push({ text: `The ${def.title.toLowerCase()} is over.`, tone: "info" });
       n.crisis = null;
+      // Crises can chain: a currency crash or a virus can tip the economy into recession.
+      const next = CRISIS_CHAIN[def.kind];
+      if (next && hash01("chain", s.seed, s.week) < NATION.chainChance) {
+        const nd = CRISIS_BY_KIND[next];
+        n.crisis = { kind: nd.kind, startWeek: s.week, weeksLeft: nd.weeks, severity: 0.8 };
+        lines.push({ text: `It isn't over: the ${def.title.toLowerCase()} has tipped into a ${nd.title.toLowerCase()}.`, tone: "bad" });
+      }
     }
   }
   let crisis: string | null = null;

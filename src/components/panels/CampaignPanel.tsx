@@ -9,6 +9,7 @@ import { targetName } from "@/game/systems/orders";
 import { RUNGS } from "@/game/systems/career";
 import { PartyRaceCard } from "../PartyRace";
 import { ActionCard } from "../ActionCard";
+import { MessageCard } from "../DepthCards";
 
 const TONE = { good: "var(--good)", bad: "var(--bad)", info: "var(--ink-2)" } as const;
 const ICON = { good: "▲", bad: "▼", info: "•" } as const;
@@ -78,6 +79,8 @@ export function CampaignPanel() {
           )}
         </section>
       )}
+
+      <MessageCard />
 
       <StandingOrders />
 

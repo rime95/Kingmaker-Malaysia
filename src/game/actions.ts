@@ -20,6 +20,9 @@ import { nominate } from "./systems/nominations";
 import { ISSUE, openIssues } from "./systems/issues";
 import { endPact, proposePact } from "./systems/pacts";
 import { prepMotion, tableMotion, type PrepMove } from "./systems/dewan";
+import { courtChallenge, critique, publishProbe, setShadow, startProbe, streetRally, type Kpi } from "./systems/agenda";
+import { setTheme } from "./systems/message";
+import { fundWing, sackMember, showCause, type Wings } from "./systems/partyorg";
 import { startFormation } from "./systems/formation";
 import { seatCounts } from "./state";
 import { hash01 } from "./rng";
@@ -796,6 +799,48 @@ export const fireStaff = (s: GameState, id: number) => withAp(s, teamResult(fire
 export const raiseStaff = (s: GameState, id: number) => teamResult(raise(s, id));
 export const headhuntStaff = (s: GameState) => teamResult(headhunt(s));
 export const delegateStaff = (s: GameState, id: number, auto: boolean) => teamResult(setAuto(s, id, auto));
+
+/** Governing, opposing and running the party: one entry point for the deeper moves. */
+export type DeepOp =
+  | { kind: "critique"; kpi: Kpi }
+  | { kind: "probe" }
+  | { kind: "publish" }
+  | { kind: "rally" }
+  | { kind: "court"; motion: number }
+  | { kind: "shadow"; post: PortfolioId; id: number | null }
+  | { kind: "theme"; id: string }
+  | { kind: "wing"; wing: keyof Wings }
+  | { kind: "showCause"; id: number }
+  | { kind: "sack"; id: number };
+
+export function deepMove(s: GameState, op: DeepOp): ActionResult {
+  const wrap = (r: { state: GameState; message: string } | { error: string }): ActionResult => ("error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message });
+  switch (op.kind) {
+    case "critique":
+      return wrap(critique(s, op.kpi));
+    case "probe":
+      return wrap(startProbe(s));
+    case "publish": {
+      if (!s.opp.probe) return { ok: false, error: "No investigation running." };
+      const r = publishProbe(s);
+      return { ok: true, state: r.state, message: r.lines[0]?.text ?? "Published." };
+    }
+    case "rally":
+      return wrap(streetRally(s));
+    case "court":
+      return wrap(courtChallenge(s, op.motion));
+    case "shadow":
+      return wrap(setShadow(s, op.post, op.id));
+    case "theme":
+      return wrap(setTheme(s, op.id));
+    case "wing":
+      return wrap(fundWing(s, op.wing));
+    case "showCause":
+      return wrap(showCause(s, op.id));
+    case "sack":
+      return wrap(sackMember(s, op.id));
+  }
+}
 
 /** Dewan Rakyat: get ready for a vote, or table a motion of your own. */
 export function dewanPrep(s: GameState, motionId: number, move: PrepMove): ActionResult {

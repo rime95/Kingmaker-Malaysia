@@ -24,6 +24,9 @@ import { issueEffect } from "./systems/issues";
 import type { Order } from "./systems/orders";
 import { initDewan, type Dewan } from "./systems/dewan";
 import type { Analysis } from "./systems/analysis";
+import { initOpposition, type Agenda, type Opposition } from "./systems/agenda";
+import { messageEffect, type Strategy } from "./systems/message";
+import { WINGS, wingsEffect, type Wings } from "./systems/partyorg";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
 import { policyVoters } from "./systems/policies";
@@ -210,6 +213,14 @@ export interface GameState {
   dewan: Dewan;
   /** What happened at the last general election, and why. */
   lastAnalysis: Analysis | null;
+  /** The government's promises for this term. */
+  agenda: Agenda | null;
+  /** Your opposition work: shadow cabinet, attacks, investigations. */
+  opp: Opposition;
+  /** Your campaign message. */
+  strategy: Strategy;
+  /** The party's Youth and Wanita wings. */
+  wings: Wings;
 }
 
 export interface NewGameOptions {
@@ -305,6 +316,10 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     orders: [],
     dewan: initDewan(),
     lastAnalysis: null,
+    agenda: null,
+    opp: initOpposition(),
+    strategy: { theme: null, since: 0 },
+    wings: { youth: WINGS.start, women: WINGS.start },
   };
   if (!contestingIn(SEATS[state.career.homeSeat]).includes(player)) state.entries = { [state.career.homeSeat]: [player] };
   Object.assign(state, initPeople(state));
@@ -375,6 +390,10 @@ export function migrateGame(g: GameState): GameState {
     orders: g.orders ?? [],
     dewan: g.dewan ?? initDewan(),
     lastAnalysis: g.lastAnalysis ?? null,
+    agenda: g.agenda ?? null,
+    opp: g.opp ?? initOpposition(),
+    strategy: g.strategy ?? { theme: null, since: 0 },
+    wings: g.wings ?? { youth: WINGS.start, women: WINGS.start },
   };
   if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));
@@ -407,6 +426,8 @@ export function playerSeatEffect(state: GameState, i: number, policy?: SegEffect
   return (
     ground +
     issueEffect(state, i, isGovernment(state)) +
+    messageEffect(state, i) +
+    wingsEffect(state, i) +
     segValue(i, pol) +
     segValue(i, me.budget) +
     segValue(i, me.mood)
@@ -426,8 +447,10 @@ export function seatBreakdown(state: GameState, i: number): { label: string; val
     { label: "Buzz", value: me.buzz[i] * EFFECT.buzz * wave },
     { label: "Machinery", value: (me.machinery[i] - machineryBase(state.player, i)) * EFFECT.machinery * wave },
     { label: "Local issues taken up", value: issueEffect(state, i, gov) },
+    { label: "Your message", value: messageEffect(state, i) },
+    { label: "Youth and Wanita wings", value: wingsEffect(state, i) },
     { label: "Candidate", value: pick !== undefined ? candidateStrength(state, i, state.people.find((x) => x.id === pick)) : 0 },
-    { label: "Policies, Budget and mood", value: playerSeatEffect(state, i) - ((me.service[i] - serviceBase(state.player, i)) * EFFECT.service + me.buzz[i] * EFFECT.buzz + (me.machinery[i] - machineryBase(state.player, i)) * EFFECT.machinery) * wave - issueEffect(state, i, gov) },
+    { label: "Policies, Budget and mood", value: playerSeatEffect(state, i) - ((me.service[i] - serviceBase(state.player, i)) * EFFECT.service + me.buzz[i] * EFFECT.buzz + (me.machinery[i] - machineryBase(state.player, i)) * EFFECT.machinery) * wave - issueEffect(state, i, gov) - messageEffect(state, i) - wingsEffect(state, i) },
   ];
   return rows.filter((r) => Math.abs(r.value) >= 0.005);
 }

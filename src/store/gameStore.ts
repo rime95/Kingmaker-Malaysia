@@ -14,6 +14,8 @@ import {
   makePact,
   dewanPrep,
   dewanTable,
+  deepMove,
+  type DeepOp,
   breakPact,
   fireStaff,
   headhuntStaff,
@@ -62,7 +64,7 @@ import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result" | "swing";
 /** Side panels that open over the map. */
-export type Panel = "campaign" | "battle" | "party" | "people" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis";
+export type Panel = "campaign" | "battle" | "party" | "people" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis" | "cabinet";
 
 export interface Toast {
   id: number;
@@ -125,6 +127,7 @@ interface Store {
   order: (id: string, target: Target) => void;
   dewan: (motionId: number, move: PrepMove) => void;
   tableMotion: () => void;
+  deep: (op: DeepOp) => void;
   money: (
     op:
       | { kind: "buy"; ticker: string; n: number }
@@ -372,6 +375,10 @@ export const useGame = create<Store>()(
         dewan: (motionId, move) => {
           const g = get().game;
           if (g) result(dewanPrep(g, motionId, move));
+        },
+        deep: (op) => {
+          const g = get().game;
+          if (g) result(deepMove(g, op));
         },
         tableMotion: () => {
           const g = get().game;

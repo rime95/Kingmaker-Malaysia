@@ -8,6 +8,7 @@ import { PEOPLE, RANKS, ageOf, byId, favourBlocked, favourOf, meetBlocked, party
 import { useGame } from "@/store/gameStore";
 import { COALITIONS, PARTIES, SEATS, cshort } from "@/game/world";
 import { fmtRM } from "../common";
+import { DISCIPLINE } from "@/game/systems/partyorg";
 
 /** Who's who: the cabinet, then any party's leadership from the President down to the branch chiefs. */
 export function PeoplePanel() {
@@ -15,8 +16,16 @@ export function PeoplePanel() {
   const mine = game.coalitions[game.player].members;
   const [party, setParty] = useState(mine[0]);
   const [open, setOpen] = useState<number | null>(null);
-  const parties = useMemo(() => [...mine, ...COALITIONS.filter((c) => c !== game.player).flatMap((c) => game.coalitions[c].members)].filter((p) => p !== "IND"), [game.coalitions, game.player, mine]);
-  const roster = partyPeople(game, party);
+  const [view, setView] = useState<"chart" | "list">("chart");
+  const [q, setQ] = useState("");
+  const parties = useMemo(
+    () => [...mine, ...COALITIONS.filter((c) => c !== game.player).flatMap((c) => game.coalitions[c].members)].filter((p) => p !== "IND"),
+    [game.coalitions, game.player, mine],
+  );
+  const all = partyPeople(game, party);
+  const roster = q
+    ? all.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || (p.seat !== null && SEATS[p.seat].name.toLowerCase().includes(q.toLowerCase())))
+    : all;
   const groups = [5, 4, 3, 2].map((rank) => ({ rank, people: roster.filter((p) => p.rank === rank && !p.retired) }));
   const mps = roster.filter((p) => p.rank <= 1 && p.seat !== null);
   const others = roster.filter((p) => (p.rank === 1 && p.seat === null) || p.retired);
@@ -24,8 +33,6 @@ export function PeoplePanel() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Cabinet onOpen={setOpen} open={open} />
-
       <section>
         <h3 className="eyebrow mb-2">Parties</h3>
         <div className="flex flex-wrap gap-1.5">
@@ -37,20 +44,37 @@ export function PeoplePanel() {
           ))}
         </div>
         <p className="text-xs mt-2" style={{ color: "var(--ink-2)" }}>
-          {PARTIES[party]?.name} · {cshort(coalitionOf(game, party))} ·{" "}
-          {game.holderParties.filter((x) => x === party).length} MPs
+          {PARTIES[party]?.name} · {cshort(coalitionOf(game, party))} · {game.holderParties.filter((x) => x === party).length} MPs
         </p>
+        <div className="flex gap-1.5 mt-2 items-center">
+          <button className="chip !py-1 text-xs" aria-pressed={view === "chart"} onClick={() => setView("chart")}>
+            Org chart
+          </button>
+          <button className="chip !py-1 text-xs" aria-pressed={view === "list"} onClick={() => setView("list")}>
+            List
+          </button>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Find a name or seat"
+            className="ml-auto rounded-md px-2 py-1 text-xs w-40"
+            style={{ background: "var(--surface-2)", color: "var(--ink)", border: "1px solid var(--line)" }}
+          />
+        </div>
       </section>
 
-      {groups.map(({ rank, people }) =>
-        people.length ? (
-          <section key={rank}>
-            <h3 className="eyebrow mb-1.5">{rank === 3 ? "Vice Presidents" : rank === 2 ? "Supreme Council" : RANKS[rank]}</h3>
-            <PeopleList people={people} open={open} onOpen={setOpen} />
-          </section>
-        ) : null,
-      )}
-      {mps.length > 0 && (
+      {view === "chart" && <OrgChart roster={roster} open={open} onOpen={setOpen} />}
+
+      {view === "list" &&
+        groups.map(({ rank, people }) =>
+          people.length ? (
+            <section key={rank}>
+              <h3 className="eyebrow mb-1.5">{rank === 3 ? "Vice Presidents" : rank === 2 ? "Supreme Council" : RANKS[rank]}</h3>
+              <PeopleList people={people} open={open} onOpen={setOpen} />
+            </section>
+          ) : null,
+        )}
+      {view === "list" && mps.length > 0 && (
         <details className="inset px-3 py-2" open={mps.length <= 8}>
           <summary className="text-xs font-semibold cursor-pointer" style={{ color: "var(--ink-2)" }}>
             MPs and division chiefs ({mps.length})
@@ -60,7 +84,7 @@ export function PeoplePanel() {
           </div>
         </details>
       )}
-      {others.length > 0 && (
+      {view === "list" && others.length > 0 && (
         <details className="inset px-3 py-2">
           <summary className="text-xs font-semibold cursor-pointer" style={{ color: "var(--ink-2)" }}>
             Without a seat ({others.length})
@@ -70,7 +94,7 @@ export function PeoplePanel() {
           </div>
         </details>
       )}
-      {branch.length > 0 && (
+      {view === "list" && branch.length > 0 && (
         <section>
           <h3 className="eyebrow mb-1.5">Rising branch chiefs</h3>
           <p className="text-[11px] mb-1.5" style={{ color: "var(--muted)" }}>
@@ -80,6 +104,70 @@ export function PeoplePanel() {
         </section>
       )}
     </div>
+  );
+}
+
+/** The party as a pyramid: the President at the top, then each rank below; click anyone for their card. */
+function OrgChart({ roster, open, onOpen }: { roster: Person[]; open: number | null; onOpen: (id: number | null) => void }) {
+  const game = useGame((s) => s.game)!;
+  const tiers = [5, 4, 3, 2].map((rank) => ({ rank, people: roster.filter((p) => p.rank === rank && !p.retired) })).filter((t) => t.people.length);
+  const mps = roster.filter((p) => p.rank <= 1 && p.seat !== null);
+  const sel = open !== null ? roster.find((p) => p.id === open) : undefined;
+  return (
+    <section className="flex flex-col items-center gap-2">
+      {tiers.map((t) => (
+        <div key={t.rank} className="w-full">
+          <div className="text-[10px] text-center mb-1" style={{ color: "var(--muted)" }}>
+            {t.rank === 3 ? "Vice Presidents" : t.rank === 2 ? "Supreme Council" : RANKS[t.rank]}
+          </div>
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {t.people.map((p) => (
+              <button
+                key={p.id}
+                className="card inset px-2 py-1.5 flex items-center gap-1.5 text-left max-w-[170px]"
+                style={{ outline: open === p.id ? "1px solid var(--accent)" : undefined }}
+                onClick={() => onOpen(open === p.id ? null : p.id)}
+              >
+                <Initials name={p.name} color={partyColor(game, p.party)} />
+                <span className="min-w-0">
+                  <span className="block text-[11px] font-semibold truncate">{p.name}</span>
+                  <span className="block text-[10px] truncate" style={{ color: "var(--muted)" }}>
+                    {p.id === game.youId ? "you" : `♥ ${Math.round(p.loyalty)} · ${p.seat !== null ? SEATS[p.seat].name : "no seat"}`}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="mx-auto w-px h-2" style={{ background: "var(--line)" }} />
+        </div>
+      ))}
+      {mps.length > 0 && (
+        <div className="w-full">
+          <div className="text-[10px] text-center mb-1" style={{ color: "var(--muted)" }}>
+            MPs and division chiefs ({mps.length})
+          </div>
+          <div className="flex flex-wrap justify-center gap-1">
+            {mps.map((p) => (
+              <button
+                key={p.id}
+                title={`${p.name} · ${SEATS[p.seat!].name} · loyalty ${Math.round(p.loyalty)}`}
+                onClick={() => onOpen(open === p.id ? null : p.id)}
+                className="rounded-full"
+                style={{ outline: open === p.id ? "2px solid var(--accent)" : undefined }}
+              >
+                <Initials name={p.name} color={partyColor(game, p.party)} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {sel && (
+        <div className="inset w-full">
+          <div className="px-2.5 pt-2 font-semibold text-sm">{sel.name}</div>
+          <PersonCard p={sel} />
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -145,7 +233,8 @@ function LoyaltyDot({ v }: { v: number }) {
 
 function PersonCard({ p }: { p: Person }) {
   const game = useGame((s) => s.game)!;
-  const { meet, favour } = useGame();
+  const { meet, favour, deep } = useGame();
+  const own = p.party === game.coalitions[game.player].members[0];
   const you = p.id === game.youId;
   const meetWhy = meetBlocked(game, p.id);
   const favWhy = favourBlocked(game, p.id);
@@ -173,6 +262,29 @@ function PersonCard({ p }: { p: Person }) {
           </button>
         </div>
       )}
+      {!you && own && (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            className="chip !py-1 text-xs"
+            onClick={() => deep({ kind: "showCause", id: p.id })}
+            title={`${DISCIPLINE.showCause.capital} capital: loyalty +${DISCIPLINE.showCause.loyalty}, unity −1`}
+          >
+            Show-cause letter
+          </button>
+          {p.rank < 4 && (
+            <button
+              className="chip !py-1 text-xs"
+              style={{ color: "var(--bad)" }}
+              onClick={() =>
+                confirm(`Sack ${p.name} from the party? ${p.seat !== null ? "Their seat goes with them as an independent." : ""}`) &&
+                deep({ kind: "sack", id: p.id })
+              }
+            >
+              Sack from the party
+            </button>
+          )}
+        </div>
+      )}
       {!you && (
         <div className="text-[11px]" style={{ color: "var(--muted)" }}>
           Favour: {f.text}. {favWhy ?? `Costs ${PEOPLE.favourLoyalty} loyalty.`}
@@ -197,7 +309,7 @@ function Stat({ label, v }: { label: string; v: number }) {
 }
 
 /** The cabinet. As Prime Minister you can reshuffle it. */
-function Cabinet({ open, onOpen }: { open: number | null; onOpen: (id: number | null) => void }) {
+export function Cabinet({ open, onOpen }: { open: number | null; onOpen: (id: number | null) => void }) {
   const game = useGame((s) => s.game)!;
   const appoint = useGame((s) => s.appoint);
   const canAppoint = appointBlocked(game, "finance", null) === null;
@@ -254,14 +366,16 @@ function Cabinet({ open, onOpen }: { open: number | null; onOpen: (id: number | 
           );
         })}
       </ul>
-      {open !== null && postOf(game, open).length > 0 && (() => {
-        const p = byId(game, open);
-        return p ? (
-          <div className="inset mt-2">
-            <PersonCard p={p} />
-          </div>
-        ) : null;
-      })()}
+      {open !== null &&
+        postOf(game, open).length > 0 &&
+        (() => {
+          const p = byId(game, open);
+          return p ? (
+            <div className="inset mt-2">
+              <PersonCard p={p} />
+            </div>
+          ) : null;
+        })()}
     </section>
   );
 }
