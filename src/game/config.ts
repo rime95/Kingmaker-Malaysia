@@ -112,7 +112,7 @@ export const EFFECT = {
   /** Your star power: national swing per point of edge above 1. */
   starPower: 0.4,
   /** Per seat you hold above a majority: voters want a check on your power. */
-  checkPerSeat: 0.016,
+  checkPerSeat: 0.012,
   /** National buzz per point, added to your national swing. */
   nationalBuzz: 0.003,
   /** Scandal per point, taken off your national swing. */
@@ -197,9 +197,9 @@ export const CARDS = {
 
 export const AI = {
   /** Catch-up: rival effort grows by 100% for every this-many seats you are projected past a majority. */
-  dominanceSeats: 40,
+  dominanceSeats: 30,
   /** Past a majority by this many, even your partners defend their seats against you. */
-  partnerFearSeats: 15,
+  partnerFearSeats: 12,
   /** Multiplies how many moves rivals make each week (difficulty knob). */
   aggression: 1,
   /** Moves per week by phase: long before the election, in the last 26 weeks, in the last 8 weeks. */
@@ -338,7 +338,7 @@ export interface DifficultyDef {
 
 export const DIFFICULTY: Record<Difficulty, DifficultyDef> = {
   easy: { label: "Easy", edge: 1.7, text: "Gentle rivals, sharper polls, fewer crises, loyal partners.", aiAggression: 0.7, funds: 1.5, unity: 70, pollError: 0.7, cards: 0.8, raids: 0.6, decay: 0.8, greed: -0.1 },
-  normal: { label: "Normal", edge: 1.4, text: "As designed.", aiAggression: 1, funds: 1, unity: 60, pollError: 1, cards: 1, raids: 1, decay: 1, greed: 0 },
+  normal: { label: "Normal", edge: 1.4, text: "As designed: your party has a clear edge that lasts until it holds a two-thirds majority.", aiAggression: 1, funds: 1, unity: 60, pollError: 1, cards: 1, raids: 1, decay: 1, greed: 0 },
   hard: { label: "Hard", edge: 1.1, text: "Hungry rivals, fuzzy polls, more crises and partners who drive a hard bargain.", aiAggression: 1.35, funds: 0.75, unity: 50, pollError: 1.4, cards: 1.25, raids: 1.5, decay: 1.25, greed: 0.12 },
 };
 
@@ -368,11 +368,14 @@ export const hqCost = (members: number) => ECONOMY.hqFixed * Math.min(1, Math.ma
 export function edgeOf(s: { settings: { difficulty: Difficulty }; holders?: string[]; player?: string }): number {
   const base = DIFFICULTY[s.settings.difficulty].edge - 1;
   const seats = s.holders && s.player ? s.holders.filter((h) => h === s.player).length : 60;
-  // Biggest when you're small (up to 2.5×), fading from 90 seats and gone by 120: it gets you to power, not beyond.
+  // Biggest when you're small (up to 2.5×); it lasts all the way to a two-thirds majority, then fades (gone by 165).
   const small = Math.max(0, Math.min(1, (40 - seats) / 40));
-  const big = Math.max(0, Math.min(1, (seats - 90) / 30));
+  const big = Math.max(0, Math.min(1, (seats - EDGE_FADE_FROM) / 17));
   return 1 + base * (1 + 1.5 * small) * (1 - big);
 }
+
+/** The edge starts to fade at a two-thirds majority. */
+export const EDGE_FADE_FROM = 148;
 
 /** Every party starts with at least this much money (times your edge), so small parties can play. */
 export const MIN_START_FUNDS = 5_000_000;

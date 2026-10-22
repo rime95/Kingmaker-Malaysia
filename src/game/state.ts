@@ -34,7 +34,7 @@ import { policyVoters } from "./systems/policies";
 import { initRivals, rivalNationalEffect, rivalSeatEffect, type Rivals } from "./systems/rivals";
 import { segValue, type SegEffects } from "./systems/segments";
 import { COALITION_INDEX, ZERO_SWING, naturalSupport, projectAll, type Swing, type VoterInputs } from "./voter";
-import { COALITIONS, COALITION_INFO, MAJORITY, SEATS, contestingIn, type CoalitionId, type Entries } from "./world";
+import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type CoalitionId, type Entries } from "./world";
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
@@ -418,7 +418,8 @@ export function migrateGame(g: GameState): GameState {
 export const starPower = (state: GameState) => (edgeOf(state) - 1) * EFFECT.starPower * Math.min(1, state.week / 26);
 
 /** How hard voters push back on a big majority (log-odds off your national swing). */
-export const checkOnPower = (state: GameState) => Math.max(0, state.holders.filter((h) => h === state.player).length - MAJORITY) * EFFECT.checkPerSeat;
+// Voters only fear power that can rewrite the Constitution: the check starts at a two-thirds majority.
+export const checkOnPower = (state: GameState) => Math.max(0, state.holders.filter((h) => h === state.player).length - SUPERMAJORITY) * EFFECT.checkPerSeat;
 
 /** Your national swing from messaging, scandal, integrity, coalition trust and the economy. */
 export function playerNationalEffect(state: GameState): number {

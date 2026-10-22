@@ -239,7 +239,7 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
     issuesTaken: {},
     calWeight: (s.calWeight ?? 1) * GE.calFade,
     roots: growRoots(s.roots ?? SEATS.map(() => 0), result.seats.map((r) => { const t = Object.values(r.votes).reduce((a, b) => a + (b ?? 0), 0); return t ? (r.votes[s.player] ?? 0) / t : 0; }), s.player, s.holders.filter((h) => h === s.player).length),
-    me: { ...next.me, momentum: Math.min(40, (next.me.momentum ?? 0) * 0.5 + gained * 0.5) },
+    me: { ...next.me, momentum: Math.min(70, (next.me.momentum ?? 0) * 0.5 + gained * 0.8) },
   };
   if (s.pacts.length) lines.push({ text: "Your seat pacts have run their course.", tone: "info" });
   lines.push({ text: generalSummary(result, s.player), tone: result.totals[s.player] >= (before[s.player] ?? 0) ? "good" : "bad" });

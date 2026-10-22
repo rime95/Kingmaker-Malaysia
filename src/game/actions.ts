@@ -61,7 +61,8 @@ export interface ActionDef {
 /** What a move costs you: a small party's volunteers do the ground work for less. */
 export function actionCost(s: GameState, def: ActionDef, t: Target): number {
   const base = def.cost(s, t);
-  if (def.group !== "local") return base;
+  // Volunteers do the ground work, including going national.
+  if (def.group !== "local" && def.id !== "launchState") return base;
   return Math.round(base * (1 - underdog(s.holders.filter((h) => h === s.player).length) * UNDERDOG.volunteers));
 }
 

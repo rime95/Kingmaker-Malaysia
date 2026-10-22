@@ -13,7 +13,7 @@ import { openIssues } from "./systems/issues";
 import { pactBlocked, pactGains } from "./systems/pacts";
 import { testGeneralElection } from "./testTools";
 import { naturalSupport } from "./voter";
-import { COALITIONS, SEATS, contestingIn, type CoalitionId } from "./world";
+import { COALITIONS, SEATS, STATES, SUPERMAJORITY, contestingIn, type CoalitionId } from "./world";
 
 const tryAct = (s: GameState, id: string, seat?: number) => {
   const r = applyAction(s, id, seat === undefined ? { kind: "none" } : { kind: "seat", seat });
@@ -39,6 +39,13 @@ export function botTurn(s: GameState): GameState {
       if (r.ok) s = r.state;
     }
   }
+  // Go national while you're small: launch in every state you can afford.
+  if (seatsOf(s, s.player) < 100)
+    for (const st of STATES) {
+      if (s.me.ap < 2 || s.me.funds < 3_000_000) break;
+      const r = applyAction(s, "launchState", { kind: "state", state: st.id });
+      if (r.ok) s = r.state;
+    }
   // Expand where your voters live.
   const open = SEATS.filter((x) => !contestingIn(x, s.entries).includes(s.player) && naturalSupport(x.index, s.player) >= 0.1).slice(0, 2);
   for (const x of open) if (s.me.funds > 2_000_000) s = tryAct(s, "branch", x.index);
@@ -107,6 +114,7 @@ function playTerms(c: CoalitionId, seed: number) {
     for (let t = 0; t < turns && !s.night; t++) s = advanceTurn(botTurn(s));
     s = testGeneralElection(s);
     row[`GE${15 + ge}`] = seatsOf(s, c);
+    if (row.twoThirds === undefined && seatsOf(s, c) >= SUPERMAJORITY) row.twoThirds = `GE${15 + ge}`;
     s = botTalks({ ...s, night: null });
     row[`gov${ge}`] = s.parliament.pm === c ? "PM" : s.government.includes(c) ? "gov" : "opp";
     s = advanceTurn(s);

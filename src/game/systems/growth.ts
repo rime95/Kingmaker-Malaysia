@@ -9,7 +9,7 @@
 
 import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
-import { COALITIONS, MAJORITY, PARTIES, cshort, type CoalitionId } from "../world";
+import { COALITIONS, MAJORITY, PARTIES, SUPERMAJORITY, cshort, type CoalitionId } from "../world";
 import { AFFINITY } from "./formation";
 import { naturalSupport } from "../voter";
 import { edgeOf } from "../config";
@@ -28,14 +28,21 @@ export const UNDERDOG = { seats: 40, rivalCut: 0.5, recruit: 0.2, compromise: 0.
 export const CONVERT = {
   /** Weekly share of a seat's voters won over at full buzz and service above base, and the most you can hold. */
   rate: 0.0012,
-  max: 0.3,
+  max: 0.45,
   /** Weekly fade when you stop working a seat. */
   fade: 0.004,
+  /** A national wave: with momentum, every seat you contest converts voters, at this share of the local pace. */
+  wave: 1,
+  /** The wave runs even without momentum (momentum adds to it). */
+  waveBase: 0.5,
 };
 
 /** Weekly: in seats you work hard, some voters become yours for good; neglected seats slowly drift back. */
 export function convertsWeek(s: GameState, contested: number[], serviceBase: (i: number) => number): number[] {
   const out = [...(s.converts ?? [])];
+  const mySeats = s.holders.filter((h) => h === s.player).length;
+  // A rising movement: strongest when small, gone at a two-thirds majority.
+  const rising = Math.max(0, (SUPERMAJORITY - mySeats) / SUPERMAJORITY);
   for (let i = 0; i < out.length; i++) {
     if (!contested.includes(i)) {
       out[i] *= 1 - CONVERT.fade;
@@ -43,8 +50,12 @@ export function convertsWeek(s: GameState, contested: number[], serviceBase: (i:
     }
     const work = Math.min(1, s.me.buzz[i] / 100) * 0.5 + Math.min(1, Math.max(0, s.me.service[i] - serviceBase(i)) / 80) * 0.5;
     // Converting voters is how small parties grow; big ones mostly hold who they have.
-    const pace = CONVERT.rate * edgeOf(s) * (0.1 + 0.9 * underdog(s.holders.filter((h) => h === s.player).length));
-    out[i] = work > 0.25 ? Math.min(CONVERT.max, out[i] + pace * work * (1 - out[i] / CONVERT.max)) : out[i] * (1 - CONVERT.fade);
+    const pace = CONVERT.rate * edgeOf(s) * (0.1 + 0.9 * underdog(mySeats));
+    // The wave: a movement with momentum wins voters everywhere it stands, campaign or not.
+    const wave = CONVERT.rate * edgeOf(s) * CONVERT.wave * (CONVERT.waveBase + (s.me.momentum ?? 0) / 100) * rising;
+    const local = work > 0.25 ? pace * work : 0;
+    // Converts stay with you wherever you still stand; they only drift away from seats you abandon.
+    out[i] = Math.min(CONVERT.max, out[i] + (local + wave) * (1 - out[i] / CONVERT.max));
   }
   return out;
 }
