@@ -27,6 +27,7 @@ import type { Analysis } from "./systems/analysis";
 import { initOpposition, type Agenda, type Opposition } from "./systems/agenda";
 import { messageEffect, type Strategy } from "./systems/message";
 import { WINGS, wingsEffect, type Wings } from "./systems/partyorg";
+import { initFunding, type Funding } from "./systems/funding";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
 import { policyVoters } from "./systems/policies";
@@ -221,6 +222,8 @@ export interface GameState {
   strategy: Strategy;
   /** The party's Youth and Wanita wings. */
   wings: Wings;
+  /** Allocations MoU with the government (opposition). */
+  funding: Funding;
 }
 
 export interface NewGameOptions {
@@ -320,6 +323,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     opp: initOpposition(),
     strategy: { theme: null, since: 0 },
     wings: { youth: WINGS.start, women: WINGS.start },
+    funding: initFunding(),
   };
   if (!contestingIn(SEATS[state.career.homeSeat]).includes(player)) state.entries = { [state.career.homeSeat]: [player] };
   Object.assign(state, initPeople(state));
@@ -394,6 +398,7 @@ export function migrateGame(g: GameState): GameState {
     opp: g.opp ?? initOpposition(),
     strategy: g.strategy ?? { theme: null, since: 0 },
     wings: g.wings ?? { youth: WINGS.start, women: WINGS.start },
+    funding: g.funding ?? initFunding(),
   };
   if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));

@@ -5,6 +5,7 @@ import { TAP_COOLDOWN, TAP_WEEKS } from "@/game/actions";
 import { isGovernment, weekLabel, type HistoryPoint } from "@/game/state";
 import { ASSETS, ASSET_ORDER, CEO, MAX_LEVEL, assetIncome, assetProfit, assetRisk, ceoPay, saleValue, upgradeCost, type Asset, type AssetType } from "@/game/systems/business";
 import { weeklyCashFlow } from "@/game/week";
+import { ALLOC, COLLECT, allocationLine, fullAllocations, yourPay } from "@/game/systems/funding";
 import { useGame } from "@/store/gameStore";
 import { fmtRM } from "./common";
 
@@ -19,6 +20,7 @@ export function Treasury() {
 
   return (
     <div className="flex flex-col gap-4">
+      <FundingCard />
       <div className="grid gap-4 @2xl:grid-cols-[1fr_1.3fr]">
         <section className="panel p-4">
           <div className="text-xs" style={{ color: "var(--muted)" }}>
@@ -264,5 +266,59 @@ function FundsChart({ history }: { history: HistoryPoint[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Where the money comes from: your pay, your seats' allocations (and the MoU), the collection tin and the dark side. */
+function FundingCard() {
+  const game = useGame((s) => s.game)!;
+  const deep = useGame((s) => s.deep);
+  const pay = yourPay(game);
+  const monthly = pay.reduce((a, r) => a + r.monthly, 0);
+  const gov = isGovernment(game);
+  const strong = COLLECT.strong.includes(game.player);
+  return (
+    <section className="grid gap-2 @2xl:grid-cols-3">
+      <div className="inset p-3 text-xs">
+        <div className="eyebrow mb-1">Your pay</div>
+        {pay.length ? (
+          <>
+            {pay.map((r) => (
+              <div key={r.label} className="flex justify-between">
+                <span style={{ color: "var(--ink-2)" }}>{r.label}</span>
+                <span className="tabular-nums">{fmtRM(r.monthly)}/mo</span>
+              </div>
+            ))}
+            <div className="mt-1" style={{ color: "var(--muted)" }}>
+              {fmtRM(monthly)} a month into your own pocket (Your wealth). Give some to the party to earn its gratitude.
+            </div>
+          </>
+        ) : (
+          <span style={{ color: "var(--muted)" }}>No salary: you do not hold a seat or a post.</span>
+        )}
+      </div>
+      <div className="inset p-3 text-xs flex flex-col gap-1">
+        <div className="eyebrow">Allocations</div>
+        <span style={{ color: "var(--ink-2)" }}>{allocationLine(game)}</span>
+        <span style={{ color: "var(--muted)" }}>
+          {fullAllocations(game) ? `+${ALLOC.govService} service a week in each seat.` : `Only +${ALLOC.oppService} service a week: the government starves opposition seats.`}
+        </span>
+        {!gov && (
+          <button className="chip !py-1 self-start mt-1" onClick={() => deep({ kind: "mou" })} title="Full allocations for your MPs, but no no-confidence motion and softer attacks">
+            {game.funding.mou ? "Tear up the MoU" : "Sign an MoU with the government"}
+          </button>
+        )}
+      </div>
+      <div className="inset p-3 text-xs flex flex-col gap-1">
+        <div className="eyebrow">The party&apos;s other money</div>
+        <span style={{ color: "var(--ink-2)" }}>
+          Every ceramah passes the collection tin{strong ? " (your machine is famous for it: +60%)" : ""}. Merchandise sells when you are in the news; corporate donors
+          back likely winners in election season.
+        </span>
+        <span style={{ color: "var(--muted)" }}>
+          Quick money ({gov ? "kickbacks, GLC posts, " : ""}dedak, tycoons) is under Campaign → Plan. MACC is watching.
+        </span>
+      </div>
+    </section>
   );
 }

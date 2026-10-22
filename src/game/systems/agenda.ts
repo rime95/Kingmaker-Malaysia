@@ -168,7 +168,8 @@ export function critique(s: GameState, k: Kpi): { state: GameState; message: str
   if (why) return { error: why };
   const bad = badness(s, k);
   const broken = brokenPromise(s, k);
-  const power = bad * shadowBoost(s, KPI_INFO[k].post) * (broken ? AGENDA.brokenBonus : 1) * (0.5 + s.me.reach / 100);
+  // Under an allocations MoU with the government, your attacks are softer.
+  const power = bad * shadowBoost(s, KPI_INFO[k].post) * (broken ? AGENDA.brokenBonus : 1) * (0.5 + s.me.reach / 100) * (s.funding?.mou ? 0.7 : 1);
   let me = { ...s.me, ap: s.me.ap - OPP.critique.ap, funds: s.me.funds - OPP.critique.cost };
   let nation = s.nation;
   let message: string;

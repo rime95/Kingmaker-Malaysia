@@ -139,10 +139,12 @@ export const DECAY = {
   momentumPerSeat: 2.5,
   /** ...and each point of national vote share gained. */
   momentumPerPoint: 4,
+  /** Poll moves smaller than this are noise (seats, points of vote share). */
+  momentumSeatNoise: 3,
+  momentumPointNoise: 1,
 };
 
 /** Held seats build service on their own each week (MP allocations). */
-export const SEAT_SERVICE_PER_WEEK = { gov: 0.3, opp: 0.1 };
 
 /** Fortress levels by constituency service. */
 export const FORTRESS = [
@@ -188,6 +190,10 @@ export const CARDS = {
 // ---------------------------------------------------------------------------------------------
 
 export const AI = {
+  /** Catch-up: rival effort grows by 100% for every this-many seats you are projected past a majority. */
+  dominanceSeats: 40,
+  /** Past a majority by this many, even your partners defend their seats against you. */
+  partnerFearSeats: 15,
   /** Multiplies how many moves rivals make each week (difficulty knob). */
   aggression: 1,
   /** Moves per week by phase: long before the election, in the last 26 weeks, in the last 8 weeks. */
@@ -291,7 +297,7 @@ export const GE = {
   aiLead: 8,
   aiChance: 0.12,
   /** Share of the GE15 calibration (built-in incumbency) left after each new election. */
-  calFade: 0.6,
+  calFade: 0.8,
 };
 
 // ---------------------------------------------------------------------------------------------

@@ -9,7 +9,7 @@ import { serviceBase } from "../bases";
 
 import { hash01 } from "../rng";
 import type { Projection } from "../voter";
-import { COALITIONS, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId, type Entries } from "../world";
+import { COALITIONS, MAJORITY, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId, type Entries } from "../world";
 
 export type Mood = "confident" | "rattled" | "desperate";
 
@@ -114,13 +114,17 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
   let playerScandalHit = 0;
   const toGo = input.weeksToElection;
   const phase = toGo <= AI.lateWeeks ? "late" : toGo <= AI.midWeeks ? "mid" : "early";
-  const moves = Math.round((phase === "late" ? AI.movesLate : phase === "mid" ? AI.movesMid : AI.movesEarly) * AI.aggression * (input.aggression ?? 1));
+  // Catch-up: the further you are projected past a majority, the harder everyone fights you, and past a point even your
+  // partners defend their own seats (nobody wants to be swallowed).
+  const yourSeats = projections.filter((p) => p.leader === player).length;
+  const dominance = Math.max(0, yourSeats - MAJORITY) / AI.dominanceSeats;
+  const moves = Math.round((phase === "late" ? AI.movesLate : phase === "mid" ? AI.movesMid : AI.movesEarly) * AI.aggression * (input.aggression ?? 1) * (1 + dominance));
 
   for (const c of rivalIds(player)) {
     const prev = input.rivals[c];
     if (!prev) continue;
     const r: Rival = { ...prev, buzz: [...prev.buzz], service: [...prev.service], targets: [], recent: [...prev.recent] };
-    const hostile = isHostile(c, player, input.playerTrust, input.government);
+    const hostile = isHostile(c, player, input.playerTrust, input.government) || yourSeats > MAJORITY + AI.partnerFearSeats;
     const gov = input.government.includes(c);
 
     // Money: dues and seat allocations in, HQ out

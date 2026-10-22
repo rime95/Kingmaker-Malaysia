@@ -1,6 +1,7 @@
 // Skip 1 Week: the only place time moves. Skip 1 Month is exactly four of these (see month.ts).
 
-import { DECAY, DIFFICULTY, ECONOMY, ECONOMY_DRIFT, MACC, MOOD_DECAY, PRN, SEAT_SERVICE_PER_WEEK } from "./config";
+import { DECAY, DIFFICULTY, ECONOMY, ECONOMY_DRIFT, MACC, MOOD_DECAY, PRN } from "./config";
+import { ALLOC, fullAllocations, fundingWeek, partyIncome } from "./systems/funding";
 import { assembliesWeek, campaignStates, stateRulers, weeksToElection } from "./systems/assemblies";
 import { DUNS_BY_STATE } from "./systems/dun";
 import { autoResolveFormation, changeGovernmentMidTerm, govSeats, tableBudget } from "./actions";
@@ -40,11 +41,12 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
   const held = s.holders.filter((h) => h === s.player).length;
   const income: WeekReport["income"] = [
     { label: "Party dues", amount: Math.round(me.members * ECONOMY.duesPerMember) },
-    { label: `Seat allocations (${held} seats)`, amount: held * (gov ? ECONOMY.seatIncomeGov : ECONOMY.seatIncomeOpp) },
+    { label: `MPs' contributions (${held} seats)`, amount: held * (gov ? ECONOMY.seatIncomeGov : ECONOMY.seatIncomeOpp) },
   ];
   for (const [id, ruler] of Object.entries(stateRulers(s.dunHolders, s.government)))
     if (ruler === s.player) income.push({ label: `State government (${STATE_BY_ID[id].name})`, amount: DUNS_BY_STATE[id].length * PRN.stateIncomePerSeat });
   for (const a of me.assets) income.push({ label: ASSETS[a.type].name, amount: assetIncome(a, gov, me.market) });
+  income.push(...partyIncome(s));
   const expenses: WeekReport["expenses"] = [{ label: "HQ & staff", amount: Math.round(ECONOMY.hqFixed + me.members * ECONOMY.hqPerMember) }];
   if (s.team.length && !s.personal.payTeam) expenses.push({ label: "Your team", amount: teamSalaries(s) });
   const donations = teamDonations(s);
@@ -92,7 +94,8 @@ export function advanceWeek(input: GameState): GameState {
     const base = serviceBase(s.player, i);
     if (me.service[i] > base) me.service[i] -= (me.service[i] - base) * DECAY.service;
   }
-  const perHeld = gov ? SEAT_SERVICE_PER_WEEK.gov : SEAT_SERVICE_PER_WEEK.opp;
+  // Constituency allocations build service in the seats you hold (full in government or under the MoU).
+  const perHeld = fullAllocations(s) ? ALLOC.govService : ALLOC.oppService;
   const plantation = me.assets.find((a) => a.type === "plantation");
   for (const i of held) {
     me.service[i] = clamp(me.service[i] + perHeld + (plantation && SEATS[i].demo.urbanity < 0.4 ? 0.1 * plantation.level : 0));
@@ -205,6 +208,7 @@ export function advanceWeek(input: GameState): GameState {
   next = op.state;
   lines.push(...op.lines);
   next = wingsWeek(next);
+  next = fundingWeek(next).state;
 
   // The Dewan Rakyat: meetings open and adjourn; the motion due this week is voted on
   const dw = dewanWeek(next, weekDate(next.week));
@@ -347,8 +351,10 @@ export function advanceWeek(input: GameState): GameState {
     let mom = (next.me.momentum ?? 0) * (1 - DECAY.momentum);
     const prevPoll = s.polls.national[0];
     if (poll && poll.week === next.week && poll !== prevPoll) {
-      mom += (seatsAfter - seatsBefore) * DECAY.momentumPerSeat;
-      if (prevPoll) mom += ((poll.vote[s.player] ?? 0) - (prevPoll.vote[s.player] ?? 0)) * 100 * DECAY.momentumPerPoint;
+      // Only moves bigger than a poll's own wobble count, so noise alone doesn't build a wave.
+      const real = (x: number, noise: number) => Math.sign(x) * Math.max(0, Math.abs(x) - noise);
+      mom += real(seatsAfter - seatsBefore, DECAY.momentumSeatNoise) * DECAY.momentumPerSeat;
+      if (prevPoll) mom += real(((poll.vote[s.player] ?? 0) - (prevPoll.vote[s.player] ?? 0)) * 100, DECAY.momentumPointNoise) * DECAY.momentumPerPoint;
     }
     if (next.me.nationalBuzz > 50) mom += 1;
     mom = Math.min(100, Math.max(0, mom));

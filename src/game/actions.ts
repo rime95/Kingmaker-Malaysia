@@ -18,6 +18,7 @@ import { NATION, PROJECT_BY_ID, type Nation } from "./systems/nation";
 import { insiderCheck, policySector } from "./systems/wealth";
 import { nominate } from "./systems/nominations";
 import { ISSUE, openIssues } from "./systems/issues";
+import { collection, toggleMou } from "./systems/funding";
 import { endPact, proposePact } from "./systems/pacts";
 import { prepMotion, tableMotion, type PrepMove } from "./systems/dewan";
 import { courtChallenge, critique, publishProbe, setShadow, startProbe, streetRally, type Kpi } from "./systems/agenda";
@@ -292,6 +293,7 @@ const NATION_ACTIONS: ActionDef[] = [
     blocked: (s) => {
       if (!isPresident(s.career)) return LEADERSHIP_ONLY;
       if (s.parliament.status !== "sitting") return "Parliament is dissolved.";
+      if (s.funding.mou) return "You signed an MoU with the government: tear it up first (Money).";
       if (s.me.capital < 40) return "Needs 40 political capital.";
       return govSeats(s) > MAJORITY + 20 ? "The government's majority is too big." : null;
     },
@@ -383,7 +385,9 @@ export const ACTIONS: ActionDef[] = [
     run: (me, s, t) => {
       const i = (t as { seat: number }).seat;
       me.buzz[i] = addBuzz(me.buzz[i], 18 * eff(me));
-      return `Ceramah in ${SEATS[i].name} drew a crowd.`;
+      const tin = collection({ ...s, me }, i);
+      me.funds += tin;
+      return `Ceramah in ${SEATS[i].name} drew a crowd. The collection tin brought in ${fmtRM(tin)}.`;
     },
   },
   {
@@ -510,6 +514,7 @@ export const ACTIONS: ActionDef[] = [
       me.buzz[i] = addBuzz(addBuzz(me.buzz[i], 18 * eff(me)), 7 * eff(me));
       me.service[i] = clamp(me.service[i] + 1);
       me.machinery[i] = clamp(me.machinery[i] + 12);
+      me.funds += collection({ ...s, me }, i);
       return `A full ground campaign in ${SEATS[i].name}: a packed ceramah, the morning markets and new polling agents.`;
     },
   },
@@ -686,6 +691,60 @@ export const ACTIONS: ActionDef[] = [
     },
   },
   {
+    id: "kickback",
+    name: "Kickbacks on a contract",
+    group: "finance",
+    target: "none",
+    ap: 1,
+    only: "gov",
+    blurb: "Steer a government contract to a friendly company; a share comes back to the party. RM 3M, and MACC's interest.",
+    cost: () => 0,
+    blocked: (s) => (isGovernment(s) ? null : "Government only."),
+    run: (me) => {
+      me.funds += 3_000_000;
+      me.risk = clamp(me.risk + 18);
+      me.integrity = clamp(me.integrity - 4);
+      return "A contractor shows their gratitude: RM 3M finds its way to the party.";
+    },
+  },
+  {
+    id: "glcPosts",
+    name: "GLC posts for allies",
+    group: "party",
+    target: "none",
+    ap: 1,
+    only: "gov",
+    blurb: "Hand chairmanships and board seats in government-linked companies to party warlords and partners.",
+    cost: () => 0,
+    blocked: (s) => (isGovernment(s) ? null : "Government only."),
+    run: (me) => {
+      me.unity = clamp(me.unity + 6);
+      me.trust = clamp(me.trust + 4);
+      me.risk = clamp(me.risk + 6);
+      me.integrity = clamp(me.integrity - 3);
+      return "Board seats for the faithful. The warlords are happy; the papers are not.";
+    },
+  },
+  {
+    id: "dedak",
+    name: "Dedak for the faithful",
+    group: "party",
+    target: "none",
+    ap: 1,
+    blurb: "Cash for division chiefs and MPs who might stray. Loyalty bought, MACC risk earned.",
+    cost: () => 2_000_000,
+    run: (me) => {
+      me.unity = clamp(me.unity + 5);
+      me.risk = clamp(me.risk + 10);
+      me.integrity = clamp(me.integrity - 3);
+      return "Envelopes go round the divisions. Nobody's talking about leaving any more.";
+    },
+    after: (s) => {
+      const party = s.coalitions[s.player].members[0];
+      return { ...s, people: s.people.map((p) => (p.party === party && p.id !== s.youId ? { ...p, loyalty: clamp(p.loyalty + 10) } : p)) };
+    },
+  },
+  {
     id: "tycoon",
     name: "Court a tycoon",
     group: "finance",
@@ -811,7 +870,8 @@ export type DeepOp =
   | { kind: "theme"; id: string }
   | { kind: "wing"; wing: keyof Wings }
   | { kind: "showCause"; id: number }
-  | { kind: "sack"; id: number };
+  | { kind: "sack"; id: number }
+  | { kind: "mou" };
 
 export function deepMove(s: GameState, op: DeepOp): ActionResult {
   const wrap = (r: { state: GameState; message: string } | { error: string }): ActionResult => ("error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message });
@@ -839,6 +899,8 @@ export function deepMove(s: GameState, op: DeepOp): ActionResult {
       return wrap(showCause(s, op.id));
     case "sack":
       return wrap(sackMember(s, op.id));
+    case "mou":
+      return wrap(toggleMou(s));
   }
 }
 

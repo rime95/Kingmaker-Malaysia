@@ -18,7 +18,7 @@ const tryAct = (s: GameState, id: string, seat?: number) => {
 };
 
 /** One turn of a sensible player: money if short, pacts, a few new branches, then ground work where seats are winnable. */
-function botTurn(s: GameState): GameState {
+export function botTurn(s: GameState): GameState {
   if (s.night || s.formation) return s;
   if (s.me.funds < 1_500_000) s = tryAct(s, "dinner");
   if (s.me.funds < 800_000 && s.me.risk < 45) s = tryAct(s, "tycoon");
