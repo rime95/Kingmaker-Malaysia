@@ -74,10 +74,10 @@ export function Dewan() {
       SEATS.map((s) => s.index)
         .filter((i) => order.includes(g.holders[i]))
         .sort((a, b) => order.indexOf(g.holders[a]) - order.indexOf(g.holders[b]) || g.holderParties[a].localeCompare(g.holderParties[b]) || a - b);
-    // Opposition on the Speaker's left, the government on the right, the PM's coalition at the far right.
+    // The government on the left of the chart, the PM's coalition at the far left; the opposition on the right.
     const govOrder = [g.parliament.pm, ...CHART_ORDER.filter((c) => c !== g.parliament.pm && g.government.includes(c))];
     const oppOrder = CHART_ORDER.filter((c) => !g.government.includes(c)).reverse();
-    return hemicycle(byOrder([...oppOrder, ...[...govOrder].reverse()]));
+    return hemicycle(byOrder([...govOrder, ...[...oppOrder].reverse()]));
   }, [game]);
 
   if (!game) return null;
