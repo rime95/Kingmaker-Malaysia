@@ -468,10 +468,16 @@ export function seatRegion(seat: Seat): Region {
   return STATE_BY_ID[seat.state].region;
 }
 
-export function contestingIn(seat: Seat): CoalitionId[] {
+/** Seats coalitions have moved into during a game (branches opened), by seat index. */
+export type Entries = Record<number, CoalitionId[]>;
+
+/** Who stands in a seat: the usual line-up for the region, plus anyone who has opened a branch there. */
+export function contestingIn(seat: Seat, entries?: Entries): CoalitionId[] {
   const list = CONTESTING[seatRegion(seat)];
   // MUDA only fields candidates in young, urban seats or where it already holds the seat.
-  return list.filter((c) => c !== "MUDA" || seat.ge15Coalition === "MUDA" || seat.demo.urbanity > 0.85);
+  const base = list.filter((c) => c !== "MUDA" || seat.ge15Coalition === "MUDA" || seat.demo.urbanity > 0.85);
+  const extra = entries?.[seat.index];
+  return extra?.length ? [...base, ...extra.filter((c) => !base.includes(c))] : base;
 }
 
 /** The ballot party a coalition would field in a seat. */

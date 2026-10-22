@@ -9,7 +9,7 @@ import { serviceBase } from "../bases";
 
 import { hash01 } from "../rng";
 import type { Projection } from "../voter";
-import { COALITIONS, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "../world";
+import { COALITIONS, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId, type Entries } from "../world";
 
 export type Mood = "confident" | "rattled" | "desperate";
 
@@ -92,6 +92,8 @@ export interface RivalsWeekInput {
   government: CoalitionId[];
   /** Difficulty multiplier on rival moves. */
   aggression?: number;
+  /** Seats coalitions have moved into. */
+  entries?: Entries;
 }
 
 export interface RivalsWeekResult {
@@ -140,7 +142,7 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
     const scored: { i: number; u: number; defend: boolean }[] = [];
     for (const seat of SEATS) {
       const i = seat.index;
-      if (!contestingIn(seat).includes(c)) continue;
+      if (!contestingIn(seat, input.entries).includes(c)) continue;
       const p = projections[i];
       const mine = p.shares[c] ?? 0;
       let u = 0;

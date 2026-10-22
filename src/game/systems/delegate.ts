@@ -41,7 +41,7 @@ export const DELEGATE_TEXT: Record<Role, (skill: number) => string> = {
 /** Your closest races: seats you contest where your chance is nearest a coin flip. */
 function battlegrounds(s: GameState, projections: Projection[]): number[] {
   const err = pollError(s);
-  return SEATS.filter((seat) => contestingIn(seat).includes(s.player))
+  return SEATS.filter((seat) => contestingIn(seat, s.entries).includes(s.player))
     .map((seat) => ({ i: seat.index, c: winChance(bestRead(s.polls, projections, s.seed, seat.index, s.week, err), s.player, s.week) ?? 0 }))
     .filter((x) => x.c > 0.2 && x.c < 0.8)
     .sort((a, b) => Math.abs(a.c - 0.5) - Math.abs(b.c - 0.5))

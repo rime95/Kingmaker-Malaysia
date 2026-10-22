@@ -3,7 +3,7 @@
 // Calibration is fixed at load so the untouched world reproduces GE15; swing and offsets are what players change.
 
 import { BLOC_LEAN, RATING_MARGIN } from "./config";
-import { BLOCS, COALITIONS, SEATS, contestingIn, seatRegion, type CoalitionId, type Seat } from "./world";
+import { BLOCS, COALITIONS, SEATS, contestingIn, seatRegion, type CoalitionId, type Entries, type Seat } from "./world";
 
 export type Swing = Record<CoalitionId, number>;
 export const ZERO_SWING = (): Swing => Object.fromEntries(COALITIONS.map((c) => [c, 0])) as Swing;
@@ -13,7 +13,12 @@ export interface VoterInputs {
   swing: Swing;
   /** seatOffsets[seatIndex][coalitionIndex], log-odds. */
   seatOffsets: number[][];
+  /** Seats coalitions have moved into during the game. */
+  entries?: Entries;
 }
+
+/** A newcomer starts from at least this base (about 4% of the vote) and grows by campaigning. */
+const NEWCOMER_BASE = 0.04;
 
 function baseScore(seat: Seat, c: CoalitionId): number {
   const lean = BLOC_LEAN[seatRegion(seat)];
@@ -24,11 +29,16 @@ function baseScore(seat: Seat, c: CoalitionId): number {
 
 const BASE: number[][] = SEATS.map((seat) => COALITIONS.map((c) => baseScore(seat, c)));
 
-function sharesFrom(seat: Seat, adjust: (c: CoalitionId) => number): Partial<Record<CoalitionId, number>> {
+/** How naturally a coalition's voters live in a seat (bloc lean; under 0.05 means hardly any). */
+export const naturalSupport = (seat: number, c: CoalitionId) => BASE[seat][COALITION_INDEX[c]];
+
+function sharesFrom(seat: Seat, adjust: (c: CoalitionId) => number, entries?: Entries): Partial<Record<CoalitionId, number>> {
   const out: Partial<Record<CoalitionId, number>> = {};
   let total = 0;
-  for (const c of contestingIn(seat)) {
-    const v = BASE[seat.index][COALITION_INDEX[c]] * Math.exp(adjust(c));
+  const newcomers = entries?.[seat.index] ?? [];
+  for (const c of contestingIn(seat, entries)) {
+    const base = BASE[seat.index][COALITION_INDEX[c]];
+    const v = (newcomers.includes(c) ? Math.max(base, NEWCOMER_BASE) : base) * Math.exp(adjust(c));
     out[c] = v;
     total += v;
   }
@@ -73,10 +83,14 @@ export const CALIBRATION: number[][] = SEATS.map(calibrate);
 export function seatShares(seat: Seat, inputs: VoterInputs, extra?: (c: CoalitionId) => number): Partial<Record<CoalitionId, number>> {
   const cal = CALIBRATION[seat.index];
   const off = inputs.seatOffsets[seat.index];
-  return sharesFrom(seat, (c) => {
-    const i = COALITION_INDEX[c];
-    return cal[i] + inputs.swing[c] + (off?.[i] ?? 0) + (extra ? extra(c) : 0);
-  });
+  return sharesFrom(
+    seat,
+    (c) => {
+      const i = COALITION_INDEX[c];
+      return cal[i] + inputs.swing[c] + (off?.[i] ?? 0) + (extra ? extra(c) : 0);
+    },
+    inputs.entries,
+  );
 }
 
 export type Rating = "safe" | "likely" | "lean" | "tossup";

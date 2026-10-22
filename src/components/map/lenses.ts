@@ -67,7 +67,7 @@ export function lensFill(game: GameState, reads: SeatRead[], lens: Lens, i: numb
     case "support":
       return { fill: ramp(coalColor(game.player), (reads[i].shares[game.player] ?? 0) / 0.7) };
     case "presence":
-      return contestingIn(seat).includes(game.player) ? { fill: ramp(coalColor(game.player), game.me.service[i] / 90) } : { fill: "var(--land)" };
+      return contestingIn(seat, game.entries).includes(game.player) ? { fill: ramp(coalColor(game.player), game.me.service[i] / 90) } : { fill: "var(--land)" };
     case "pressure":
       return { fill: ramp("var(--bad)", rivalPressure(game, i) / 40) };
     case "ethnic":

@@ -270,7 +270,7 @@ export const CARD_DEFS: CardDef[] = [
     eligible: (s) => s.week > 8,
     pickSeat: (s, week) => {
       const i = Math.floor(hash01("byseat", s.seed, week) * SEATS.length);
-      return contestingIn(SEATS[i]).includes(s.player) ? i : undefined;
+      return contestingIn(SEATS[i], s.entries).includes(s.player) ? i : undefined;
     },
     text: (s, c) => {
       const seat = SEATS[c.seat!];
@@ -454,6 +454,19 @@ export const JUMP_CARD: CardDef = {
   defaultChoice: 2,
 };
 
+/** Nominations are open: a reminder to name your candidates. */
+export const NOMINATIONS_CARD: CardDef = {
+  kind: "nominations",
+  title: "Nominations are open",
+  text: (s) =>
+    `Parliament is dissolved. As party president you sign off every candidate your party puts up. The list is pre-filled with your sitting MPs and senior members; open the Nominations panel to change any seat, or open new branches before nomination day in ${(s.nominations?.closesWeek ?? s.week) - s.week} weeks.`,
+  choices: () => [
+    { label: "I'll review the list", effect: {} },
+    { label: "Go with the party's list", effect: {} },
+  ],
+  defaultChoice: 1,
+};
+
 /** Seat-allocation talks inside your coalition once Parliament is dissolved. */
 export const SEAT_TALKS_CARD: CardDef = {
   kind: "seatTalks",
@@ -484,6 +497,7 @@ export const CARD_BY_KIND: Record<string, CardDef> = Object.fromEntries([
   [CRISIS_CARD.kind, CRISIS_CARD],
   [APPOINT_CARD.kind, APPOINT_CARD],
   [WALKOUT_CARD.kind, WALKOUT_CARD],
+  [NOMINATIONS_CARD.kind, NOMINATIONS_CARD],
   [DEPUTY_CARD.kind, DEPUTY_CARD],
   [JUMP_CARD.kind, JUMP_CARD],
   [SEAT_TALKS_CARD.kind, SEAT_TALKS_CARD],
@@ -554,7 +568,7 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
   if (e.mood) me.mood = addSeg(me.mood, e.mood);
   if (e.stateBuzz)
     SEATS.forEach((seat, i) => {
-      if (e.stateBuzz!.states.includes(seat.state) && contestingIn(seat).includes(s.player)) me.buzz[i] = clamp(me.buzz[i] + e.stateBuzz!.amount);
+      if (e.stateBuzz!.states.includes(seat.state) && contestingIn(seat, s.entries).includes(s.player)) me.buzz[i] = clamp(me.buzz[i] + e.stateBuzz!.amount);
     });
   if (e.seatBuzz && card?.seat !== undefined) me.buzz[card.seat] = clamp(me.buzz[card.seat] + e.seatBuzz);
   let state: GameState = { ...s, me, economy: clamp(s.economy + (e.economy ?? 0)), fiscal: clamp(s.fiscal + (e.fiscal ?? 0)) };
@@ -602,7 +616,7 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
     holderParties[i] = result.winnerParty;
     const seatResults = [...state.seatResults];
     state = seatWinners({ ...state, holders, holderParties }, [{ seat: i, party: result.winnerParty }], lines);
-    const parties = Object.fromEntries(contestingIn(SEATS[i]).map((c) => [c, seatCandidate(state, SEATS[i], c)])) as Partial<Record<CoalitionId, string>>;
+    const parties = Object.fromEntries(contestingIn(SEATS[i], state.entries).map((c) => [c, seatCandidate(state, SEATS[i], c)])) as Partial<Record<CoalitionId, string>>;
     const names = Object.fromEntries((Object.keys(result.votes) as CoalitionId[]).map((c) => [c, c === result.winner ? (mpOf(state, i)?.name ?? "") : standingName(s.seed, i, c, parties[c] ?? c, `by${s.week}`)]));
     seatResults[i] = recordFrom(result, "By-election", s.week, parties, names);
     state = { ...state, rng: rngState, holders, holderParties, seatResults };

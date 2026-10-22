@@ -7,7 +7,9 @@ import { BUBBLE_INFO } from "@/game/systems/bubbles";
 import { DUNS } from "@/game/systems/dun";
 import { CHANCE_LABEL, POLLS, chanceBand, effectiveMoe, winChance, type SeatRead } from "@/game/systems/polls";
 import { resultView, type ResultView } from "@/game/systems/results";
-import { mpOf } from "@/game/systems/people";
+import { byId, mpOf } from "@/game/systems/people";
+import { seatCandidate } from "@/game/systems/coalitions";
+import { standingName } from "@/game/systems/results";
 import { isHostile, type Rival } from "@/game/systems/rivals";
 import { useGame } from "@/store/gameStore";
 import { BLOC_LABEL, BLOCS, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
@@ -27,7 +29,7 @@ export function SeatCard() {
   const i = selected;
   const seat = SEATS[i];
   const holder = game.holders[i];
-  const contests = contestingIn(seat).includes(game.player);
+  const contests = contestingIn(seat, game.entries).includes(game.player);
   const last = resultView(game.seatResults, i);
   const ally = contests ? null : allyIn(game, i);
   const bubble = game.bubbles.find((b) => b.seat === i);
@@ -70,6 +72,8 @@ export function SeatCard() {
           </button>
         )}
 
+        {game.parliament.status === "campaign" && <Candidates seat={i} />}
+
         <LatestResult r={last} />
 
         {contests && <Chances read={reads[i]} seat={i} />}
@@ -90,11 +94,15 @@ export function SeatCard() {
           </section>
         ) : (
           <section>
-            <h3 className="eyebrow mb-1.5">No {cshort(game.player)} candidate here</h3>
+            <h3 className="eyebrow mb-1.5">No {cshort(game.player)} candidate here yet</h3>
+            <p className="text-xs mb-1.5" style={{ color: "var(--ink-2)" }}>
+              Open a branch and your coalition stands here from now on: every move unlocks, and you can grow from a small base.
+            </p>
+            <ActionCard id="branch" target={{ kind: "seat", seat: i }} compact />
             {ally ? (
               <>
-                <p className="text-xs mb-1.5" style={{ color: "var(--ink-2)" }}>
-                  You can still help the friendliest party standing here, {cshort(ally)}. It raises their vote and their trust in you.
+                <p className="text-xs mb-1.5 mt-3" style={{ color: "var(--ink-2)" }}>
+                  Or help the friendliest party standing here, {cshort(ally)}. It raises their vote and their trust in you.
                 </p>
                 <ActionCard id="ally" target={{ kind: "seat", seat: i }} compact />
               </>
@@ -243,6 +251,33 @@ function Chances({ read, seat }: { read: SeatRead; seat: number }) {
           Build machinery to {POLLS.branchMachinery}+ here and your branch reports every week for free.
         </p>
       )}
+    </section>
+  );
+}
+
+/** Who is standing at the coming election: your party's nominee, and the likely candidates of everyone else. */
+function Candidates({ seat }: { seat: number }) {
+  const game = useGame((s) => s.game)!;
+  const s = SEATS[seat];
+  const list = contestingIn(s, game.entries).map((c) => {
+    const party = seatCandidate(game, s, c);
+    const mine = c === game.player ? byId(game, game.nominations?.picks[seat]) : undefined;
+    const mp = mpOf(game, seat);
+    const name = mine?.name ?? (mp && mp.party === party ? mp.name : standingName(game.seed, seat, c, party, `GE${game.geCount + 1}`));
+    return { c, party, name, you: mine?.id === game.youId };
+  });
+  return (
+    <section>
+      <h3 className="eyebrow mb-1.5">{game.nominations?.open ? "Likely candidates" : "Candidates"}</h3>
+      {list.map((x) => (
+        <div key={x.c} className="flex items-center gap-1.5 text-xs py-0.5">
+          <span className="swatch" style={{ background: coalColor(x.c), width: 8, height: 8 }} />
+          <span className="truncate">
+            {x.name}
+            {x.you ? " (you)" : ""} <span style={{ color: "var(--muted)" }}>{x.party} · {cshort(x.c)}</span>
+          </span>
+        </div>
+      ))}
     </section>
   );
 }

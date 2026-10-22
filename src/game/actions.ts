@@ -16,6 +16,7 @@ import { raceMove, type RaceMove } from "./systems/partyrace";
 import { fire, headhunt, hire, pollError, raise, setAuto, teamAp } from "./systems/team";
 import { NATION, PROJECT_BY_ID, type Nation } from "./systems/nation";
 import { insiderCheck, policySector } from "./systems/wealth";
+import { nominate } from "./systems/nominations";
 import { startFormation } from "./systems/formation";
 import { seatCounts } from "./state";
 import { hash01 } from "./rng";
@@ -52,6 +53,8 @@ export interface ActionDef {
 export type ActionResult = { ok: true; state: GameState; message: string } | { ok: false; error: string };
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
+const LEADERSHIP_ONLY = "Only the party president decides this. Climb the party ladder (Party panel).";
+
 /** Buzz has diminishing returns: the louder a seat already is, the less each event adds. */
 const addBuzz = (b: number, gain: number) => clamp(b + gain * (1 - b / 120));
 /** Party unity makes everything work better or worse. */
@@ -61,14 +64,14 @@ const hasAsset = (me: Player, type: AssetType) => me.assets.some((a) => a.type =
 const seatOf = (t: Target) => (t.kind === "seat" ? SEATS[t.seat] : null);
 const notContesting = (s: GameState, t: Target) => {
   const seat = seatOf(t);
-  return seat && !contestingIn(seat).includes(s.player) ? "Your coalition does not contest this seat." : null;
+  return seat && !contestingIn(seat, s.entries).includes(s.player) ? "Your coalition does not stand here yet. Open a branch first." : null;
 };
 
 /** The friendliest coalition standing in a seat your coalition doesn't contest. */
 export function allyIn(s: GameState, i: number): CoalitionId | null {
   let best: CoalitionId | null = null;
   let score = 0.2;
-  for (const c of contestingIn(SEATS[i])) {
+  for (const c of contestingIn(SEATS[i], s.entries)) {
     if (c === s.player || c === "OTHERS") continue;
     const v = (AFFINITY[s.player][c] ?? 0) + (s.government.includes(c) === s.government.includes(s.player) ? 0.3 : 0);
     if (v > score) {
@@ -80,6 +83,25 @@ export function allyIn(s: GameState, i: number): CoalitionId | null {
 }
 
 export const ALLY_BUZZ = 12;
+
+/** Opening a branch: the cost, and what launching in a whole state costs per seat. */
+export const BRANCH = { cost: 150_000, stateShare: 0.6, buzz: 5, machinery: 8 };
+
+/** Adds your coalition to the candidates in some seats, with a small starting team on the ground. */
+function openBranches(s: GameState, seats: number[]): GameState {
+  const entries = { ...s.entries };
+  const machinery = [...s.me.machinery];
+  const buzz = [...s.me.buzz];
+  for (const i of seats) {
+    entries[i] = [...(entries[i] ?? []), s.player];
+    machinery[i] = Math.max(machinery[i], BRANCH.machinery);
+    buzz[i] = clamp(buzz[i] + BRANCH.buzz);
+  }
+  return { ...s, entries, me: { ...s.me, machinery, buzz } };
+}
+
+/** Seats in a state where your coalition doesn't stand yet. */
+export const unopenedIn = (s: GameState, state: string) => SEATS.filter((seat) => seat.state === state && !contestingIn(seat, s.entries).includes(s.player)).map((seat) => seat.index);
 
 /** Role moves earn career points at most once a week (the work counts, not the number of photo-ops). */
 /** Seats behind the government. */
@@ -385,7 +407,7 @@ export const ACTIONS: ActionDef[] = [
     blocked: (s, t) => {
       const seat = seatOf(t);
       if (!seat) return null;
-      if (contestingIn(seat).includes(s.player)) return "You field a candidate here. Use your own moves.";
+      if (contestingIn(seat, s.entries).includes(s.player)) return "You field a candidate here. Use your own moves.";
       return allyIn(s, seat.index) ? null : "No friendly party stands here.";
     },
     run: (me, s, t) => {
@@ -404,6 +426,39 @@ export const ACTIONS: ActionDef[] = [
       buzz[i] = clamp(buzz[i] + ALLY_BUZZ);
       return { ...s, rivals: { ...s.rivals, [ally]: { ...r, buzz } } };
     },
+  },
+  {
+    id: "branch",
+    name: "Open a branch",
+    group: "local",
+    target: "seat",
+    ap: 1,
+    blurb: "Your coalition has never stood here. Open a branch: from now on you contest this seat and every move works here. You start small; it takes ground work to grow.",
+    cost: () => BRANCH.cost,
+    blocked: (s, t) => {
+      const seat = seatOf(t);
+      return seat && contestingIn(seat, s.entries).includes(s.player) ? "You already stand here." : null;
+    },
+    run: (me, s, t) => `You open a branch in ${SEATS[(t as { seat: number }).seat].name}. Your coalition will field a candidate here.`,
+    after: (s, t) => openBranches(s, [(t as { seat: number }).seat]),
+  },
+  {
+    id: "launchState",
+    name: "Launch in a state",
+    group: "party",
+    target: "state",
+    ap: 2,
+    blurb: "Open branches in every seat of a state where your coalition doesn't stand yet, at a discount. How small parties go national.",
+    cost: (s, t) => (t.kind === "state" ? Math.round(unopenedIn(s, t.state).length * BRANCH.cost * BRANCH.stateShare) : 0),
+    blocked: (s, t) => {
+      if (!isPresident(s.career)) return LEADERSHIP_ONLY;
+      return t.kind === "state" && unopenedIn(s, t.state).length === 0 ? "You already stand in every seat here." : null;
+    },
+    run: (me, s, t) => {
+      const n = t.kind === "state" ? unopenedIn(s, t.state).length : 0;
+      return `You launch in ${STATE_BY_ID[(t as { state: string }).state].name}: ${n} new branch${n === 1 ? "" : "es"}.`;
+    },
+    after: (s, t) => (t.kind === "state" ? openBranches(s, unopenedIn(s, t.state)) : s),
   },
   {
     id: "service",
@@ -639,7 +694,7 @@ export const ACTION_BY_ID: Record<string, ActionDef> = Object.fromEntries(ACTION
 
 function stateSeats(s: GameState, t: Target): number[] {
   if (t.kind !== "state") return [];
-  return SEATS.filter((seat) => seat.state === t.state && contestingIn(seat).includes(s.player)).map((seat) => seat.index);
+  return SEATS.filter((seat) => seat.state === t.state && contestingIn(seat, s.entries).includes(s.player)).map((seat) => seat.index);
 }
 
 function cloneMe(me: Player): Player {
@@ -701,6 +756,12 @@ export const raiseStaff = (s: GameState, id: number) => teamResult(raise(s, id))
 export const headhuntStaff = (s: GameState) => teamResult(headhunt(s));
 export const delegateStaff = (s: GameState, id: number, auto: boolean) => teamResult(setAuto(s, id, auto));
 
+/** Name a candidate (you, as party president, while nominations are open). */
+export function nominateCandidate(s: GameState, seat: number, person: number | "newface"): ActionResult {
+  const r = nominate(s, seat, person);
+  return "error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message };
+}
+
 /** A campaign move in a party election. */
 export function raceAct(s: GameState, move: RaceMove): ActionResult {
   const r = raceMove(s, move);
@@ -727,7 +788,6 @@ export function commissionPoll(s: GameState, seat: number): ActionResult {
   };
 }
 
-const LEADERSHIP_ONLY = "Only the party president decides this. Climb the party ladder (Party panel).";
 
 export interface Preview {
   /** Change in seats you would win if the election were today. */
@@ -749,7 +809,7 @@ export function previewAction(s: GameState, id: string, t: Target): Preview | nu
   let share = 0;
   if (t.kind === "seat") share = (b[t.seat].shares[s.player] ?? 0) - (a[t.seat].shares[s.player] ?? 0);
   else {
-    const idx = SEATS.filter((seat) => contestingIn(seat).includes(s.player) && (t.kind !== "state" || seat.state === t.state)).map((seat) => seat.index);
+    const idx = SEATS.filter((seat) => contestingIn(seat, s.entries).includes(s.player) && (t.kind !== "state" || seat.state === t.state)).map((seat) => seat.index);
     share = idx.reduce((sum, i) => sum + (b[i].shares[s.player] ?? 0) - (a[i].shares[s.player] ?? 0), 0) / Math.max(1, idx.length);
   }
   return { seats, share };

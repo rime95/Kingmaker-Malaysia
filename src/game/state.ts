@@ -17,6 +17,7 @@ import { initTeam, pollError, type Staff } from "./systems/team";
 import { NATION, initNation, type Nation } from "./systems/nation";
 import { initBursa, type Stock } from "./systems/bursa";
 import { initPersonal, type Personal } from "./systems/wealth";
+import { candidateStrength, yourParty, type Nominations } from "./systems/nominations";
 import type { SeatRecord } from "./systems/results";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
@@ -24,11 +25,11 @@ import { policyVoters } from "./systems/policies";
 import { initRivals, rivalNationalEffect, rivalSeatEffect, type Rivals } from "./systems/rivals";
 import { segValue, type SegEffects } from "./systems/segments";
 import { COALITION_INDEX, ZERO_SWING, projectAll, type Swing, type VoterInputs } from "./voter";
-import { COALITIONS, COALITION_INFO, SEATS, type CoalitionId } from "./world";
+import { COALITIONS, COALITION_INFO, SEATS, contestingIn, type CoalitionId, type Entries } from "./world";
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 12;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -186,6 +187,10 @@ export interface GameState {
   /** Bursa Malaysia, and your own money: cash, shares and property (plus the party's land bank). */
   bursa: Stock[];
   personal: Personal;
+  /** Seats coalitions have moved into by opening branches (they contest them from then on). */
+  entries: Entries;
+  /** Candidates your party has named for the coming general election (null outside a campaign). */
+  nominations: Nominations | null;
 }
 
 export interface NewGameOptions {
@@ -272,7 +277,10 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     nation: initNation(),
     bursa: initBursa(),
     personal: initPersonal({ player, career: initCareer(player, seed, opts.mode ?? "leader", opts.name, opts.homeSeat) }),
+    entries: {},
+    nominations: null,
   };
+  if (!contestingIn(SEATS[state.career.homeSeat]).includes(player)) state.entries = { [state.career.homeSeat]: [player] };
   Object.assign(state, initPeople(state));
   Object.assign(state, syncYou(state));
   state.me.apMax = state.me.ap = AP_BY_RUNG[state.career.rung];
@@ -333,6 +341,8 @@ export function migrateGame(g: GameState): GameState {
     nation: g.nation ?? initNation(),
     bursa: g.bursa ?? initBursa(),
     personal: g.personal ?? initPersonal(g),
+    entries: g.entries ?? {},
+    nominations: g.nominations ?? null,
   };
   if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));
@@ -378,10 +388,13 @@ export function voterInputs(state: GameState): VoterInputs {
   const seatOffsets = state.seatOffsets.map((row, i) => {
     const out = [...row];
     out[p] += playerSeatEffect(state, i, policy);
+    // Your party's named candidate carries a personal vote.
+    const pick = state.nominations?.picks[i];
+    if (pick !== undefined) out[p] += candidateStrength(state, i, state.people.find((x) => x.id === pick && x.party === yourParty(state)));
     for (const [c, r] of rivals) out[COALITION_INDEX[c]] += rivalSeatEffect(r, c, i);
     return out;
   });
-  return { swing, seatOffsets };
+  return { swing, seatOffsets, entries: state.entries };
 }
 
 export function projectedSeats(state: GameState): number {

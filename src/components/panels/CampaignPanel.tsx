@@ -23,14 +23,14 @@ const GROUPS: { id: ActionGroup; title: string }[] = [
 /** What to do this week: the advisor's picks, then every nationwide, party and money action. */
 export function CampaignPanel() {
   const game = useGame((s) => s.game)!;
-  const { act, focusSeat } = useGame();
+  const { act, focusSeat, openPanel } = useGame();
   const tips = useMemo(() => advise(game).slice(0, 4), [game]);
   const [tourState, setTourState] = useState(STATES[0].id);
   const reads = useReads();
   // Battlegrounds: seats you contest where your polled chance is closest to a coin flip.
   const battle = useMemo(
     () =>
-      SEATS.filter((seat) => contestingIn(seat).includes(game.player))
+      SEATS.filter((seat) => contestingIn(seat, game.entries).includes(game.player))
         .map((seat) => ({ i: seat.index, chance: reads.length ? (winChance(reads[seat.index], game.player, game.week) ?? 0) : 0 }))
         .filter((x) => x.chance > 0.2 && x.chance < 0.8)
         .sort((a, b) => Math.abs(a.chance - 0.5) - Math.abs(b.chance - 0.5))
@@ -67,6 +67,13 @@ export function CampaignPanel() {
         </ul>
       </section>
 
+      {game.nominations?.open && (
+        <button className="inset p-3 text-left text-sm" style={{ outline: "1px solid var(--accent)" }} onClick={() => openPanel("nominations")}>
+          <b style={{ color: "var(--accent)" }}>Nominations close in {Math.max(0, game.nominations.closesWeek - game.week)} weeks.</b>{" "}
+          {game.career.rung >= 6 ? "Review your candidates, or stand in new seats." : "See who your president is putting up, and whether it's you."}
+        </button>
+      )}
+
       <PartyRaceCard />
 
       {ACTIONS.some((a) => a.rungs?.includes(game.career.rung)) && (
@@ -79,7 +86,7 @@ export function CampaignPanel() {
           </div>
           {ACTIONS.some((a) => a.group === "role" && a.target === "state" && a.rungs?.includes(game.career.rung)) && (
             <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
-              Ministry projects go to the state picked under Ceramah tour below.
+              Ministry projects go to the state picked under By state below.
             </p>
           )}
         </section>
@@ -121,7 +128,7 @@ export function CampaignPanel() {
       ))}
 
       <section>
-        <h3 className="eyebrow mb-2">Ceramah tour</h3>
+        <h3 className="eyebrow mb-2">By state: tours and expansion</h3>
         <div className="flex flex-col gap-2">
           <select
             value={tourState}
@@ -136,6 +143,7 @@ export function CampaignPanel() {
             ))}
           </select>
           <ActionCard id="tour" target={{ kind: "state", state: tourState }} compact />
+          <ActionCard id="launchState" target={{ kind: "state", state: tourState }} compact />
         </div>
       </section>
     </div>

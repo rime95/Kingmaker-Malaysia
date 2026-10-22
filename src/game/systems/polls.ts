@@ -7,7 +7,7 @@
 
 import { hash01 } from "../rng";
 import type { Projection } from "../voter";
-import { COALITIONS, SEATS, contestingIn, type CoalitionId } from "../world";
+import { COALITIONS, SEATS, contestingIn, type CoalitionId, type Entries } from "../world";
 
 export const POLLS = {
   nationalEvery: 4,
@@ -125,11 +125,11 @@ export function effectiveMoe(r: SeatRead, week: number): number {
 }
 
 /** Weekly: new national poll every 4 weeks, and branch reports where your machinery is strong. */
-export function pollsWeek(polls: Polls, projections: Projection[], seed: number, week: number, player: CoalitionId, machinery: number[], errorMult: number): Polls {
+export function pollsWeek(polls: Polls, projections: Projection[], seed: number, week: number, player: CoalitionId, machinery: number[], errorMult: number, entries?: Entries): Polls {
   let national = polls.national;
   if (week % POLLS.nationalEvery === 0 && national[0]?.week !== week) national = [nationalPoll(projections, seed, week, errorMult), ...national].slice(0, POLLS.keepNational);
   const seats = polls.seats.map((old, i) => {
-    if (machinery[i] < POLLS.branchMachinery || !contestingIn(SEATS[i]).includes(player)) return old;
+    if (machinery[i] < POLLS.branchMachinery || !contestingIn(SEATS[i], entries).includes(player)) return old;
     const moe = POLLS.branchMoe * errorMult * (1 - (machinery[i] - POLLS.branchMachinery) / 150);
     if (old && effectiveMoe(old, week) <= moe) return old;
     return { week, source: "branch" as const, moe, shares: noisy(projections[i].shares, moe, 0, "branch", seed, week, i) };

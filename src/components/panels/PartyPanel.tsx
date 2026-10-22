@@ -10,6 +10,7 @@ import { fmt, fmtRM } from "../common";
 /** Your party's health at a glance, then your career. */
 export function PartyPanel() {
   const game = useGame((s) => s.game)!;
+  const openPanel = useGame((s) => s.openPanel);
   const me = game.me;
   const maccChance = Math.max(0, me.risk - MACC.threshold) / MACC.divisor;
   return (
@@ -36,6 +37,9 @@ export function PartyPanel() {
           </div>
         </div>
       </section>
+      <button className="chip self-start" onClick={() => openPanel("nominations")}>
+        Candidates and nominations
+      </button>
       <CoalitionCard />
       <Career />
     </div>

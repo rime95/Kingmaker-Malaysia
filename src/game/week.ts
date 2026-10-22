@@ -14,6 +14,8 @@ import { CONTEST_POINTS } from "./systems/career";
 import { economyScore, nationWeek, projectSeats } from "./systems/nation";
 import { projectOpened, wealthWeek } from "./systems/wealth";
 import { delegateWeek } from "./systems/delegate";
+import { nominationsWeek } from "./systems/nominations";
+import { naturalSupport } from "./voter";
 import { ROLES, pollError, teamDonations, teamRaidMult, teamSalaries, teamUpkeepMult, teamWeek } from "./systems/team";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { cardsWeek } from "./systems/events";
@@ -23,7 +25,7 @@ import { fmtRM } from "./money";
 import { Rng, hash01 } from "./rng";
 import { isGovernment, machineryBase, projectAllFor, serviceBase, voterInputs, weekDate, type GameState, type ReportLine, type WeekReport } from "./state";
 import { ASSETS, assetIncome, assetRisk, ceoPay, marketWeek } from "./systems/business";
-import { MAJORITY, SEATS, STATE_BY_ID, contestingIn, cshort } from "./world";
+import { COALITIONS, MAJORITY, SEATS, STATE_BY_ID, contestingIn, cshort } from "./world";
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 const HISTORY_LIMIT = 520;
@@ -47,7 +49,7 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
   const salaries = me.assets.reduce((sum, a) => sum + ceoPay(a, gov, me.market), 0);
   if (salaries) expenses.push({ label: "Company CEOs", amount: salaries });
   const upkeep = Math.round(
-    SEATS.reduce((sum, seat) => sum + (contestingIn(seat).includes(s.player) ? me.machinery[seat.index] : 0), 0) * ECONOMY.machineryUpkeep * teamUpkeepMult(s),
+    SEATS.reduce((sum, seat) => sum + (contestingIn(seat, s.entries).includes(s.player) ? me.machinery[seat.index] : 0), 0) * ECONOMY.machineryUpkeep * teamUpkeepMult(s),
   );
   return { income, expenses, upkeep };
 }
@@ -63,7 +65,7 @@ export function advanceWeek(input: GameState): GameState {
   const gov = isGovernment(s);
   const me = { ...s.me, service: [...s.me.service], buzz: [...s.me.buzz], machinery: [...s.me.machinery], assets: s.me.assets.map((a) => ({ ...a })), policies: { ...s.me.policies } };
   const lines: ReportLine[] = [...delegated.lines];
-  const contested = SEATS.filter((seat) => contestingIn(seat).includes(s.player)).map((seat) => seat.index);
+  const contested = SEATS.filter((seat) => contestingIn(seat, s.entries).includes(s.player)).map((seat) => seat.index);
   const held = s.holders.map((h, i) => (h === s.player ? i : -1)).filter((i) => i >= 0);
 
   const diff = DIFFICULTY[s.settings.difficulty];
@@ -147,7 +149,7 @@ export function advanceWeek(input: GameState): GameState {
   const economy = economyScore(nw.nation);
   const fiscal = clamp(s.fiscal + (50 - s.fiscal) * ECONOMY_DRIFT.fiscal + nw.fiscal);
   // A project opening: the government that built it gets the credit in the seats it serves.
-  if (gov) for (const def of nw.opened) for (const i of projectSeats(def)) if (contestingIn(SEATS[i]).includes(s.player)) me.service[i] = clamp(me.service[i] + 3);
+  if (gov) for (const def of nw.opened) for (const i of projectSeats(def)) if (contestingIn(SEATS[i], s.entries).includes(s.player)) me.service[i] = clamp(me.service[i] + 3);
 
   // Rival parties campaign, defend and attack, using this week's starting projections
   const ai = rivalsWeek({
@@ -164,6 +166,7 @@ export function advanceWeek(input: GameState): GameState {
     rulers: stateRulers(s.dunHolders, s.government),
     government: s.government,
     aggression: diff.aiAggression,
+    entries: s.entries,
   });
   me.nationalBuzz = clamp(me.nationalBuzz + ai.playerBuzzHit);
   me.scandal = clamp(me.scandal + ai.playerScandalHit);
@@ -197,6 +200,11 @@ export function advanceWeek(input: GameState): GameState {
   lines.push(...cards.lines);
 
   // Dissolutions and polling days for Parliament and the state assemblies
+  // Nominations: open when Parliament is dissolved, close on nomination day
+  const noms = nominationsWeek(next);
+  next = noms.state;
+  lines.push(...noms.lines);
+
   const polls = assembliesWeek(next, voterInputs(next));
   next = polls.state;
   lines.push(...polls.lines);
@@ -223,7 +231,7 @@ export function advanceWeek(input: GameState): GameState {
   const coal = coalitionsWeek(next);
   next = coal.state;
   lines.push(...coal.lines);
-  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis" };
+  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis", nominations: "name your candidates" };
   const addCard = (kind: string, party?: string, person?: number, seat?: number) => {
     const id = Math.max(0, ...next.cards.map((c) => c.id), next.week * 10) + 1;
     next = { ...next, cards: [...next.cards, { id, kind, week: next.week, deadline: next.week + 2, party, person, seat }], cardLast: { ...next.cardLast, [kind]: next.week } };
@@ -231,6 +239,7 @@ export function advanceWeek(input: GameState): GameState {
   };
   if (coal.warn && next.cards.length < 4) addCard("partnerWalkout", coal.warn);
   if (nw.crisis) addCard("crisis");
+  if (next.nominations?.open && next.nominations.closesWeek === next.week + 2 && next.career.rung >= 6 && next.cards.length < 4) addCard("nominations");
   if (next.cards.length < 4 && next.parliament.status === "campaign" && next.coalitions[next.player].members.length > 1 && (next.cardLast.seatTalks ?? -99) < next.week - 12) addCard("seatTalks");
 
   // People: age, standing, retirements and successions
@@ -260,6 +269,18 @@ export function advanceWeek(input: GameState): GameState {
     if (pres && pres.id !== next.youId && pres.loyalty >= 45) addCard("appointment", undefined, pres.id);
   }
 
+  // AI coalitions occasionally open branches where their kind of voters live.
+  if (next.week % 4 === 0) {
+    for (const c of COALITIONS) {
+      if (c === next.player || c === "OTHERS" || !next.coalitions[c].members.length || hash01("expand", next.seed, next.week, c) > 0.04) continue;
+      const options = SEATS.filter((seat) => !contestingIn(seat, next.entries).includes(c) && naturalSupport(seat.index, c) >= 0.12);
+      if (!options.length) continue;
+      const seat = options[Math.floor(hash01("expandseat", next.seed, next.week, c) * options.length)];
+      next = { ...next, entries: { ...next.entries, [seat.index]: [...(next.entries[seat.index] ?? []), c] } };
+      lines.push({ text: `${cshort(c)} opens a branch in ${seat.name} and will stand there.`, tone: "info" });
+    }
+  }
+
   // An unpopular government's partners may walk out; if it loses its majority, it falls.
   if (next.week % 4 === 1 && next.parliament.status === "sitting" && next.nation.approval < 32 && !next.formation) {
     const quitter = next.government.find((c) => c !== next.parliament.pm && c !== next.player && c !== "OTHERS" && hash01("quitgov", next.seed, next.week, c) < 0.12);
@@ -286,7 +307,7 @@ export function advanceWeek(input: GameState): GameState {
 
   // Polls: a national poll every four weeks, branch reports where your machinery is strong
   const after = projectAllFor(next);
-  next = { ...next, polls: pollsWeek(next.polls, after, next.seed, next.week, next.player, next.me.machinery, pollError(next)) };
+  next = { ...next, polls: pollsWeek(next.polls, after, next.seed, next.week, next.player, next.me.machinery, pollError(next), next.entries) };
 
   // Report (seat counts are what the latest national poll says, not the hidden truth)
   const seatsBefore = s.polls.national[0]?.seats[s.player] ?? 0;

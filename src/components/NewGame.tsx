@@ -24,7 +24,7 @@ export function NewGame() {
   const [home, setHome] = useState<number | null>(null);
   const [scenario, setScenario] = useState<ScenarioId>("present");
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
-  const seats = useMemo(() => (pick ? SEATS.filter((s) => contestingIn(s).includes(pick)).sort((a, b) => a.name.localeCompare(b.name)) : []), [pick]);
+  const seats = useMemo(() => (pick ? [...SEATS].sort((a, b) => a.name.localeCompare(b.name)) : []), [pick]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 flex flex-col gap-6">
@@ -99,6 +99,7 @@ export function NewGame() {
                   {seats.map((s) => (
                     <option key={s.index} value={s.index}>
                       {s.name} ({STATE_BY_ID[s.state].name}) · held by {cshort(s.ge15Coalition)}
+                      {contestingIn(s).includes(pick!) ? "" : " · you start a new branch"}
                     </option>
                   ))}
                 </select>

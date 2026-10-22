@@ -36,6 +36,12 @@ export const ICONS = {
       <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />
     </svg>
   ),
+  nominations: (
+    <svg viewBox="0 0 24 24" {...P}>
+      <rect x="4" y="10" width="16" height="10" rx="2" />
+      <path d="M8 10V5h8v5M10 7h4" />
+    </svg>
+  ),
   policy: (
     <svg viewBox="0 0 24 24" {...P}>
       <path d="M6 3h9l4 4v14H6z" />

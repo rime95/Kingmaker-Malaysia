@@ -45,7 +45,7 @@ export function advise(s: GameState): Tip[] {
   const proj = projectAllFor(s);
   const late = toGo <= 12 || s.parliament.status === "campaign";
   const actionId = late ? "ceramah" : "service";
-  const close = SEATS.filter((seat) => contestingIn(seat).includes(s.player))
+  const close = SEATS.filter((seat) => contestingIn(seat, s.entries).includes(s.player))
     .map((seat) => {
       const p = proj[seat.index];
       const mine = p.shares[s.player] ?? 0;

@@ -8,6 +8,7 @@
 import { ASSEMBLY_TERMS, GE, PRN, START_DATE } from "../config";
 import { runElection, type ElectionResult } from "../election";
 import { recordFrom, standingName } from "./results";
+import { NOMINATION } from "./nominations";
 import { mpOf, seatWinners } from "./people";
 import { seatCandidate } from "./coalitions";
 import { hash01 } from "../rng";
@@ -199,7 +200,7 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
   const seated = seatWinners({ ...s, holders, holderParties }, result.seats.map((r) => ({ seat: r.seatIndex, party: r.winnerParty })), lines);
   const seatResults = result.seats.map((r) => {
     const seat = SEATS[r.seatIndex];
-    const parties = Object.fromEntries(contestingIn(seat).map((c) => [c, seatCandidate(s, seat, c)])) as Partial<Record<CoalitionId, string>>;
+    const parties = Object.fromEntries(contestingIn(seat, s.entries).map((c) => [c, seatCandidate(s, seat, c)])) as Partial<Record<CoalitionId, string>>;
     const names = Object.fromEntries(
       (Object.keys(r.votes) as CoalitionId[]).map((c) => [c, c === r.winner ? (mpOf(seated, r.seatIndex)?.name ?? "") : standingName(s.seed, r.seatIndex, c, parties[c] ?? c, `GE${geCount}`)]),
     );
@@ -216,6 +217,18 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
     parliament: { ...s.parliament, status: "sitting", pollWeek: null, lastPollWeek: s.week, deadlineWeek: s.week + GE.termWeeks },
   };
   next = applyMomentum(next, before, result.totals, SEATS.length);
+  // Deposits: forfeited by your candidates who won less than an eighth of the vote.
+  const lost = result.seats.filter((r) => {
+    const mine = r.votes[s.player] ?? 0;
+    const cast = Object.values(r.votes).reduce((a, b) => a + (b ?? 0), 0);
+    return r.votes[s.player] !== undefined && mine / Math.max(1, cast) < NOMINATION.depositShare;
+  }).length;
+  if (lost) {
+    next = { ...next, me: { ...next.me, funds: next.me.funds - lost * NOMINATION.deposit } };
+    lines.push({ text: `You lost ${lost} deposit${lost === 1 ? "" : "s"} (under 12.5% of the vote).`, tone: "bad" });
+  }
+  // The candidate list is spent.
+  next = { ...next, nominations: null };
   lines.push({ text: generalSummary(result, s.player), tone: result.totals[s.player] >= (before[s.player] ?? 0) ? "good" : "bad" });
   // Election Night, then talks to form a government
   next.night = { week: s.week, prevHolders: s.holders };

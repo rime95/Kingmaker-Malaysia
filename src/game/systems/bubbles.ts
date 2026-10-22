@@ -29,7 +29,7 @@ const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 /** This week's bubbles: mostly close races and your own seats. */
 export function newBubbles(s: GameState): Bubble[] {
   const h = (...k: (string | number)[]) => hash01("bubble", s.seed, s.week, ...k);
-  const contested = SEATS.filter((seat) => contestingIn(seat).includes(s.player));
+  const contested = SEATS.filter((seat) => contestingIn(seat, s.entries).includes(s.player));
   if (!contested.length) return [];
   const close = contested.filter((seat) => s.holders[seat.index] === s.player || ge15MarginShare(seat) < 0.12);
   const count = 1 + Math.floor(h("count") * 3);

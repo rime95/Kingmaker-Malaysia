@@ -103,7 +103,7 @@ function newPerson(id: number, name: string, party: string, rank: number, seed: 
 }
 
 /** A new branch chief: young, unknown, from a community the party recruits in. */
-function recruit(id: number, party: string, seed: number, week: number, s: Pick<GameState, "player" | "coalitions">): Person {
+export function recruitPerson(id: number, party: string, seed: number, week: number, s: Pick<GameState, "player" | "coalitions">): Person {
   const seats = SEATS.filter((x) => x.ge15Party === party);
   const home = seats.length ? seats[Math.floor(r(seed, "home", id) * seats.length)] : SEATS[Math.floor(r(seed, "home2", id) * SEATS.length)];
   const bloc = recruitBloc(party, home.demo.ethnic, seed, id);
@@ -163,7 +163,7 @@ export function initPeople(s: Pick<GameState, "seed" | "week" | "player" | "coal
           pool[0].rank = rank;
           pool[0].influence = Math.max(pool[0].influence, START_INFLUENCE[rank] - 5);
         } else {
-          const p = recruit(next++, party, seed, s.week, s);
+          const p = recruitPerson(next++, party, seed, s.week, s);
           p.rank = rank;
           p.influence = START_INFLUENCE[rank] - 10;
           p.born -= 10 + rank * 3;
@@ -171,7 +171,7 @@ export function initPeople(s: Pick<GameState, "seed" | "week" | "player" | "coal
         }
       }
     }
-    for (let k = 0; k < slots[0]; k++) people.push(recruit(next++, party, seed, s.week, s));
+    for (let k = 0; k < slots[0]; k++) people.push(recruitPerson(next++, party, seed, s.week, s));
   }
   // Leader mode: you are your party's president.
   const lead = s.coalitions[s.player].members[0];
@@ -212,7 +212,7 @@ function score(p: Person, seed: number, week: number): number {
  */
 function fill(m: Mutable, party: string, rank: number, seed: number, week: number, s: Pick<GameState, "player" | "coalitions">, lines: ReportLine[]) {
   if (rank === 0) {
-    m.people.push(recruit(m.nextPersonId++, party, seed, week, s));
+    m.people.push(recruitPerson(m.nextPersonId++, party, seed, week, s));
     return;
   }
   if (rank === 1) {
@@ -222,7 +222,7 @@ function fill(m: Mutable, party: string, rank: number, seed: number, week: numbe
       up.rank = 1;
       up.since = week;
     }
-    m.people.push(recruit(m.nextPersonId++, party, seed, week, s));
+    m.people.push(recruitPerson(m.nextPersonId++, party, seed, week, s));
     return;
   }
   // Anyone about to retire stays where they are.
@@ -231,7 +231,7 @@ function fill(m: Mutable, party: string, rank: number, seed: number, week: numbe
   // At the very top, a strong Vice President can beat the Deputy.
   const pool = rank === PRESIDENT_RANK ? m.people.filter((p) => eligible(p) && (p.rank === 4 || p.rank === 3)) : below;
   if (!pool.length) {
-    const p = recruit(m.nextPersonId++, party, seed, week, s);
+    const p = recruitPerson(m.nextPersonId++, party, seed, week, s);
     p.rank = rank;
     m.people.push(p);
     return;
@@ -255,7 +255,7 @@ function replaceMp(m: Mutable, party: string, seat: number, seed: number, week: 
       pick.rank = 1;
       fill(m, party, 0, seed, week, s, lines);
     } else {
-      pick = recruit(m.nextPersonId++, party, seed, week, s);
+      pick = recruitPerson(m.nextPersonId++, party, seed, week, s);
       pick.rank = 1;
       m.people.push(pick);
     }
@@ -328,6 +328,23 @@ export function seatWinners(s: GameState, winners: { seat: number; party: string
   const m: Mutable = { people: s.people.map((p) => ({ ...p })), nextPersonId: s.nextPersonId, cabinet: { ...s.cabinet }, youId: s.youId };
   for (const w of winners) {
     const sitting = m.people.find((p) => p.seat === w.seat);
+    // The party's nominated candidate takes the seat.
+    const pickId = s.nominations?.picks[w.seat];
+    const picked = pickId !== undefined ? m.people.find((p) => p.id === pickId && p.party === w.party) : undefined;
+    if (picked) {
+      if (sitting && sitting.id !== picked.id) {
+        sitting.seat = null;
+        sitting.influence = Math.max(0, sitting.influence - 8);
+        if (sitting.retired) m.people = m.people.filter((p) => p.id !== sitting.id);
+      }
+      if (picked.rank === 0) {
+        picked.rank = 1;
+        fill(m, w.party, 0, s.seed, s.week, s, lines);
+      }
+      if (picked.seat !== w.seat) picked.influence = Math.min(100, picked.influence + 6);
+      picked.seat = w.seat;
+      continue;
+    }
     if (sitting && sitting.party === w.party && !sitting.retired) continue;
     if (sitting) {
       sitting.seat = null;
@@ -349,7 +366,7 @@ export function seatWinners(s: GameState, winners: { seat: number; party: string
         cand.since = s.week;
         fill(m, w.party, 0, s.seed, s.week, s, lines);
       } else {
-        cand = recruit(m.nextPersonId++, w.party, s.seed, s.week, s);
+        cand = recruitPerson(m.nextPersonId++, w.party, s.seed, s.week, s);
         cand.rank = 1;
         m.people.push(cand);
       }

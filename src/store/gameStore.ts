@@ -10,6 +10,7 @@ import {
   askFavour,
   closeRace,
   delegateStaff,
+  nominateCandidate,
   fireStaff,
   headhuntStaff,
   launchStimulus,
@@ -55,7 +56,7 @@ import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
 /** Side panels that open over the map. */
-export type Panel = "campaign" | "party" | "people" | "team" | "nation" | "policy" | "states" | "parliament" | "rivals" | "treasury";
+export type Panel = "campaign" | "party" | "people" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury";
 
 export interface Toast {
   id: number;
@@ -98,6 +99,7 @@ interface Store {
   claim: (bubbleId: number) => void;
   poll: (seat: number) => void;
   meet: (id: number) => void;
+  nominate: (seat: number, person: number | "newface") => void;
   money: (
     op:
       | { kind: "buy"; ticker: string; n: number }
@@ -316,6 +318,10 @@ export const useGame = create<Store>()(
           };
           const r = run();
           result(r);
+        },
+        nominate: (seat, person) => {
+          const g = get().game;
+          if (g) result(nominateCandidate(g, seat, person));
         },
         meet: (id) => {
           const g = get().game;
