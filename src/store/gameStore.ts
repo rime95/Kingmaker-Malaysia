@@ -11,6 +11,10 @@ import {
   closeRace,
   delegateStaff,
   nominateCandidate,
+  makePact,
+  dewanPrep,
+  dewanTable,
+  breakPact,
   fireStaff,
   headhuntStaff,
   launchStimulus,
@@ -41,12 +45,14 @@ import {
   type OfferKind,
   type Target,
 } from "@/game/actions";
-import { advanceMonth } from "@/game/month";
+import { advanceTurn, advanceWeeks } from "@/game/month";
+import { testBoost, testGeneralElection, testSitting } from "@/game/testTools";
+import { toggleOrder } from "@/game/systems/orders";
+import type { PrepMove } from "@/game/systems/dewan";
 import { renameCoalition, syncNames } from "@/game/systems/coalitions";
 import { migrateGame, newGame, SAVE_VERSION, type GameState, type NewGameOptions } from "@/game/state";
 import { recordTier } from "./meta";
 import type { AssetType, CeoKind } from "@/game/systems/business";
-import { advanceWeek } from "@/game/week";
 import type { CoalitionId } from "@/game/world";
 import type { PortfolioId } from "@/game/data/people";
 import type { RaceMove } from "@/game/systems/partyrace";
@@ -54,9 +60,9 @@ import { buyProperty, buyShares, cancelOrder, declareAssets, donate, payOffLoan,
 import type { StockOrder } from "@/game/systems/bursa";
 import type { MapFocus } from "@/components/map/MalaysiaMap";
 
-export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result";
+export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result" | "swing";
 /** Side panels that open over the map. */
-export type Panel = "campaign" | "party" | "people" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury";
+export type Panel = "campaign" | "battle" | "party" | "people" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis";
 
 export interface Toast {
   id: number;
@@ -76,6 +82,14 @@ interface Store {
   lens: Lens;
   panel: Panel | null;
   selected: number | null;
+  /** Where on screen the seat was clicked (the action popover opens there); null = docked. */
+  popAt: { x: number; y: number } | null;
+  /** The Record modal (your career, objectives and achievements). */
+  recordOpen: boolean;
+  /** The post-election analysis (opens after Election Night). */
+  analysisOpen: boolean;
+  setAnalysisOpen: (open: boolean) => void;
+  setRecordOpen: (open: boolean) => void;
   /** Where the map should fly next. */
   mapFocus: MapFocus;
   toast: Toast | null;
@@ -85,8 +99,15 @@ interface Store {
   /** Decision cards you put off ("decide later") until you open them again. */
   snoozed: number[];
   budgetSnoozed: boolean;
+  /** Dewan votes you've seen the alert for. */
+  voteSeen: number[];
+  seeVote: (id: number) => void;
   lang: "en" | "ms";
   sound: boolean;
+  /** Play-test tools in the ⋯ menu. */
+  testTools: boolean;
+  setTestTools: (on: boolean) => void;
+  test: (kind: "ge" | "sitting" | "boost") => void;
   setLang: (lang: "en" | "ms") => void;
   setSound: (on: boolean) => void;
   start: (player: CoalitionId, opts?: NewGameOptions) => void;
@@ -99,7 +120,11 @@ interface Store {
   claim: (bubbleId: number) => void;
   poll: (seat: number) => void;
   meet: (id: number) => void;
-  nominate: (seat: number, person: number | "newface") => void;
+  nominate: (seat: number, person: number | "newface" | "local") => void;
+  pact: (c: CoalitionId, on: boolean) => void;
+  order: (id: string, target: Target) => void;
+  dewan: (motionId: number, move: PrepMove) => void;
+  tableMotion: () => void;
   money: (
     op:
       | { kind: "buy"; ticker: string; n: number }
@@ -143,6 +168,10 @@ interface Store {
   load: (game: GameState) => void;
   notify: (text: string, error?: boolean) => void;
   select: (seatIndex: number | null) => void;
+  /** A seat clicked on the map: select it and open the action popover where you clicked. */
+  pick: (seatIndex: number, x: number, y: number) => void;
+  /** Open a panel (no toggling): sub-tabs switch with this. */
+  showPanel: (panel: Panel) => void;
   /** Select a seat and fly the map to it (closes a panel that would cover it on small screens). */
   focusSeat: (seatIndex: number) => void;
   focusState: (stateId: string) => void;
@@ -190,14 +219,35 @@ export const useGame = create<Store>()(
         lens: "holder",
         panel: null,
         selected: null,
+        popAt: null,
+        recordOpen: false,
+        analysisOpen: false,
+        setAnalysisOpen: (analysisOpen) => set({ analysisOpen }),
+        setRecordOpen: (recordOpen) => set({ recordOpen }),
         mapFocus: null,
         toast: null,
         floater: null,
         reportOpen: false,
         snoozed: [],
         budgetSnoozed: false,
+        voteSeen: [],
+        seeVote: (id) => set({ voteSeen: [...get().voteSeen.slice(-40), id] }),
         lang: "en",
         sound: false,
+        testTools: false,
+        setTestTools: (testTools) => set({ testTools }),
+        test: (kind) => {
+          const g = get().game;
+          if (!g || !get().testTools) return;
+          if (kind === "ge") {
+            if (g.night || g.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
+            set({ game: testGeneralElection(g), reportOpen: false, panel: null });
+          } else if (kind === "sitting") {
+            const r = testSitting(g);
+            set({ game: r.state, panel: "parliament", toast: { id: ++toastId, text: r.lines[0]?.text ?? "The Dewan votes." } });
+          }
+          else set({ game: testBoost(g), toast: { id: ++toastId, text: "+10 AP, +RM 10M." } });
+        },
         setLang: (lang) => set({ lang }),
         setSound: (sound) => set({ sound }),
         start: (player, opts) => set({ game: newGame(player, undefined, opts), lens: "holder", panel: null, selected: null, reportOpen: false, snoozed: [], mapFocus: { kind: "reset", nonce: ++nonce } }),
@@ -212,21 +262,21 @@ export const useGame = create<Store>()(
         skipWeek: () => {
           const g = get().game;
           if (g?.night || g?.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
-          if (g) moved(advanceWeek(g));
+          if (g) moved(advanceTurn(g));
         },
         skipMonth: () => {
           const g = get().game;
           if (g?.night || g?.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
-          if (g) moved(advanceMonth(g));
+          if (g) moved(advanceWeeks(g, 4, true));
         },
         skipToEvent: () => {
           let g = get().game;
           if (!g) return;
           if (g.night || g.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
           const start = g.week;
-          // Up to 12 weeks, stopping at anything that needs you.
-          for (let i = 0; i < 12; i++) {
-            g = advanceWeek(g);
+          // Up to 12 weeks (six turns), stopping at anything that needs you.
+          for (let i = 0; i < 6; i++) {
+            g = advanceTurn(g);
             const alarming = g.report!.lines.some((l) => /MACC|in debt|Couldn.t pay|state election|by-election|leadership|retires|Achievement|Objective complete/.test(l.text));
             if (g.cards.length || g.budgetDue !== null || g.night || g.parliament.status === "campaign" || alarming) break;
           }
@@ -319,6 +369,24 @@ export const useGame = create<Store>()(
           const r = run();
           result(r);
         },
+        dewan: (motionId, move) => {
+          const g = get().game;
+          if (g) result(dewanPrep(g, motionId, move));
+        },
+        tableMotion: () => {
+          const g = get().game;
+          if (g) result(dewanTable(g));
+        },
+        order: (id, target) => {
+          const g = get().game;
+          if (!g) return;
+          const r = toggleOrder(g, id, target);
+          result("error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message });
+        },
+        pact: (c, on) => {
+          const g = get().game;
+          if (g) result(on ? makePact(g, c) : breakPact(g, c));
+        },
         nominate: (seat, person) => {
           const g = get().game;
           if (g) result(nominateCandidate(g, seat, person));
@@ -396,15 +464,18 @@ export const useGame = create<Store>()(
         },
         endNight: () => {
           const g = get().game;
-          if (g) set({ game: closeNight(g) });
+          if (g) set({ game: closeNight(g), analysisOpen: !!g.lastAnalysis && g.lastAnalysis.week === g.night?.week });
         },
         load: (game) => set({ game, selected: null, reportOpen: false, panel: null, snoozed: [], toast: { id: ++toastId, text: "Game loaded." }, mapFocus: { kind: "reset", nonce: ++nonce } }),
         notify: (text, error) => set({ toast: { id: ++toastId, text, error } }),
-        select: (selected) => set({ selected }),
-        focusSeat: (i) => set({ selected: i, mapFocus: { kind: "seat", index: i, nonce: ++nonce }, panel: typeof window !== "undefined" && window.innerWidth < 900 ? null : get().panel }),
+        select: (selected) => set({ selected, popAt: null }),
+        pick: (i, x, y) => set({ selected: i, popAt: { x, y } }),
+        // A seat popover that was open by the click point moves aside (docked right) so the panel doesn't sit under it.
+        showPanel: (panel) => set({ panel, popAt: null }),
+        focusSeat: (i) => set({ selected: i, popAt: null, mapFocus: { kind: "seat", index: i, nonce: ++nonce }, panel: typeof window !== "undefined" && window.innerWidth < 900 ? null : get().panel }),
         focusState: (id) => set({ mapFocus: { kind: "state", id, nonce: ++nonce } }),
         setLens: (lens) => set({ lens }),
-        openPanel: (panel) => set({ panel: get().panel === panel ? null : panel }),
+        openPanel: (panel) => set({ panel: get().panel === panel ? null : panel, popAt: null }),
         closeReport: () => set({ reportOpen: false }),
         clearToast: () => set({ toast: null }),
       };
@@ -413,13 +484,13 @@ export const useGame = create<Store>()(
       name: "mpr-save",
       version: SAVE_VERSION,
       storage: safeStorage,
-      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound }),
+      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound, testTools: s.testTools }),
       // Saves from before the turn loop can't be upgraded: start fresh.
       migrate: (persisted, version) => (version < 2 ? { game: null, lens: "holder" } : persisted) as Store,
       // Every load fills fields added since the save was made (safe to repeat).
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<Store>;
-        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound };
+        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound, testTools: p.testTools ?? current.testTools };
       },
     },
   ),

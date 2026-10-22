@@ -1,12 +1,11 @@
 "use client";
 
-import { Fragment, useMemo, useState, useSyncExternalStore } from "react";
+import { Fragment, useState, useSyncExternalStore } from "react";
 import { DIFFICULTY, DIFFICULTY_ROWS, SCENARIOS, type Difficulty, type ScenarioId } from "@/game/config";
-import { defaultHomeSeat } from "@/game/systems/career";
 import { TIER_TEXT } from "@/game/systems/formation";
 import { useGame } from "@/store/gameStore";
 import { metaSnapshot, underdogUnlocked, type Meta } from "@/store/meta";
-import { cname, COALITION_INFO, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
+import { cname, COALITION_INFO, SEATS, type CoalitionId } from "@/game/world";
 import { coalColor } from "./common";
 import { SaveSlots } from "./SaveSlots";
 import { Toast } from "./Toast";
@@ -19,12 +18,8 @@ export function NewGame() {
   const start = useGame((s) => s.start);
   const meta = useSyncExternalStore(noop, metaSnapshot, () => EMPTY);
   const [pick, setPick] = useState<CoalitionId | null>(null);
-  const [mode, setMode] = useState<"leader" | "career">("leader");
-  const [name, setName] = useState("");
-  const [home, setHome] = useState<number | null>(null);
   const [scenario, setScenario] = useState<ScenarioId>("present");
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
-  const seats = useMemo(() => (pick ? [...SEATS].sort((a, b) => a.name.localeCompare(b.name)) : []), [pick]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 flex flex-col gap-6">
@@ -34,7 +29,7 @@ export function NewGame() {
           Malam Pilihan Raya
         </h1>
         <p className="mt-2" style={{ color: "var(--ink-2)" }}>
-          Build your power base, hold what you have and win election night. Pick the coalition you will lead.
+          Build your power base, hold what you have and win election night. You are the party president: pick the coalition you will lead.
         </p>
         <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>
           Data snapshot: Oct 2026 leaders, GE15 seat results, approximate state assembly splits. Real parties and leaders are used for
@@ -50,10 +45,7 @@ export function NewGame() {
           return (
             <button
               key={c}
-              onClick={() => {
-                setPick(c);
-                setHome(defaultHomeSeat(c));
-              }}
+              onClick={() => setPick(c)}
               className="panel p-4 text-left hover:shadow-md transition-shadow"
               style={{ borderLeft: `5px solid ${coalColor(c)}`, outline: pick === c ? "2px solid var(--ink)" : undefined }}
               aria-pressed={pick === c}
@@ -79,33 +71,6 @@ export function NewGame() {
       {pick && (
         <section className="panel p-4 flex flex-col gap-4">
           <h2 className="font-semibold">Your game with {cname(pick)}</h2>
-          <Choice label="How you play">
-            <button className="chip" aria-pressed={mode === "leader"} onClick={() => setMode("leader")}>
-              Leader: start as {COALITION_INFO[pick].leader}, party president
-            </button>
-            <button className="chip" aria-pressed={mode === "career"} onClick={() => setMode("career")}>
-              Career: start as a branch chief and climb
-            </button>
-          </Choice>
-          {mode === "career" && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-sm flex flex-col gap-1">
-                Your name
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Aisyah" maxLength={40} className="rounded-lg border px-3 py-2" style={{ borderColor: "var(--line)", background: "var(--surface-2)", color: "var(--ink)" }} />
-              </label>
-              <label className="text-sm flex flex-col gap-1">
-                Home seat (you will contest it to become an MP)
-                <select value={home ?? ""} onChange={(e) => setHome(Number(e.target.value))} className="rounded-lg border px-3 py-2" style={{ borderColor: "var(--line)", background: "var(--surface-2)", color: "var(--ink)" }}>
-                  {seats.map((s) => (
-                    <option key={s.index} value={s.index}>
-                      {s.name} ({STATE_BY_ID[s.state].name}) · held by {cshort(s.ge15Coalition)}
-                      {contestingIn(s).includes(pick!) ? "" : " · you start a new branch"}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          )}
           <Choice label="Scenario">
             {(Object.keys(SCENARIOS) as ScenarioId[]).map((id) => {
               const locked = id === "underdog" && !underdogUnlocked(meta);
@@ -146,7 +111,7 @@ export function NewGame() {
               {DIFFICULTY[difficulty].text}
             </p>
           </div>
-          <button className="btn self-start" onClick={() => start(pick, { mode, name, homeSeat: home ?? undefined, scenario, difficulty })}>
+          <button className="btn self-start" onClick={() => start(pick, { mode: "leader", scenario, difficulty })}>
             Start
           </button>
         </section>

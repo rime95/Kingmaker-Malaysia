@@ -48,7 +48,8 @@ export function Career() {
           </div>
 
           <ol className="flex flex-col gap-1">
-            {names.map((name, i) => {
+            {/* Leader mode starts at the top: only the career ladder shows the rungs below. */}
+            {(c.mode === "leader" ? [] : names).map((name, i) => {
               const here = i === c.rung;
               const done = i < c.rung;
               return (

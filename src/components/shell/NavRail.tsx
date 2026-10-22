@@ -1,41 +1,43 @@
 "use client";
 
 import { useGame, type Panel } from "@/store/gameStore";
-import { useT, type StringKey } from "../i18n";
+import { SECTIONS, sectionOf, type Section } from "./sections";
 import { Icon } from "./icons";
 
-export const ITEMS: { id: Panel; label: StringKey }[] = [
-  { id: "campaign", label: "campaign" },
-  { id: "party", label: "career" },
-  { id: "people", label: "people" },
-  { id: "team", label: "team" },
-  { id: "nation", label: "nation" },
-  { id: "policy", label: "policy" },
-  { id: "states", label: "states" },
-  { id: "parliament", label: "dewan" },
-  { id: "rivals", label: "rivals" },
-  { id: "treasury", label: "treasury" },
-];
+/** The tab you last used in each section. */
+const last: Partial<Record<string, Panel>> = {};
+useGame.subscribe((st) => {
+  const cur = sectionOf(st.panel);
+  if (cur && st.panel) last[cur.id] = st.panel;
+});
 
-/** Left icon rail on desktop, bottom bar on phones. Each icon opens one panel over the map. */
+/** Open a section on the tab you last used there (or close it if it's open). */
+export function openSection(s: Section) {
+  const st = useGame.getState();
+  if (sectionOf(st.panel)?.id === s.id) st.openPanel(null);
+  else st.showPanel(last[s.id] ?? s.tabs[0].id);
+}
+
+/** Left icon rail on desktop, bottom bar on phones: six sections, each with its own tabs. */
 export function NavRail() {
-  const { panel, openPanel } = useGame();
-  const t = useT();
+  const panel = useGame((s) => s.panel);
+  const game = useGame((s) => s.game)!;
+  const cur = sectionOf(panel);
   return (
-    <nav className="panel flex md:flex-col gap-1 p-1.5 justify-between md:justify-around overflow-x-auto md:overflow-visible scroll-thin" aria-label="Panels">
-      {ITEMS.map((it) => {
-        const on = panel === it.id;
+    <nav className="panel flex md:flex-col gap-1 p-1.5 justify-between md:justify-around overflow-x-auto md:overflow-visible scroll-thin" aria-label="Sections">
+      {SECTIONS.map((s, k) => {
+        const on = cur?.id === s.id;
         return (
           <button
-            key={it.id}
-            onClick={() => openPanel(it.id)}
+            key={s.id}
+            onClick={() => openSection(s)}
             aria-pressed={on}
-            title={`${t(it.label)} (${ITEMS.indexOf(it) + 1 < 10 ? ITEMS.indexOf(it) + 1 : 0})`}
-            className="nav-item flex-none flex flex-col items-center gap-0.5 rounded-xl px-1.5 md:px-2 py-2 min-w-[44px] md:w-[58px] transition-colors"
+            title={`${s.label(game)} (${k + 1})`}
+            className="nav-item flex-none flex flex-col items-center gap-0.5 rounded-xl px-1.5 md:px-2 py-2 min-w-[44px] md:w-[62px] transition-colors"
             style={{ background: on ? "linear-gradient(135deg, var(--primary-a), var(--primary-b))" : "transparent", color: on ? "#fff" : "var(--ink-2)" }}
           >
-            <Icon name={it.id === "parliament" ? "parliament" : it.id} className="w-5 h-5" />
-            <span className="text-[9px] font-semibold leading-tight text-center">{t(it.label)}</span>
+            <Icon name={s.icon} className="w-5 h-5" />
+            <span className="text-[9.5px] font-semibold leading-tight text-center">{s.label(game)}</span>
           </button>
         );
       })}

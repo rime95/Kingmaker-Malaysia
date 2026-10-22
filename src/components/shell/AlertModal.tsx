@@ -2,12 +2,13 @@
 
 import { CARD_BY_KIND, describeEffect } from "@/game/systems/events";
 import { isGovernment } from "@/game/state";
+import { MOTION_BY_ID, nextMotion } from "@/game/systems/dewan";
 import { useGame } from "@/store/gameStore";
 
 /** GE16-style "breaking news" alerts: one decision at a time, as it arrives. "Decide later" parks it in the top bar. */
 export function AlertModal() {
   const game = useGame((s) => s.game)!;
-  const { snoozed, budgetSnoozed, answer, snooze, snoozeBudget, openPanel } = useGame();
+  const { snoozed, budgetSnoozed, answer, snooze, snoozeBudget, showPanel, voteSeen, seeVote } = useGame();
   if (game.night || game.formation) return null;
 
   if (game.budgetDue !== null && !budgetSnoozed) {
@@ -28,10 +29,36 @@ export function AlertModal() {
             className="btn"
             onClick={() => {
               snoozeBudget();
-              openPanel("policy");
+              showPanel("policy");
             }}
           >
             Open the Budget
+          </button>
+        </div>
+      </Shell>
+    );
+  }
+
+  const vote = nextMotion(game);
+  if (vote && vote.voteWeek <= game.week + 1 && !voteSeen.includes(vote.id)) {
+    return (
+      <Shell tag="Dewan Rakyat">
+        <h2 className="text-2xl font-black text-center leading-tight">{vote.title}</h2>
+        <p className="text-sm text-center" style={{ color: "var(--ink-2)" }}>
+          {MOTION_BY_ID[vote.def].blurb} The House votes this turn. Whip your MPs, court another party, amend it or speak first.
+        </p>
+        <div className="flex gap-2 justify-center">
+          <button className="btn-ghost btn" onClick={() => seeVote(vote.id)}>
+            Let it run
+          </button>
+          <button
+            className="btn"
+            onClick={() => {
+              seeVote(vote.id);
+              showPanel("orderpaper");
+            }}
+          >
+            Open the Order Paper
           </button>
         </div>
       </Shell>

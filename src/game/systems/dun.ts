@@ -115,7 +115,7 @@ export interface DunProjection {
 
 /** Shares in every state seat today, from the same inputs as the parliamentary projection. */
 export function projectDuns(inputs: VoterInputs, extra?: (d: DunSeat, c: CoalitionId) => number): DunProjection[] {
-  const parent = SEATS.map((s) => seatShares(s, inputs));
+  const parent = SEATS.map((s) => seatShares(s, { ...inputs, aside: undefined }));
   return DUNS.map((d) => {
     const sh = sharesFor(d, parent[d.parent], (c) => DUN_CAL[d.index][COALITION_INDEX[c]] + (extra ? extra(d, c) : 0));
     const [leader, v1, , v2] = topTwo(sh);

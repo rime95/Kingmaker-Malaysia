@@ -1,5 +1,6 @@
 // Weekly bookkeeping for your career, term objectives and achievements, plus the career effects of elections.
 
+import { TURN_WEEKS } from "./config";
 import type { GameState, ReportLine } from "./state";
 import { AP_BY_RUNG, CAREER, MP, PRESIDENT, addPoints, factionSize, promote, rungName, succession } from "./systems/career";
 import { ACHIEVEMENTS, OBJECTIVE_REWARD, newAchievements, newObjectives, objectiveMet } from "./systems/goals";
@@ -33,7 +34,7 @@ export function careerWeek(s: GameState): { state: GameState; lines: ReportLine[
     c.challenge = true;
     lines.push({ text: "Party unity has collapsed. Rivals inside the party will challenge your leadership at the next AGM.", tone: "bad" });
   }
-  const apMax = AP_BY_RUNG[c.rung] + (pm ? 2 : 0) + teamAp(s);
+  const apMax = (AP_BY_RUNG[c.rung] + (pm ? 2 : 0) + teamAp(s)) * TURN_WEEKS;
   return { state: { ...s, career: c, me: { ...s.me, apMax } }, lines };
 }
 

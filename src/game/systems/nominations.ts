@@ -27,7 +27,9 @@ export const NOMINATION = {
   window: 2,
   incumbent: 0.1,
   /** Personal vote per point of standing above 40. */
-  perInfluence: 1 / 400,
+  perInfluence: 1 / 250,
+  /** Poaching a popular local figure (a doctor, a headman, a footballer) to stand for you. */
+  local: { cost: 500_000, influence: 78 },
   newFace: 0.04,
   newFaceYouth: 0.3,
   /** Loyalty a dropped MP loses, and below which they may run as an independent. */
@@ -124,23 +126,25 @@ export function openNominations(s: GameState): { state: GameState; lines: Report
   return { state, lines: [{ text, tone: "info" }] };
 }
 
-export function pickBlocked(s: GameState, seat: number, personId: number | "newface"): string | null {
+export function pickBlocked(s: GameState, seat: number, personId: number | "newface" | "local"): string | null {
   if (!s.nominations?.open) return "Nominations are closed.";
   if (s.career.rung < 6) return "Your party president names the candidates.";
   if (!partySeats(s).includes(seat)) return "Your party doesn't put up the candidate here.";
-  if (personId !== "newface" && !eligible(s, seat).some((p) => p.id === personId)) return "They can't stand here.";
+  if (personId === "local" && s.me.funds < NOMINATION.local.cost) return "Not enough money to bring them over.";
+  if (typeof personId === "number" && !eligible(s, seat).some((p) => p.id === personId)) return "They can't stand here.";
   return null;
 }
 
 /** You, as president, put someone up in a seat. */
-export function nominate(s: GameState, seat: number, personId: number | "newface"): { state: GameState; message: string } | { error: string } {
+export function nominate(s: GameState, seat: number, personId: number | "newface" | "local"): { state: GameState; message: string } | { error: string } {
   const why = pickBlocked(s, seat, personId);
   if (why) return { error: why };
   let state = s;
   let id: number;
-  if (personId === "newface") {
-    const fresh = { ...recruitPerson(s.nextPersonId, yourParty(s), s.seed, s.week, s), rank: 1 };
-    state = { ...state, people: [...state.people, fresh], nextPersonId: s.nextPersonId + 1 };
+  if (personId === "newface" || personId === "local") {
+    const local = personId === "local";
+    const fresh = { ...recruitPerson(s.nextPersonId, yourParty(s), s.seed, s.week + (local ? 7 : 0), s), rank: 1, ...(local ? { influence: NOMINATION.local.influence } : {}) };
+    state = { ...state, people: [...state.people, fresh], nextPersonId: s.nextPersonId + 1, me: local ? { ...state.me, funds: state.me.funds - NOMINATION.local.cost } : state.me };
     id = fresh.id;
   } else id = personId;
   const picks = { ...s.nominations!.picks, [seat]: id };
@@ -151,7 +155,9 @@ export function nominate(s: GameState, seat: number, personId: number | "newface
 /** A candidate's personal vote in a seat (log-odds for your coalition). */
 export function candidateStrength(s: Pick<GameState, "week">, seat: number, p: Person | undefined): number {
   if (!p) return 0;
+  // A heavyweight pulls votes; an unknown costs a little, not much (voters mostly vote for the party).
   let v = (p.influence - 40) * NOMINATION.perInfluence;
+  if (v < 0) v *= 0.4;
   if (p.seat === seat) v += NOMINATION.incumbent;
   if (ageOf(p, s.week) < 36 && p.seat === null && SEATS[seat].demo.youth > NOMINATION.newFaceYouth) v += NOMINATION.newFace;
   return v;

@@ -7,7 +7,7 @@ import { winChance } from "@/game/systems/polls";
 import { useGame } from "@/store/gameStore";
 import { SEATS, STATE_BY_ID, contestingIn } from "@/game/world";
 import { ActionCard } from "../ActionCard";
-import { pct, useReads } from "../common";
+import { chancePct, useReads } from "../common";
 
 /** Name your party's candidates (as president), or see who the president picked and where you stand. */
 export function NominationsPanel() {
@@ -95,14 +95,14 @@ export function NominationsPanel() {
                   </span>
                   <span style={{ color: "var(--muted)" }}>
                     {STATE_BY_ID[SEATS[i].state].name}
-                    {chance !== null ? ` · ${pct(chance)} to win` : ""}
+                    {chance !== null ? ` · ${chancePct(chance)} to win` : ""}
                   </span>
                 </button>
                 <div className="min-w-0">
                   {president && n.open ? (
                     <select
                       value={pick?.id ?? ""}
-                      onChange={(e) => nominate(i, e.target.value === "newface" ? "newface" : Number(e.target.value))}
+                      onChange={(e) => nominate(i, e.target.value === "newface" || e.target.value === "local" ? e.target.value : Number(e.target.value))}
                       className="w-full rounded-md px-1.5 py-1 text-xs"
                       style={{ background: "var(--surface-2)", color: "var(--ink)", border: "1px solid var(--line)" }}
                     >
@@ -115,6 +115,9 @@ export function NominationsPanel() {
                       ))}
                       <option value="newface" style={{ background: "var(--raised)" }}>
                         + A new face (young local)
+                      </option>
+                      <option value="local" style={{ background: "var(--raised)" }}>
+                        + Poach a popular local figure (RM 500k)
                       </option>
                     </select>
                   ) : (

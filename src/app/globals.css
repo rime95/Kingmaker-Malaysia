@@ -570,3 +570,8 @@ button.inset:active:not(:disabled),
     animation: none;
   }
 }
+
+/* Hemicycle seats change colour in a wave when a division is shown. */
+.dewan-dot {
+  transition: fill 0.35s ease;
+}

@@ -13,7 +13,7 @@ export function LensBar() {
     <div className="panel px-2 py-2 flex flex-col gap-1.5 max-w-full">
       <div className="flex gap-1 overflow-x-auto scroll-thin" role="radiogroup" aria-label="Map view">
         {LENSES.map((l) => {
-          const disabled = l.id === "result" && !game.lastElection;
+          const disabled = (l.id === "result" && !game.lastElection) || (l.id === "swing" && !game.lastAnalysis);
           return (
             <button
               key={l.id}
@@ -22,7 +22,7 @@ export function LensBar() {
               className="chip flex-none"
               data-on={lens === l.id}
               disabled={disabled}
-              title={disabled ? "Run a test election first (menu ⋯)" : l.label}
+              title={disabled ? (l.id === "swing" ? "After the next general election" : "Run a test election first (menu ⋯)") : l.label}
               style={disabled ? { opacity: 0.35, cursor: "not-allowed" } : undefined}
               onClick={() => setLens(l.id)}
             >

@@ -9,10 +9,13 @@ import { ElectionNight } from "./ElectionNight";
 import { SaveSlots } from "./SaveSlots";
 import { MainMap } from "./shell/MainMap";
 import { TopBar } from "./shell/TopBar";
-import { ITEMS, NavRail } from "./shell/NavRail";
+import { NavRail, openSection } from "./shell/NavRail";
+import { SECTIONS } from "./shell/sections";
+import { SeatPopover } from "./shell/SeatPopover";
+import { RecordModal } from "./RecordModal";
+import { ElectionAnalysisModal } from "./ElectionAnalysis";
 import { LensBar } from "./shell/LensBar";
 import { SidePanel } from "./shell/SidePanel";
-import { SeatCard } from "./shell/SeatCard";
 import { NewsTicker } from "./shell/NewsTicker";
 import { WeekReview } from "./shell/WeekReview";
 import { AlertModal } from "./shell/AlertModal";
@@ -37,7 +40,7 @@ function Main() {
   const { panel, selected } = useGame();
   const game = useGame((s) => s.game)!;
   const [savesOpen, setSavesOpen] = useState(false);
-  // Keyboard: N or Space for next week, 1–9 and 0 for the panels (not while typing or a dialog is open).
+  // Keyboard: N or Space for the next turn, 1–6 for the sections (not while typing or a dialog is open).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
@@ -46,10 +49,7 @@ function Main() {
       if (e.key === "n" || e.key === "N" || (e.key === " " && el.tagName !== "BUTTON")) {
         e.preventDefault();
         st.skipWeek();
-      } else if (/^[0-9]$/.test(e.key)) {
-        const it = ITEMS[e.key === "0" ? 9 : Number(e.key) - 1];
-        if (it) st.openPanel(it.id);
-      }
+      } else if (/^[1-6]$/.test(e.key)) openSection(SECTIONS[Number(e.key) - 1]);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -91,13 +91,7 @@ function Main() {
         </div>
       )}
 
-      {selected !== null && (
-        <div className="absolute inset-x-3 md:left-auto md:right-3 bottom-[128px] md:bottom-[72px] top-auto md:top-[88px] max-h-[58vh] md:max-h-none z-30 flex md:items-start pointer-events-none">
-          <div className="pointer-events-auto flex max-h-full w-full md:w-auto">
-            <SeatCard />
-          </div>
-        </div>
-      )}
+      {selected !== null && panel !== "seat" && <SeatPopover />}
 
       {!panel && selected === null && (
         <div className="absolute left-3 md:left-[92px] bottom-[128px] md:bottom-[72px] z-20 max-h-[50vh] flex">
@@ -123,6 +117,8 @@ function Main() {
         </div>
       )}
       <AlertModal />
+      <RecordModal />
+      {!game.night && <ElectionAnalysisModal />}
       {!game.night && <PartyRaceCount />}
       {game.namePending && !game.night && !game.formation && <NameCoalition />}
       <ElectionNight />

@@ -72,6 +72,12 @@ export const ICONS = {
       <path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" />
     </svg>
   ),
+  seat: (
+    <svg viewBox="0 0 24 24" {...P}>
+      <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" />
+      <circle cx="12" cy="10" r="2.4" />
+    </svg>
+  ),
   close: (
     <svg viewBox="0 0 24 24" {...P}>
       <path d="M6 6l12 12M18 6 6 18" />

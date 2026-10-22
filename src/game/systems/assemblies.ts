@@ -18,6 +18,7 @@ import { COALITIONS, contestingIn, cshort, MAJORITY, SEATS, STATE_BY_ID, STATES,
 import { DUNS_BY_STATE, projectDuns, runStateElection } from "./dun";
 import { startFormation } from "./formation";
 import { addPoints } from "./career";
+import { buildAnalysis } from "./analysis";
 
 export interface Assembly {
   status: "sitting" | "campaign";
@@ -214,6 +215,7 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
     seatResults,
     geCount,
     lastElection: result,
+    lastAnalysis: buildAnalysis(s, inputs, result, `GE${geCount}`),
     parliament: { ...s.parliament, status: "sitting", pollWeek: null, lastPollWeek: s.week, deadlineWeek: s.week + GE.termWeeks },
   };
   next = applyMomentum(next, before, result.totals, SEATS.length);
@@ -227,8 +229,17 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
     next = { ...next, me: { ...next.me, funds: next.me.funds - lost * NOMINATION.deposit } };
     lines.push({ text: `You lost ${lost} deposit${lost === 1 ? "" : "s"} (under 12.5% of the vote).`, tone: "bad" });
   }
-  // The candidate list is spent.
-  next = { ...next, nominations: null };
+  // The candidate list is spent, pacts end, new local issues surface and incumbency fades a little.
+  const gained = holders.filter((h, i) => h === s.player && s.holders[i] !== s.player).length;
+  next = {
+    ...next,
+    nominations: null,
+    pacts: [],
+    issuesTaken: {},
+    calWeight: (s.calWeight ?? 1) * GE.calFade,
+    me: { ...next.me, momentum: Math.min(100, (next.me.momentum ?? 0) * 0.5 + gained * 2) },
+  };
+  if (s.pacts.length) lines.push({ text: "Your seat pacts have run their course.", tone: "info" });
   lines.push({ text: generalSummary(result, s.player), tone: result.totals[s.player] >= (before[s.player] ?? 0) ? "good" : "bad" });
   // Election Night, then talks to form a government
   next.night = { week: s.week, prevHolders: s.holders };

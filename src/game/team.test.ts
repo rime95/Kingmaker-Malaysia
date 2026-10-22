@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fireStaff, hireStaff, raiseStaff } from "./actions";
-import { DIFFICULTY } from "./config";
+import { DIFFICULTY, TURN_WEEKS } from "./config";
 import { advanceMonth } from "./month";
 import { newGame, type GameState } from "./state";
 import { TEAM, freshMarket, pollError, teamSlots, type Role, type Staff } from "./systems/team";
@@ -36,9 +36,9 @@ describe("your team", () => {
     const g = newGame("PH", 3);
     const x = staff("polsec", 2);
     const r = hireStaff(withMarket(g, x), x.id);
-    expect(r.ok && r.state.me.apMax).toBe(g.me.apMax + 1);
+    expect(r.ok && r.state.me.apMax).toBe(g.me.apMax + TURN_WEEKS);
     if (!r.ok) return;
-    expect(advanceWeek(r.state).me.apMax).toBe(advanceWeek(g).me.apMax + 1);
+    expect(advanceWeek(r.state).me.apMax).toBe(advanceWeek(g).me.apMax + TURN_WEEKS);
     const f = fireStaff(r.state, x.id);
     expect(f.ok && f.state.me.apMax).toBe(g.me.apMax);
   });

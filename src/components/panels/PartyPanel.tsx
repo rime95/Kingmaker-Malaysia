@@ -2,7 +2,6 @@
 
 import { MACC } from "@/game/config";
 import { useGame } from "@/store/gameStore";
-import { Career } from "../Career";
 import { CoalitionCard } from "../CoalitionCard";
 import { PartyRaceCard } from "../PartyRace";
 import { fmt, fmtRM } from "../common";
@@ -10,7 +9,8 @@ import { fmt, fmtRM } from "../common";
 /** Your party's health at a glance, then your career. */
 export function PartyPanel() {
   const game = useGame((s) => s.game)!;
-  const openPanel = useGame((s) => s.openPanel);
+  const openPanel = useGame((s) => s.showPanel);
+  const setRecordOpen = useGame((s) => s.setRecordOpen);
   const me = game.me;
   const maccChance = Math.max(0, me.risk - MACC.threshold) / MACC.divisor;
   return (
@@ -37,11 +37,15 @@ export function PartyPanel() {
           </div>
         </div>
       </section>
-      <button className="chip self-start" onClick={() => openPanel("nominations")}>
-        Candidates and nominations
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button className="chip" onClick={() => openPanel("nominations")}>
+          Candidates and nominations
+        </button>
+        <button className="chip" onClick={() => setRecordOpen(true)}>
+          Your record, objectives and achievements
+        </button>
+      </div>
       <CoalitionCard />
-      <Career />
     </div>
   );
 }

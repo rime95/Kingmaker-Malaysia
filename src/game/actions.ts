@@ -1,7 +1,7 @@
 // Every player decision, as pure functions: (state, target) → new state + a message.
 // Actions cost Action Points (AP) and money. Business decisions cost money only.
 
-import { ECONOMY } from "./config";
+import { ECONOMY, TURN_WEEKS } from "./config";
 import { POLLS, commissionedRead } from "./systems/polls";
 import { BUDGET, BUDGET_LINES, budgetEnvelope } from "./systems/budget";
 import { resolveCard } from "./systems/events";
@@ -17,6 +17,9 @@ import { fire, headhunt, hire, pollError, raise, setAuto, teamAp } from "./syste
 import { NATION, PROJECT_BY_ID, type Nation } from "./systems/nation";
 import { insiderCheck, policySector } from "./systems/wealth";
 import { nominate } from "./systems/nominations";
+import { ISSUE, openIssues } from "./systems/issues";
+import { endPact, proposePact } from "./systems/pacts";
+import { prepMotion, tableMotion, type PrepMove } from "./systems/dewan";
 import { startFormation } from "./systems/formation";
 import { seatCounts } from "./state";
 import { hash01 } from "./rng";
@@ -471,7 +474,7 @@ export const ACTIONS: ActionDef[] = [
     blocked: notContesting,
     run: (me, s, t) => {
       const i = (t as { seat: number }).seat;
-      me.service[i] = clamp(me.service[i] + 6 * eff(me));
+      me.service[i] = clamp(me.service[i] + 9 * eff(me));
       return `Service project delivered in ${SEATS[i].name}.`;
     },
   },
@@ -486,8 +489,46 @@ export const ACTIONS: ActionDef[] = [
     blocked: notContesting,
     run: (me, s, t) => {
       const i = (t as { seat: number }).seat;
-      me.machinery[i] = clamp(me.machinery[i] + 10);
+      me.machinery[i] = clamp(me.machinery[i] + 12);
       return `Machinery in ${SEATS[i].name} is now ${Math.round(me.machinery[i])}.`;
+    },
+  },
+  {
+    id: "ground",
+    name: "Full ground campaign",
+    group: "local",
+    target: "seat",
+    ap: 4,
+    blurb: "Ceramah, walkabout and new machinery in one go: the whole week's work in a seat, in one click.",
+    cost: () => 90_000,
+    blocked: notContesting,
+    run: (me, s, t) => {
+      const i = (t as { seat: number }).seat;
+      me.buzz[i] = addBuzz(addBuzz(me.buzz[i], 18 * eff(me)), 7 * eff(me));
+      me.service[i] = clamp(me.service[i] + 1);
+      me.machinery[i] = clamp(me.machinery[i] + 12);
+      return `A full ground campaign in ${SEATS[i].name}: a packed ceramah, the morning markets and new polling agents.`;
+    },
+  },
+  {
+    id: "issue",
+    name: "Take up the local issue",
+    group: "local",
+    target: "seat",
+    ap: ISSUE.ap,
+    blurb: "Make the seat's biggest worry your cause. A lasting boost here, bigger in government (you can actually fix it).",
+    cost: (s) => (isGovernment(s) ? ISSUE.costGov : ISSUE.costOpp),
+    blocked: (s, t) => notContesting(s, t) ?? (t.kind === "seat" && !openIssues(s, t.seat).length ? "You have taken up every issue here this term." : null),
+    run: (me, s, t) => {
+      const i = (t as { seat: number }).seat;
+      const d = openIssues(s, i)[0];
+      me.buzz[i] = addBuzz(me.buzz[i], ISSUE.buzz * eff(me));
+      return `${d.name} in ${SEATS[i].name}: ${isGovernment(s) ? d.gov : d.opp}.`;
+    },
+    after: (s, t) => {
+      const i = (t as { seat: number }).seat;
+      const d = openIssues(s, i)[0];
+      return { ...s, issuesTaken: { ...s.issuesTaken, [i]: [...(s.issuesTaken[i] ?? []), d.id] } };
     },
   },
   {
@@ -731,7 +772,7 @@ export function applyAction(s: GameState, id: string, t: Target): ActionResult {
   // ...and of the MPs themselves.
   const mps = new Set(seats.filter((i) => s.holders[i] === s.player).map((i) => mpOf(s, i)?.id));
   const people = mps.size ? base.people.map((p) => (mps.has(p.id) && p.id !== s.youId ? { ...p, loyalty: Math.min(100, p.loyalty + gain * 0.5) } : p)) : base.people;
-  return { ok: true, state: { ...base, me, people, career: { ...base.career, loyalty } }, message };
+  return { ok: true, state: { ...base, me: def.after ? base.me : me, people, career: { ...base.career, loyalty } }, message };
 }
 
 export const WAR_ROOM_COST = 100_000;
@@ -747,7 +788,7 @@ const teamResult = (r: { state: GameState; message: string } | { error: string }
 /** A political secretary changes your action points straight away. */
 const withAp = (before: GameState, r: ActionResult): ActionResult => {
   if (!r.ok) return r;
-  const d = teamAp(r.state) - teamAp(before);
+  const d = (teamAp(r.state) - teamAp(before)) * TURN_WEEKS;
   return d ? { ...r, state: { ...r.state, me: { ...r.state.me, apMax: r.state.me.apMax + d, ap: Math.max(0, r.state.me.ap + d) } } } : r;
 };
 export const hireStaff = (s: GameState, id: number) => withAp(s, teamResult(hire(s, id)));
@@ -756,8 +797,28 @@ export const raiseStaff = (s: GameState, id: number) => teamResult(raise(s, id))
 export const headhuntStaff = (s: GameState) => teamResult(headhunt(s));
 export const delegateStaff = (s: GameState, id: number, auto: boolean) => teamResult(setAuto(s, id, auto));
 
+/** Dewan Rakyat: get ready for a vote, or table a motion of your own. */
+export function dewanPrep(s: GameState, motionId: number, move: PrepMove): ActionResult {
+  const r = prepMotion(s, motionId, move);
+  return "error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message };
+}
+export function dewanTable(s: GameState): ActionResult {
+  const r = tableMotion(s);
+  return "error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message };
+}
+
+/** Seat pacts with another coalition. */
+export function makePact(s: GameState, c: CoalitionId): ActionResult {
+  const r = proposePact(s, c);
+  return "error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message };
+}
+export function breakPact(s: GameState, c: CoalitionId): ActionResult {
+  const r = endPact(s, c);
+  return { ok: true, state: r.state, message: r.message };
+}
+
 /** Name a candidate (you, as party president, while nominations are open). */
-export function nominateCandidate(s: GameState, seat: number, person: number | "newface"): ActionResult {
+export function nominateCandidate(s: GameState, seat: number, person: number | "newface" | "local"): ActionResult {
   const r = nominate(s, seat, person);
   return "error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message };
 }

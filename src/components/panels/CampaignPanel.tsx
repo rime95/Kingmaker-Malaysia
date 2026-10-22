@@ -4,12 +4,11 @@ import { useMemo, useState } from "react";
 import { advise } from "@/game/advice";
 import { ACTIONS, type ActionGroup } from "@/game/actions";
 import { useGame } from "@/store/gameStore";
-import { winChance } from "@/game/systems/polls";
-import { SEATS, STATES, STATE_BY_ID, contestingIn } from "@/game/world";
+import { SEATS, STATES } from "@/game/world";
+import { targetName } from "@/game/systems/orders";
 import { RUNGS } from "@/game/systems/career";
 import { PartyRaceCard } from "../PartyRace";
 import { ActionCard } from "../ActionCard";
-import { pct, useReads } from "../common";
 
 const TONE = { good: "var(--good)", bad: "var(--bad)", info: "var(--ink-2)" } as const;
 const ICON = { good: "▲", bad: "▼", info: "•" } as const;
@@ -20,24 +19,12 @@ const GROUPS: { id: ActionGroup; title: string }[] = [
   { id: "finance", title: "Money" },
 ];
 
-/** What to do this week: the advisor's picks, then every nationwide, party and money action. */
+/** Your plan for the turn: the advisor's picks, standing orders, then every nationwide, party and money action. */
 export function CampaignPanel() {
   const game = useGame((s) => s.game)!;
-  const { act, focusSeat, openPanel } = useGame();
+  const { act, focusSeat, showPanel } = useGame();
   const tips = useMemo(() => advise(game).slice(0, 4), [game]);
   const [tourState, setTourState] = useState(STATES[0].id);
-  const reads = useReads();
-  // Battlegrounds: seats you contest where your polled chance is closest to a coin flip.
-  const battle = useMemo(
-    () =>
-      SEATS.filter((seat) => contestingIn(seat, game.entries).includes(game.player))
-        .map((seat) => ({ i: seat.index, chance: reads.length ? (winChance(reads[seat.index], game.player, game.week) ?? 0) : 0 }))
-        .filter((x) => x.chance > 0.2 && x.chance < 0.8)
-        .sort((a, b) => Math.abs(a.chance - 0.5) - Math.abs(b.chance - 0.5))
-        .slice(0, 6),
-    [game, reads],
-  );
-
   return (
     <div className="flex flex-col gap-5">
       <section>
@@ -68,7 +55,7 @@ export function CampaignPanel() {
       </section>
 
       {game.nominations?.open && (
-        <button className="inset p-3 text-left text-sm" style={{ outline: "1px solid var(--accent)" }} onClick={() => openPanel("nominations")}>
+        <button className="inset p-3 text-left text-sm" style={{ outline: "1px solid var(--accent)" }} onClick={() => showPanel("nominations")}>
           <b style={{ color: "var(--accent)" }}>Nominations close in {Math.max(0, game.nominations.closesWeek - game.week)} weeks.</b>{" "}
           {game.career.rung >= 6 ? "Review your candidates, or stand in new seats." : "See who your president is putting up, and whether it's you."}
         </button>
@@ -92,28 +79,10 @@ export function CampaignPanel() {
         </section>
       )}
 
-      {battle.length > 0 && (
-        <section>
-          <h3 className="eyebrow mb-2">Battleground seats</h3>
-          <ul className="flex flex-col gap-1">
-            {battle.map((x) => (
-              <li key={x.i}>
-                <button className="inset w-full px-2.5 py-1.5 text-sm flex items-center gap-2 text-left hover:brightness-125" onClick={() => focusSeat(x.i)}>
-                  <span className="flex-1 truncate">
-                    {SEATS[x.i].name} <span className="text-xs" style={{ color: "var(--muted)" }}>{STATE_BY_ID[SEATS[x.i].state].name}</span>
-                  </span>
-                  <span className="text-xs tabular-nums font-semibold" style={{ color: x.chance >= 0.5 ? "var(--good)" : "var(--bad)" }}>
-                    {pct(x.chance)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <StandingOrders />
 
       <p className="text-xs" style={{ color: "var(--muted)" }}>
-        For a single seat, click it on the map. Gold bubbles on the map are free bonuses this week.
+        Seat moves are on the map: click a seat. Gold bubbles are free bonuses this turn.
       </p>
 
       {GROUPS.map((g) => (
@@ -147,5 +116,31 @@ export function CampaignPanel() {
         </div>
       </section>
     </div>
+  );
+}
+
+/** Moves that repeat every turn (set with ↻ on any move). */
+function StandingOrders() {
+  const game = useGame((s) => s.game)!;
+  const order = useGame((s) => s.order);
+  return (
+    <section>
+      <h3 className="eyebrow mb-1">Standing orders</h3>
+      {game.orders.length === 0 ? (
+        <p className="text-xs" style={{ color: "var(--muted)" }}>
+          None yet. Press ↻ on any move (here or on a seat) and it runs at the start of every turn while you have the AP and money.
+        </p>
+      ) : (
+        <ul className="flex flex-wrap gap-1.5">
+          {game.orders.map((o, k) => (
+            <li key={k}>
+              <button className="chip !py-1 text-xs" onClick={() => order(o.id, o.target)} title="Cancel this standing order">
+                ↻ {ACTIONS.find((a) => a.id === o.id)?.name} · {targetName(o.target)} ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

@@ -34,7 +34,7 @@ interface Props {
   showDuns?: "auto" | "always" | "never";
   selected?: number | null;
   selectedDun?: number | null;
-  onSelect?: (seat: number) => void;
+  onSelect?: (seat: number, x: number, y: number) => void;
   onSelectDun?: (dun: number) => void;
   onHover?: (seat: number | null, x: number, y: number) => void;
   onHoverDun?: (dun: number | null, x: number, y: number) => void;
@@ -243,7 +243,7 @@ const SeatsLayer = memo(function SeatsLayer({
 }: {
   geo: MapGeometry;
   fills: SeatFill[];
-  onSelect?: (i: number) => void;
+  onSelect?: (i: number, x: number, y: number) => void;
   onHover?: (i: number | null, x: number, y: number) => void;
   interactive: boolean;
 }) {
@@ -258,7 +258,7 @@ const SeatsLayer = memo(function SeatsLayer({
             fillOpacity={fills[i]?.opacity ?? 1}
             className={interactive ? "map-seat" : undefined}
             pointerEvents={interactive ? undefined : "none"}
-            onClick={onSelect ? () => onSelect(i) : undefined}
+            onClick={onSelect ? (e) => onSelect(i, e.clientX, e.clientY) : undefined}
             onMouseMove={onHover ? (e) => onHover(i, e.clientX, e.clientY) : undefined}
             onMouseLeave={onHover ? () => onHover(null, 0, 0) : undefined}
           />

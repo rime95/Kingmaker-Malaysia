@@ -15,6 +15,17 @@ export interface VoterInputs {
   seatOffsets: number[][];
   /** Seats coalitions have moved into during the game. */
   entries?: Entries;
+  /** Seat pacts: who stands aside in a seat, for whom, and how much of their vote follows. */
+  aside?: Record<number, StandAside[]>;
+  /** How much of the GE15 calibration still holds (fades each election, so incumbency isn't for ever). */
+  calWeight?: number;
+}
+
+export interface StandAside {
+  out: CoalitionId;
+  to: CoalitionId;
+  /** Share of the withdrawn vote that follows the pact; the rest spreads or stays home. */
+  transfer: number;
 }
 
 /** A newcomer starts from at least this base (about 4% of the vote) and grows by campaigning. */
@@ -32,7 +43,7 @@ const BASE: number[][] = SEATS.map((seat) => COALITIONS.map((c) => baseScore(sea
 /** How naturally a coalition's voters live in a seat (bloc lean; under 0.05 means hardly any). */
 export const naturalSupport = (seat: number, c: CoalitionId) => BASE[seat][COALITION_INDEX[c]];
 
-function sharesFrom(seat: Seat, adjust: (c: CoalitionId) => number, entries?: Entries): Partial<Record<CoalitionId, number>> {
+function sharesFrom(seat: Seat, adjust: (c: CoalitionId) => number, entries?: Entries, aside?: StandAside[]): Partial<Record<CoalitionId, number>> {
   const out: Partial<Record<CoalitionId, number>> = {};
   let total = 0;
   const newcomers = entries?.[seat.index] ?? [];
@@ -41,6 +52,14 @@ function sharesFrom(seat: Seat, adjust: (c: CoalitionId) => number, entries?: En
     const v = (newcomers.includes(c) ? Math.max(base, NEWCOMER_BASE) : base) * Math.exp(adjust(c));
     out[c] = v;
     total += v;
+  }
+  // A pact: one side stands aside and most of its voters follow the deal.
+  for (const a of aside ?? []) {
+    const v = out[a.out];
+    if (v === undefined || out[a.to] === undefined) continue;
+    out[a.to]! += v * a.transfer;
+    total -= v * (1 - a.transfer);
+    delete out[a.out];
   }
   for (const c of Object.keys(out) as CoalitionId[]) out[c]! /= total;
   return out;
@@ -82,14 +101,16 @@ export const CALIBRATION: number[][] = SEATS.map(calibrate);
 
 export function seatShares(seat: Seat, inputs: VoterInputs, extra?: (c: CoalitionId) => number): Partial<Record<CoalitionId, number>> {
   const cal = CALIBRATION[seat.index];
+  const w = inputs.calWeight ?? 1;
   const off = inputs.seatOffsets[seat.index];
   return sharesFrom(
     seat,
     (c) => {
       const i = COALITION_INDEX[c];
-      return cal[i] + inputs.swing[c] + (off?.[i] ?? 0) + (extra ? extra(c) : 0);
+      return cal[i] * w + inputs.swing[c] + (off?.[i] ?? 0) + (extra ? extra(c) : 0);
     },
     inputs.entries,
+    inputs.aside?.[seat.index],
   );
 }
 

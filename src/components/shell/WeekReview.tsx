@@ -79,7 +79,7 @@ export function WeekReview() {
     <section className="panel pop-in p-4 w-full md:w-[380px] max-h-full overflow-y-auto scroll-thin" aria-label="Week in review">
       <div className="flex items-center gap-2 mb-3">
         <div className="flex-1">
-          <div className="eyebrow">{game.report.weeks === 4 ? "Month in review" : "Week in review"}</div>
+          <div className="eyebrow">{(game.report.weeks ?? 1) >= 4 ? "Month in review" : (game.report.weeks ?? 1) === 2 ? "Fortnight in review" : "Week in review"}</div>
           <div className="text-xs" style={{ color: "var(--muted)" }}>
             to {weekLabel(game.week)}
           </div>

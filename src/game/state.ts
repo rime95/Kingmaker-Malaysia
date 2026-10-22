@@ -1,7 +1,7 @@
 // The saved game state. Plain data only, so it can be saved and reloaded exactly.
 
 import { machineryBase, serviceBase } from "./bases";
-import { AP_PER_WEEK, AUTO_DISSOLUTION, DIFFICULTY, ECONOMY_REST, EFFECT, FORTRESS, START, type Difficulty, type ScenarioId } from "./config";
+import { TURN_WEEKS, AP_PER_WEEK, AUTO_DISSOLUTION, DIFFICULTY, ECONOMY_REST, EFFECT, FORTRESS, START, type Difficulty, type ScenarioId } from "./config";
 import { initAssemblies, initParliament, type Assembly, type Parliament } from "./systems/assemblies";
 import { DUN_START } from "./systems/dun";
 import type { Formation, WinTier } from "./systems/formation";
@@ -19,6 +19,11 @@ import { initBursa, type Stock } from "./systems/bursa";
 import { initPersonal, type Personal } from "./systems/wealth";
 import { candidateStrength, yourParty, type Nominations } from "./systems/nominations";
 import type { SeatRecord } from "./systems/results";
+import { asideFor, type Pact } from "./systems/pacts";
+import { issueEffect } from "./systems/issues";
+import type { Order } from "./systems/orders";
+import { initDewan, type Dewan } from "./systems/dewan";
+import type { Analysis } from "./systems/analysis";
 import { runElection, type ElectionResult } from "./election";
 import type { Asset, Market } from "./systems/business";
 import { policyVoters } from "./systems/policies";
@@ -29,7 +34,7 @@ import { COALITIONS, COALITION_INFO, SEATS, contestingIn, type CoalitionId, type
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -104,6 +109,8 @@ export interface Player {
   /** Tycoon favours still owed. */
   favours: number;
   market: Market;
+  /** 0–100: a wave building behind you. Lifts your national swing and makes every local move count for more. */
+  momentum: number;
 }
 
 export interface GameState {
@@ -191,6 +198,18 @@ export interface GameState {
   entries: Entries;
   /** Candidates your party has named for the coming general election (null outside a campaign). */
   nominations: Nominations | null;
+  /** Seat pacts with other coalitions (until the next general election is over). */
+  pacts: Pact[];
+  /** Seat → local issues you have taken up this term. */
+  issuesTaken: Record<number, string[]>;
+  /** How much of the GE15 calibration still holds (it fades each election). */
+  calWeight: number;
+  /** Moves repeated at the start of every turn. */
+  orders: Order[];
+  /** The Dewan Rakyat's sittings and Order Paper. */
+  dewan: Dewan;
+  /** What happened at the last general election, and why. */
+  lastAnalysis: Analysis | null;
 }
 
 export interface NewGameOptions {
@@ -238,6 +257,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
       mood: {},
       budget: {},
       favours: 0,
+      momentum: 0,
     },
     report: null,
     history: [],
@@ -279,11 +299,17 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     personal: initPersonal({ player, career: initCareer(player, seed, opts.mode ?? "leader", opts.name, opts.homeSeat) }),
     entries: {},
     nominations: null,
+    pacts: [],
+    issuesTaken: {},
+    calWeight: 1,
+    orders: [],
+    dewan: initDewan(),
+    lastAnalysis: null,
   };
   if (!contestingIn(SEATS[state.career.homeSeat]).includes(player)) state.entries = { [state.career.homeSeat]: [player] };
   Object.assign(state, initPeople(state));
   Object.assign(state, syncYou(state));
-  state.me.apMax = state.me.ap = AP_BY_RUNG[state.career.rung];
+  state.me.apMax = state.me.ap = AP_BY_RUNG[state.career.rung] * TURN_WEEKS;
   // Difficulty and scenario
   state.me.funds = Math.round(state.me.funds * DIFFICULTY[state.settings.difficulty].funds);
   state.me.unity = DIFFICULTY[state.settings.difficulty].unity;
@@ -303,7 +329,7 @@ export function migrateGame(g: GameState): GameState {
   const migrated: GameState = {
     ...g,
     version: SAVE_VERSION,
-    me: { ...g.me, policies: g.me.policies ?? {}, mood: g.me.mood ?? {}, budget: g.me.budget ?? {}, favours: g.me.favours ?? 0 },
+    me: { ...g.me, policies: g.me.policies ?? {}, mood: g.me.mood ?? {}, budget: g.me.budget ?? {}, favours: g.me.favours ?? 0, momentum: g.me.momentum ?? 0 },
     economy: g.economy ?? ECONOMY_REST,
     fiscal: g.fiscal ?? 50,
     cards: g.cards ?? [],
@@ -343,6 +369,12 @@ export function migrateGame(g: GameState): GameState {
     personal: g.personal ?? initPersonal(g),
     entries: g.entries ?? {},
     nominations: g.nominations ?? null,
+    pacts: g.pacts ?? [],
+    issuesTaken: g.issuesTaken ?? {},
+    calWeight: g.calWeight ?? 1,
+    orders: g.orders ?? [],
+    dewan: g.dewan ?? initDewan(),
+    lastAnalysis: g.lastAnalysis ?? null,
   };
   if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));
@@ -359,6 +391,8 @@ export function playerNationalEffect(state: GameState): number {
   v += (state.economy - ECONOMY_REST) * (isGovernment(state) ? EFFECT.economyGov : -EFFECT.economyOpp);
   // The government's approval: yours to keep in power, theirs to lose in opposition.
   if (state.nation) v += (state.nation.approval - 50) * (isGovernment(state) ? NATION.approvalSwingGov : -NATION.approvalSwingOpp);
+  // A wave: momentum lifts you everywhere.
+  v += (me.momentum ?? 0) * EFFECT.momentum;
   return v;
 }
 
@@ -366,14 +400,36 @@ export function playerNationalEffect(state: GameState): number {
 export function playerSeatEffect(state: GameState, i: number, policy?: SegEffects): number {
   const me = state.me;
   const pol = policy ?? policyVoters(me.policies, isGovernment(state));
+  // Ground work counts for more when a wave is behind you.
+  const ground =
+    ((me.service[i] - serviceBase(state.player, i)) * EFFECT.service + me.buzz[i] * EFFECT.buzz + (me.machinery[i] - machineryBase(state.player, i)) * EFFECT.machinery) *
+    (1 + (me.momentum ?? 0) / EFFECT.momentumGround);
   return (
-    (me.service[i] - serviceBase(state.player, i)) * EFFECT.service +
-    me.buzz[i] * EFFECT.buzz +
-    (me.machinery[i] - machineryBase(state.player, i)) * EFFECT.machinery +
+    ground +
+    issueEffect(state, i, isGovernment(state)) +
     segValue(i, pol) +
     segValue(i, me.budget) +
     segValue(i, me.mood)
   );
+}
+
+/** Why you stand where you do in a seat: your log-odds by source (positive helps), for the "why" breakdown. */
+export function seatBreakdown(state: GameState, i: number): { label: string; value: number }[] {
+  const me = state.me;
+  const gov = isGovernment(state);
+  const wave = 1 + (me.momentum ?? 0) / EFFECT.momentumGround;
+  const pick = state.nominations?.picks[i];
+  const rows = [
+    { label: "National mood (messaging, economy, scandal)", value: playerNationalEffect(state) - (me.momentum ?? 0) * EFFECT.momentum + state.swing[state.player] },
+    { label: "Momentum", value: (me.momentum ?? 0) * EFFECT.momentum },
+    { label: "Service", value: (me.service[i] - serviceBase(state.player, i)) * EFFECT.service * wave },
+    { label: "Buzz", value: me.buzz[i] * EFFECT.buzz * wave },
+    { label: "Machinery", value: (me.machinery[i] - machineryBase(state.player, i)) * EFFECT.machinery * wave },
+    { label: "Local issues taken up", value: issueEffect(state, i, gov) },
+    { label: "Candidate", value: pick !== undefined ? candidateStrength(state, i, state.people.find((x) => x.id === pick)) : 0 },
+    { label: "Policies, Budget and mood", value: playerSeatEffect(state, i) - ((me.service[i] - serviceBase(state.player, i)) * EFFECT.service + me.buzz[i] * EFFECT.buzz + (me.machinery[i] - machineryBase(state.player, i)) * EFFECT.machinery) * wave - issueEffect(state, i, gov) },
+  ];
+  return rows.filter((r) => Math.abs(r.value) >= 0.005);
 }
 
 /** What the voter model sees: rival offsets plus everything the player has built. */
@@ -394,7 +450,7 @@ export function voterInputs(state: GameState): VoterInputs {
     for (const [c, r] of rivals) out[COALITION_INDEX[c]] += rivalSeatEffect(r, c, i);
     return out;
   });
-  return { swing, seatOffsets, entries: state.entries };
+  return { swing, seatOffsets, entries: state.entries, aside: asideFor(state), calWeight: state.calWeight ?? 1 };
 }
 
 export function projectedSeats(state: GameState): number {

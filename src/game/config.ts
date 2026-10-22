@@ -99,11 +99,14 @@ export const ECONOMY = {
 /** How local and national presence turn into log-odds for your coalition. */
 export const EFFECT = {
   /** Per point of constituency service above the seat's starting level (permanent). */
-  service: 0.004,
+  service: 0.006,
   /** Per point of buzz (fades). */
-  buzz: 0.005,
+  buzz: 0.007,
   /** Per point of machinery above the starting level (turnout). */
-  machinery: 0.003,
+  machinery: 0.004,
+  /** Momentum: national swing per point, and the point at which ground work counts double. */
+  momentum: 0.003,
+  momentumGround: 100,
   /** National buzz per point, added to your national swing. */
   nationalBuzz: 0.003,
   /** Scandal per point, taken off your national swing. */
@@ -131,6 +134,11 @@ export const DECAY = {
   integrityRest: 60,
   integrityDrift: 0.01,
   riskPerWeek: 0.5,
+  /** Share of momentum lost each week, and what each seat gained in a national poll adds. */
+  momentum: 0.04,
+  momentumPerSeat: 2.5,
+  /** ...and each point of national vote share gained. */
+  momentumPerPoint: 4,
 };
 
 /** Held seats build service on their own each week (MP allocations). */
@@ -145,6 +153,8 @@ export const FORTRESS = [
 ];
 
 export const AP_PER_WEEK = 6;
+/** Weeks in one turn: AP is handed out per turn, so a turn gets two weeks' worth. */
+export const TURN_WEEKS = 2;
 
 /** MACC: weekly probe chance = max(0, risk − threshold) / divisor. */
 export const MACC = { threshold: 40, divisor: 400, fineShare: 0.1, integrityHit: 10, scandal: 30 };
@@ -280,6 +290,8 @@ export const GE = {
   aiWindow: 26,
   aiLead: 8,
   aiChance: 0.12,
+  /** Share of the GE15 calibration (built-in incumbency) left after each new election. */
+  calFade: 0.6,
 };
 
 // ---------------------------------------------------------------------------------------------

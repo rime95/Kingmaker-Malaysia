@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { adoptPolicy, answerCard, applyAction, callGeneralElection } from "./actions";
 import { newGame, type GameState } from "./state";
+import { TURN_WEEKS } from "./config";
 import { AP_BY_RUNG, CONTEST_POINTS, PRESIDENT, factionSize } from "./systems/career";
 import { advanceWeek } from "./week";
 import { SEATS } from "./world";
@@ -24,7 +25,7 @@ describe("career", () => {
     expect(g.career.rung).toBe(0);
     expect(g.career.name).toBe("Siti");
     g = advanceWeek(g);
-    expect(g.me.apMax).toBe(AP_BY_RUNG[0]);
+    expect(g.me.apMax).toBe(AP_BY_RUNG[0] * TURN_WEEKS);
   });
 
   it("only the party president sets policy and dissolves Parliament", () => {

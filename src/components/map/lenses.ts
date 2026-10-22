@@ -20,6 +20,7 @@ export const LENSES: { id: Lens; label: string; short: string }[] = [
   { id: "ethnic", label: "Ethnic majority (estimate)", short: "Ethnic" },
   { id: "urban", label: "Urban to rural", short: "Urban" },
   { id: "result", label: "Last war-room simulation", short: "War room" },
+  { id: "swing", label: "Your swing at the last general election", short: "Swing" },
 ];
 
 export const RATING_OPACITY: Record<Rating, number> = { safe: 1, likely: 0.78, lean: 0.55, tossup: 0.32 };
@@ -74,6 +75,11 @@ export function lensFill(game: GameState, reads: SeatRead[], lens: Lens, i: numb
       return { fill: `var(--e-${majorityBloc(seat)})` };
     case "urban":
       return { fill: ramp("var(--ink-2)", seat.demo.urbanity) };
+    case "swing": {
+      const v = game.lastAnalysis?.swing[i];
+      if (v === null || v === undefined) return { fill: "var(--land)" };
+      return { fill: ramp(v >= 0 ? "var(--good)" : "var(--bad)", Math.abs(v) / 0.12) };
+    }
     case "result": {
       const r = game.lastElection?.seats[i];
       return r ? { fill: coalColor(r.winner), flipped: r.winner !== game.holders[i] } : { fill: "var(--land)" };
@@ -108,6 +114,11 @@ export function lensLegend(game: GameState, lens: Lens): { items: LegendItem[]; 
       return { items: (["malay", "chinese", "indian", "sabah", "sarawak", "mixed"] as const).map((b) => ({ color: `var(--e-${b})`, label: b === "mixed" ? "No majority" : BLOC_LABEL[b] })) };
     case "urban":
       return { items: [0.15, 0.5, 0.95].map((v) => ({ color: ramp("var(--ink-2)", v), label: v < 0.3 ? "Rural" : v > 0.9 ? "City" : "Town" })) };
+    case "swing":
+      return {
+        items: [-0.12, -0.04, 0.04, 0.12].map((v) => ({ color: ramp(v >= 0 ? "var(--good)" : "var(--bad)", Math.abs(v) / 0.12), label: `${v > 0 ? "+" : "−"}${Math.abs(v * 100)}` })),
+        note: game.lastAnalysis ? `Change in your vote share, ${game.lastAnalysis.label} vs the election before (points).` : "No general election yet.",
+      };
     case "result":
       return { items: [], note: game.lastElection ? "Colour = simulated winner. Dashed = would change hands." : "Run a war-room simulation from the menu first." };
   }

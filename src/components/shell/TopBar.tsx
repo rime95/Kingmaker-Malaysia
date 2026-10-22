@@ -114,7 +114,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
           </span>
         </button>
       )}
-      <button className={`btn flex-none !px-3 sm:!px-4 ${me.ap === 0 && !pending ? "btn-ready" : ""}`} onClick={skipWeek} title="Next week (N or Space)">
+      <button className={`btn flex-none !px-3 sm:!px-4 ${me.ap === 0 && !pending ? "btn-ready" : ""}`} onClick={skipWeek} title="Next turn: two weeks (N or Space)">
         <span className="hidden sm:inline">{t("skipWeek")}</span>
         <span className="sm:hidden" aria-label={t("skipWeek")}>Next ▸</span>
       </button>
@@ -124,7 +124,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
 }
 
 function Menu({ onSaves }: { onSaves: () => void }) {
-  const { skipMonth, skipToEvent, simulate, quit, lang, setLang } = useGame();
+  const { skipMonth, skipToEvent, simulate, quit, lang, setLang, testTools, setTestTools, test, setRecordOpen } = useGame();
   const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -156,7 +156,20 @@ function Menu({ onSaves }: { onSaves: () => void }) {
           {item(t("skipMonth"), skipMonth)}
           {item(t("skipEvent"), skipToEvent, "Skips up to 12 weeks, stopping at anything that needs you.")}
           {item(t("testElection"), simulate, "Your strategists run a full test election on the true numbers. Seats do not change hands.")}
+          {testTools && (
+            <>
+              <div className="h-px my-1" style={{ background: "var(--line)" }} />
+              <div className="eyebrow px-3 pt-1" style={{ color: "var(--accent)" }}>
+                Test tools
+              </div>
+              {item("Run general election now", () => test("ge"), "Dissolve now and jump to polling day.")}
+              {item("Run Dewan vote now", () => test("sitting"), "Call the Dewan into session if needed and take the next vote now.")}
+              {item("+10 AP, +RM 10M", () => test("boost"))}
+            </>
+          )}
           <div className="h-px my-1" style={{ background: "var(--line)" }} />
+          {item(testTools ? "Hide test tools" : "Show test tools", () => setTestTools(!testTools), "Play-test shortcuts that bend the rules.")}
+          {item("Your record & achievements", () => setRecordOpen(true))}
           {item(t("saves"), onSaves)}
           {item(lang === "en" ? "Bahasa Malaysia" : "English", () => setLang(lang === "en" ? "ms" : "en"))}
           {item(t("newGame"), () => confirm("Start a new game? Save this one first if you want to keep it.") && quit())}

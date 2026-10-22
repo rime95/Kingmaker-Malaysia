@@ -24,6 +24,7 @@ import { decaySeg } from "./systems/segments";
 import { fmtRM } from "./money";
 import { Rng, hash01 } from "./rng";
 import { isGovernment, machineryBase, projectAllFor, serviceBase, voterInputs, weekDate, type GameState, type ReportLine, type WeekReport } from "./state";
+import { dewanWeek } from "./systems/dewan";
 import { ASSETS, assetIncome, assetRisk, ceoPay, marketWeek } from "./systems/business";
 import { COALITIONS, MAJORITY, SEATS, STATE_BY_ID, contestingIn, cshort } from "./world";
 
@@ -194,6 +195,11 @@ export function advanceWeek(input: GameState): GameState {
     lines.push({ text: gov ? `Budget ${year + 1} is due in the Dewan. Allocate it in the Policy tab.` : `Budget ${year + 1} is being tabled. You can answer with a shadow budget.`, tone: "info" });
   }
 
+  // The Dewan Rakyat: meetings open and adjourn; the motion due this week is voted on
+  const dw = dewanWeek(next, weekDate(next.week));
+  next = dw.state;
+  lines.push(...dw.lines);
+
   // Decision cards: expire old ones, then festivals and news
   const cards = cardsWeek(next);
   next = cards.state;
@@ -322,6 +328,21 @@ export function advanceWeek(input: GameState): GameState {
   if (poll && poll.week === next.week && poll !== s.polls.national[0]) {
     const d = seatsAfter - seatsBefore;
     lines.unshift({ text: `New ${poll.pollster} poll: you would win about ${seatsAfter} seats${d ? ` (${d > 0 ? "+" : "−"}${Math.abs(d)} since the last poll)` : ", no change"}.`, tone: d > 0 ? "good" : d < 0 ? "bad" : "info" });
+  }
+  // Momentum: gains in the polls build a wave; without them it fades.
+  {
+    const was = s.me.momentum ?? 0;
+    let mom = (next.me.momentum ?? 0) * (1 - DECAY.momentum);
+    const prevPoll = s.polls.national[0];
+    if (poll && poll.week === next.week && poll !== prevPoll) {
+      mom += (seatsAfter - seatsBefore) * DECAY.momentumPerSeat;
+      if (prevPoll) mom += ((poll.vote[s.player] ?? 0) - (prevPoll.vote[s.player] ?? 0)) * 100 * DECAY.momentumPerPoint;
+    }
+    if (next.me.nationalBuzz > 50) mom += 1;
+    mom = Math.min(100, Math.max(0, mom));
+    if (mom >= 40 && was < 40) lines.unshift({ text: "A wave is building behind you: momentum lifts every seat you fight.", tone: "good" });
+    else if (mom < 40 && was >= 40) lines.push({ text: "Your momentum has stalled.", tone: "bad" });
+    next = { ...next, me: { ...next.me, momentum: mom } };
   }
   for (const i of contested) {
     if (me.machinery[i] < machineryBase(s.player, i) * 0.6 && s.me.machinery[i] >= machineryBase(s.player, i) * 0.6) {

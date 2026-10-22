@@ -14,18 +14,25 @@ import { isHostile, type Rival } from "@/game/systems/rivals";
 import { useGame } from "@/store/gameStore";
 import { BLOC_LABEL, BLOCS, contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
 import { ActionCard } from "../ActionCard";
-import { fmt, fmtRM, pct, useReads } from "../common";
+import { asideFor } from "@/game/systems/pacts";
+import { SeatIssues, WhyBreakdown } from "./SeatBits";
+import { chancePct, fmt, fmtRM, pct, useReads } from "../common";
 import { coalColor } from "../map/lenses";
 import { Icon } from "./icons";
 
-const SEAT_ACTIONS = ["ceramah", "walkabout", "service", "machinery", "handout"];
+const SEAT_ACTIONS = ["ground", "ceramah", "walkabout", "issue", "service", "machinery", "handout"];
 
-/** The clicked seat: the latest result, your chances, your moves, then the detail folded away. */
-export function SeatCard() {
+/** The clicked seat in full (the Seat tab): the latest result, your chances, your moves, then the detail folded away. */
+export function SeatCard({ embedded = false }: { embedded?: boolean }) {
   const game = useGame((s) => s.game)!;
   const { selected, select, claim } = useGame();
   const reads = useReads();
-  if (selected === null || !reads.length) return null;
+  if (selected === null || !reads.length)
+    return embedded ? (
+      <p className="text-sm" style={{ color: "var(--ink-2)" }}>
+        Click a seat on the map. Hover any seat for a quick look; click it for your moves there, then Full details for everything else.
+      </p>
+    ) : null;
   const i = selected;
   const seat = SEATS[i];
   const holder = game.holders[i];
@@ -33,6 +40,7 @@ export function SeatCard() {
   const last = resultView(game.seatResults, i);
   const ally = contests ? null : allyIn(game, i);
   const bubble = game.bubbles.find((b) => b.seat === i);
+  const aside = asideFor(game)[i]?.[0];
   const duns = DUNS.filter((d) => d.parent === i);
   const rivals = (Object.entries(game.rivals) as [CoalitionId, Rival][])
     .map(([c, r]) => ({ c, buzz: r.buzz[i], service: r.service[i] - serviceBase(c, i), hostile: isHostile(c, game.player, game.me.trust, game.government) }))
@@ -40,7 +48,7 @@ export function SeatCard() {
     .sort((a, b) => b.buzz + b.service - (a.buzz + a.service));
 
   return (
-    <aside className="panel pop-in flex flex-col max-h-full w-full md:w-[340px]" aria-label={`${seat.name} seat`}>
+    <div className={embedded ? "flex flex-col -mx-5 -my-4" : "panel pop-in flex flex-col max-h-full w-full md:w-[340px]"} aria-label={`${seat.name} seat`}>
       <div className="flex items-start gap-2 px-4 pt-3.5 pb-3" style={{ borderBottom: "1px solid var(--line)" }}>
         <div className="flex-1 min-w-0">
           <div className="text-[11px]" style={{ color: "var(--muted)" }}>
@@ -54,9 +62,11 @@ export function SeatCard() {
             </span>
           </div>
         </div>
-        <button className="chip !p-2" onClick={() => select(null)} aria-label="Close">
-          <Icon name="close" className="w-4 h-4" />
-        </button>
+        {!embedded && (
+          <button className="chip !p-2" onClick={() => select(null)} aria-label="Close">
+            <Icon name="close" className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto scroll-thin px-4 py-3 flex flex-col gap-4 text-sm @container">
@@ -77,6 +87,14 @@ export function SeatCard() {
         <LatestResult r={last} />
 
         {contests && <Chances read={reads[i]} seat={i} />}
+
+        <SeatIssues seat={i} />
+
+        {aside && (
+          <p className="inset px-3 py-2 text-xs" style={{ color: "var(--ink-2)" }}>
+            Seat pact: <b>{cshort(aside.out)}</b> stands aside here for <b>{cshort(aside.to)}</b>.
+          </p>
+        )}
 
         {contests ? (
           <section>
@@ -161,7 +179,7 @@ export function SeatCard() {
           </div>
         </details>
       </div>
-    </aside>
+    </div>
   );
 }
 
@@ -222,7 +240,7 @@ function Chances({ read, seat }: { read: SeatRead; seat: number }) {
       </div>
       <div className="flex items-center gap-3">
         <div className="text-2xl font-black tabular-nums" style={{ color: tone }}>
-          {pct(chance)}
+          {chancePct(chance)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="relative h-2 rounded-full" style={{ background: "var(--surface-2)" }}>
@@ -243,6 +261,7 @@ function Chances({ read, seat }: { read: SeatRead; seat: number }) {
           </span>
         ))}
       </div>
+      <WhyBreakdown seat={seat} />
       <button className="chip mt-2 w-full justify-center" disabled={polledThisWeek || game.me.funds < POLLS.seatCost} onClick={() => poll(seat)}>
         {polledThisWeek ? "Polled this week" : `Commission a poll · ${fmtRM(POLLS.seatCost)}`}
       </button>

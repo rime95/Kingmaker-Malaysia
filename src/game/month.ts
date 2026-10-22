@@ -1,7 +1,10 @@
-// Skip 1 Month: exactly four weekly steps, with the four reports merged into one.
+// Time moves in turns of two weeks; Skip 1 Month is two turns. Each is a run of weekly steps with the reports merged.
 
 import type { GameState, WeekReport } from "./state";
+import { TURN_WEEKS } from "./config";
 import { advanceWeek } from "./week";
+import { ACTION_BY_ID, applyAction } from "./actions";
+import { runOrders } from "./systems/orders";
 
 function mergeAmounts(lists: { label: string; amount: number }[][]): { label: string; amount: number }[] {
   const out = new Map<string, number>();
@@ -9,27 +12,43 @@ function mergeAmounts(lists: { label: string; amount: number }[][]): { label: st
   return [...out].map(([label, amount]) => ({ label, amount }));
 }
 
-export function advanceMonth(s: GameState): GameState {
+/** Run `n` weekly steps; with `stopAtNight`, stop early when Election Night starts (you watch it as it happens). */
+export function advanceWeeks(s: GameState, n: number, stopAtNight = false): GameState {
   let state = s;
   const reports: WeekReport[] = [];
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < n; i++) {
     state = advanceWeek(state);
+    // A new turn starts: your standing orders run first.
+    if (((i + 1) % TURN_WEEKS === 0 || i === n - 1) && state.orders.length && !state.night) {
+      const o = runOrders(state, applyAction, (id) => ACTION_BY_ID[id]?.name ?? id);
+      state = {
+        ...o.state,
+        report: {
+          ...state.report!,
+          lines: [...state.report!.lines, ...o.lines],
+        },
+      };
+    }
     reports.push(state.report!);
+    if (stopAtNight && state.night && state.night.week === state.week) break;
   }
-  const last = reports[3];
-  // The month's lines, without repeats. Seat counts come from the national poll, which appears once a month.
+  if (reports.length === 1) return state;
+  const last = reports.at(-1)!;
+  // The lines without repeats. Seat counts come from the national poll, which appears once a month.
   const all = reports.flatMap((r) => r.lines);
   const events = all.filter((l, i) => all.findIndex((x) => x.text === l.text) === i);
-  const before = reports[0].seatsBefore;
   return {
     ...state,
     report: {
       ...last,
       income: mergeAmounts(reports.map((r) => r.income)),
       expenses: mergeAmounts(reports.map((r) => r.expenses)),
-      seatsBefore: before,
+      seatsBefore: reports[0].seatsBefore,
       lines: events,
-      weeks: 4,
+      weeks: reports.length,
     },
   };
 }
+
+export const advanceTurn = (s: GameState) => advanceWeeks(s, TURN_WEEKS, true);
+export const advanceMonth = (s: GameState) => advanceWeeks(s, 4);

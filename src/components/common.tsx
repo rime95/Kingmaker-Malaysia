@@ -33,6 +33,11 @@ export function pct(v: number, digits = 0) {
   return `${(v * 100).toFixed(digits)}%`;
 }
 
+/** A win chance: never a flat 0% or 100% (long shots happen). */
+export function chancePct(v: number) {
+  return v < 0.01 ? "<1%" : v > 0.99 ? ">99%" : pct(v);
+}
+
 export function fmt(n: number) {
   return n.toLocaleString("en-MY");
 }
