@@ -86,6 +86,8 @@ export const ECONOMY = {
   seatIncomeOpp: 1_500,
   /** Weekly HQ overhead: fixed + per member. */
   hqFixed: 20_000,
+  /** A party this size runs the full HQ; smaller parties run a smaller one. */
+  hqFullMembers: 200_000,
   hqPerMember: 0.03,
   /** Weekly upkeep per machinery point, only in seats you contest. */
   machineryUpkeep: 25,
@@ -107,6 +109,10 @@ export const EFFECT = {
   /** Momentum: national swing per point, and the point at which ground work counts double. */
   momentum: 0.003,
   momentumGround: 100,
+  /** Your star power: national swing per point of edge above 1. */
+  starPower: 0.4,
+  /** Per seat you hold above a majority: voters want a check on your power. */
+  checkPerSeat: 0.016,
   /** National buzz per point, added to your national swing. */
   nationalBuzz: 0.003,
   /** Scandal per point, taken off your national swing. */
@@ -310,6 +316,8 @@ export type ScenarioId = "present" | "snap" | "underdog";
 export interface DifficultyDef {
   label: string;
   text: string;
+  /** The player's edge: ground work, star power, deals and starting money all count for more. */
+  edge: number;
   /** Rival campaigning strength. */
   aiAggression: number;
   /** Starting money. */
@@ -329,13 +337,14 @@ export interface DifficultyDef {
 }
 
 export const DIFFICULTY: Record<Difficulty, DifficultyDef> = {
-  easy: { label: "Easy", text: "Gentle rivals, sharper polls, fewer crises, loyal partners.", aiAggression: 0.7, funds: 1.5, unity: 70, pollError: 0.7, cards: 0.8, raids: 0.6, decay: 0.8, greed: -0.1 },
-  normal: { label: "Normal", text: "As designed.", aiAggression: 1, funds: 1, unity: 60, pollError: 1, cards: 1, raids: 1, decay: 1, greed: 0 },
-  hard: { label: "Hard", text: "Hungry rivals, fuzzy polls, more crises and partners who drive a hard bargain.", aiAggression: 1.35, funds: 0.75, unity: 50, pollError: 1.4, cards: 1.25, raids: 1.5, decay: 1.25, greed: 0.12 },
+  easy: { label: "Easy", edge: 1.7, text: "Gentle rivals, sharper polls, fewer crises, loyal partners.", aiAggression: 0.7, funds: 1.5, unity: 70, pollError: 0.7, cards: 0.8, raids: 0.6, decay: 0.8, greed: -0.1 },
+  normal: { label: "Normal", edge: 1.4, text: "As designed.", aiAggression: 1, funds: 1, unity: 60, pollError: 1, cards: 1, raids: 1, decay: 1, greed: 0 },
+  hard: { label: "Hard", edge: 1.1, text: "Hungry rivals, fuzzy polls, more crises and partners who drive a hard bargain.", aiAggression: 1.35, funds: 0.75, unity: 50, pollError: 1.4, cards: 1.25, raids: 1.5, decay: 1.25, greed: 0.12 },
 };
 
 /** How each difficulty compares, for the start screen. */
 export const DIFFICULTY_ROWS: { label: string; get: (d: DifficultyDef) => string }[] = [
+  { label: "Your edge", get: (d) => `+${Math.round((d.edge - 1) * 100)}%` },
   { label: "Rival campaigning", get: (d) => `${Math.round(d.aiAggression * 100)}%` },
   { label: "Starting money", get: (d) => `${Math.round(d.funds * 100)}%` },
   { label: "Starting unity", get: (d) => String(d.unity) },
@@ -351,3 +360,19 @@ export const SCENARIOS: Record<ScenarioId, { label: string; text: string }> = {
   snap: { label: "Snap election", text: "Parliament dissolves in three weeks. Straight to the campaign and Election Night." },
   underdog: { label: "Underdog", text: "Your party is broke and divided: a quarter of the money, low unity and partners who doubt you." },
 };
+
+/** Weekly HQ and staff: a fixed core that shrinks for small parties, plus a cost per member. */
+export const hqCost = (members: number) => ECONOMY.hqFixed * Math.min(1, Math.max(0.15, members / ECONOMY.hqFullMembers)) + members * ECONOMY.hqPerMember;
+
+/** The player's edge for a game (1 = none). You're the protagonist: whatever party you lead, you can win. */
+export function edgeOf(s: { settings: { difficulty: Difficulty }; holders?: string[]; player?: string }): number {
+  const base = DIFFICULTY[s.settings.difficulty].edge - 1;
+  const seats = s.holders && s.player ? s.holders.filter((h) => h === s.player).length : 60;
+  // Biggest when you're small (up to 2.5×), fading from 90 seats and gone by 120: it gets you to power, not beyond.
+  const small = Math.max(0, Math.min(1, (40 - seats) / 40));
+  const big = Math.max(0, Math.min(1, (seats - 90) / 30));
+  return 1 + base * (1 + 1.5 * small) * (1 - big);
+}
+
+/** Every party starts with at least this much money (times your edge), so small parties can play. */
+export const MIN_START_FUNDS = 5_000_000;

@@ -5,6 +5,9 @@ import { COUNCIL_EVERY, WINGS } from "@/game/systems/partyorg";
 import { SEGMENT_LABEL, type Segment } from "@/game/systems/segments";
 import { useGame } from "@/store/gameStore";
 import { fmtRM } from "./common";
+import { RECRUIT, recruitBlocked, recruitTargets, recruitWillingness } from "@/game/systems/growth";
+import { coalitionOf } from "@/game/systems/coalitions";
+import { cshort } from "@/game/world";
 
 /** Your campaign message: pick one theme and stick with it. */
 export function MessageCard() {
@@ -93,6 +96,43 @@ export function WingsCard() {
         {wing("youth", "Pemuda (Youth)", "Wins young voters and gets the vote out. Fades unless funded.")}
         {wing("women", "Wanita", "Works every kampung and signs up members. Fades unless funded.")}
       </div>
+    </section>
+  );
+}
+
+/** Invite other parties in: an unhappy partner of someone else, or a whole small coalition through its lead party. */
+export function GrowCoalitionCard() {
+  const game = useGame((s) => s.game)!;
+  const deep = useGame((s) => s.deep);
+  const rows = recruitTargets(game)
+    .map((party) => ({ party, from: coalitionOf(game, party), w: recruitWillingness(game, party), why: recruitBlocked(game, party), mps: game.holderParties.filter((p) => p === party).length }))
+    .filter((r) => r.mps > 0)
+    .sort((a, b) => b.w - a.w)
+    .slice(0, 8);
+  return (
+    <section>
+      <h3 className="eyebrow mb-1">Grow your coalition</h3>
+      <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+        Invite a party to join you, MPs and all. Unhappy partners of other coalitions listen most; a coalition&apos;s lead party brings its whole coalition. {RECRUIT.ap} AP,{" "}
+        {RECRUIT.capital} capital, and {fmtRM(RECRUIT.perMp)} for each MP they bring.
+      </p>
+      <ul className="flex flex-col gap-1">
+        {rows.map((r) => {
+          const lead = game.coalitions[r.from].members[0] === r.party;
+          const odds = r.w >= RECRUIT.threshold + 0.1 ? "likely" : r.w >= RECRUIT.threshold - 0.1 ? "maybe" : "unlikely";
+          return (
+            <li key={r.party} className="inset px-2.5 py-1.5 text-xs flex items-center gap-2">
+              <span className="flex-1 min-w-0 truncate">
+                <b>{r.party}</b> <span style={{ color: "var(--muted)" }}>· {r.mps} MPs · {lead ? `merges all of ${cshort(r.from)}` : `from ${cshort(r.from)}`}</span>
+              </span>
+              <span style={{ color: odds === "likely" ? "var(--good)" : odds === "maybe" ? "var(--accent)" : "var(--muted)" }}>{odds}</span>
+              <button className="chip !py-0.5 text-[11px]" disabled={!!r.why} title={r.why ?? undefined} onClick={() => deep({ kind: "recruit", party: r.party })}>
+                Invite
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

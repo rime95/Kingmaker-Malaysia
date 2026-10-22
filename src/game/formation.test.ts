@@ -85,7 +85,8 @@ describe("forming a government", () => {
 
   it("a kingmaker who provides the majority gets the DPM", () => {
     const g = newGame("GPS", 1);
-    const f = startFormation(g, seatsOf({ PH: 95, PN: 80, BN: 15, GPS: 25, GRS: 7 }), 23);
+    // Under 10 seats you're a kingmaker, not a candidate.
+    const f = startFormation(g, seatsOf({ PH: 104, PN: 80, BN: 6, GPS: 9, GRS: 7 }), 23);
     const base: GameState = { ...g, formation: { ...f, committed: { PH: "PH", PN: "PN", BN: "PH", GRS: "PN" } } };
     expect(sdCount(base.formation!, "PH")).toBe(110);
     const backed = backForPm(base, "PH", true);

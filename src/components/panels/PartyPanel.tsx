@@ -3,7 +3,7 @@
 import { MACC } from "@/game/config";
 import { useGame } from "@/store/gameStore";
 import { CoalitionCard } from "../CoalitionCard";
-import { WingsCard } from "../DepthCards";
+import { GrowCoalitionCard, WingsCard } from "../DepthCards";
 import { PartyRaceCard } from "../PartyRace";
 import { fmt, fmtRM } from "../common";
 
@@ -47,6 +47,7 @@ export function PartyPanel() {
         </button>
       </div>
       <WingsCard />
+      <GrowCoalitionCard />
       <CoalitionCard />
     </div>
   );

@@ -4,7 +4,10 @@
 // offered. Talks run for up to three rounds; then the Agong appoints whoever can command the House.
 // You are either one of the two candidates (you make offers) or the kingmaker (you choose a side and name a price).
 
-import { DIFFICULTY } from "../config";
+import { DIFFICULTY, edgeOf } from "../config";
+
+/** With this many seats, you can run for Prime Minister yourself. */
+export const PROTAGONIST_SEATS = 10;
 import type { GameState } from "../state";
 import { COALITIONS, cshort, MAJORITY, SUPERMAJORITY, type CoalitionId } from "../world";
 import { stateRulers } from "./assemblies";
@@ -62,8 +65,12 @@ export interface Formation {
   log: string[];
   /** Kingmaker: the price you asked for. */
   askedDpm?: boolean;
+  /** Kingmaker: you asked to be Prime Minister yourself. */
+  askedPm?: boolean;
   /** Difficulty: extra willingness partners need before backing you. */
   greed?: number;
+  /** Your edge: extra willingness to back you. */
+  edge?: number;
 }
 
 export interface WinTier {
@@ -101,6 +108,7 @@ export function willingness(f: Formation, joiner: CoalitionId, leader: Coalition
   if (f.oldGovernment.includes(joiner) === f.oldGovernment.includes(leader)) w += OFFERS.oldPartners;
   w += (sdCount(f, leader) / MAJORITY) * OFFERS.bandwagon;
   if (leader === player) {
+    w += f.edge ?? 0;
     const o = f.offers[joiner];
     if (o?.dpm) w += OFFERS.dpm.willingness;
     w += (o?.ministries ?? 0) * OFFERS.ministries.willingness;
@@ -111,7 +119,12 @@ export function willingness(f: Formation, joiner: CoalitionId, leader: Coalition
 }
 
 export function startFormation(s: GameState, seats: Record<CoalitionId, number>, seatsBefore: number): Formation {
-  const candidates = pickCandidates(seats);
+  let candidates = pickCandidates(seats);
+  // You're the protagonist: with a real bloc of seats you can run for Prime Minister yourself, against the biggest.
+  if (!candidates.includes(s.player) && seats[s.player] >= PROTAGONIST_SEATS && edgeOf(s) > 1) {
+    const top = candidates[0] === s.player ? candidates[1] : candidates[0];
+    candidates = [top, s.player];
+  }
   const role = candidates.includes(s.player) ? "leader" : "kingmaker";
   const f: Formation = {
     week: s.week,
@@ -125,6 +138,7 @@ export function startFormation(s: GameState, seats: Record<CoalitionId, number>,
     oldGovernment: s.government,
     seatsBefore,
     greed: DIFFICULTY[s.settings.difficulty].greed,
+    edge: (edgeOf(s) - 1) * 0.5,
     log: [`${cshort(candidates[0])} (${seats[candidates[0]]} seats) and ${cshort(candidates[1])} (${seats[candidates[1]]}) are racing to ${MAJORITY}.`],
   };
   // Natural partners sign straight away for the candidate they like most (never on your behalf).
@@ -173,9 +187,9 @@ export function endRound(f: Formation, player: CoalitionId): Formation {
 }
 
 /** Kingmaker: back a candidate, optionally asking for Deputy Prime Minister. */
-export function backCandidate(f: Formation, player: CoalitionId, leader: CoalitionId, askDpm: boolean): Formation {
-  const next: Formation = { ...f, committed: { ...f.committed, [player]: leader }, log: [...f.log], askedDpm: askDpm };
-  next.log.push(`You sign SDs for ${cshort(leader)}${askDpm ? ", asking for Deputy Prime Minister" : ""}.`);
+export function backCandidate(f: Formation, player: CoalitionId, leader: CoalitionId, ask: boolean | "pm"): Formation {
+  const next: Formation = { ...f, committed: { ...f.committed, [player]: leader }, log: [...f.log], askedDpm: ask === true, askedPm: ask === "pm" };
+  next.log.push(`You sign SDs for ${cshort(leader)}${ask === "pm" ? ", on one condition: you become Prime Minister" : ask ? ", asking for Deputy Prime Minister" : ""}.`);
   return next;
 }
 

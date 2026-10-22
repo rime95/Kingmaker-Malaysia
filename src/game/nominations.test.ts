@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BRANCH, applyAction, nominateCandidate, unopenedIn } from "./actions";
+import { ACTION_BY_ID, BRANCH, actionCost, applyAction, nominateCandidate, unopenedIn } from "./actions";
 import { advanceMonth } from "./month";
 import { newGame, projectAllFor, type GameState } from "./state";
 import { NOMINATION, candidateStrength, partySeats } from "./systems/nominations";
@@ -26,7 +26,8 @@ describe("opening branches anywhere", () => {
     const r = applyAction(g, "branch", { kind: "seat", seat: i });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.state.me.funds).toBe(g.me.funds - BRANCH.cost);
+    expect(r.state.me.funds).toBe(g.me.funds - actionCost(g, ACTION_BY_ID.branch, { kind: "seat", seat: i }));
+    expect(BRANCH.cost).toBeGreaterThan(0);
     expect(contestingIn(SEATS[i], r.state.entries)).toContain("GRS");
     expect(projectAllFor(r.state)[i].shares.GRS).toBeGreaterThan(0.02);
     expect(applyAction(r.state, "ceramah", { kind: "seat", seat: i }).ok).toBe(true);

@@ -4,7 +4,8 @@
 // Allies in the government bloc leave your seats mostly alone unless coalition trust collapses.
 // Draws only from hash01, so the weekly random sequence is unchanged. All numbers TEMPORARY.
 
-import { AI, DECAY, ECONOMY, EFFECT, PRN, START } from "../config";
+import { AI, DECAY, ECONOMY, EFFECT, PRN, START, hqCost } from "../config";
+import { UNDERDOG, underdog } from "./growth";
 import { serviceBase } from "../bases";
 
 import { hash01 } from "../rng";
@@ -119,6 +120,8 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
   const yourSeats = projections.filter((p) => p.leader === player).length;
   const dominance = Math.max(0, yourSeats - MAJORITY) / AI.dominanceSeats;
   const moves = Math.round((phase === "late" ? AI.movesLate : phase === "mid" ? AI.movesMid : AI.movesEarly) * AI.aggression * (input.aggression ?? 1) * (1 + dominance));
+  // Nobody wastes effort on a tiny party.
+  const ignore = 1 - underdog(holders.filter((h) => h === player).length) * UNDERDOG.rivalCut;
 
   for (const c of rivalIds(player)) {
     const prev = input.rivals[c];
@@ -129,7 +132,7 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
 
     // Money: dues and seat allocations in, HQ out
     const held = holders.filter((h) => h === c).length;
-    r.funds += r.members * ECONOMY.duesPerMember + held * (gov ? ECONOMY.seatIncomeGov : ECONOMY.seatIncomeOpp) - (ECONOMY.hqFixed + r.members * ECONOMY.hqPerMember);
+    r.funds += r.members * ECONOMY.duesPerMember + held * (gov ? ECONOMY.seatIncomeGov : ECONOMY.seatIncomeOpp) - hqCost(r.members);
     const governs = Object.entries(input.rulers).filter(([, ruler]) => ruler === c).map(([id]) => id);
     for (const id of governs) r.funds += STATE_BY_ID[id].dunSeats * PRN.stateIncomePerSeat;
 
@@ -156,14 +159,14 @@ export function rivalsWeek(input: RivalsWeekInput): RivalsWeekResult {
         if (gap < AI.defendGap) {
           defend = true;
           // React to you: defend harder where you are campaigning.
-          const threat = p.runnerUp === player ? 1 + input.playerBuzz[i] / 40 : 1;
+          const threat = p.runnerUp === player ? (1 + input.playerBuzz[i] / 40) * ignore : 1;
           u = (AI.defendGap - gap) * 10 * threat;
         }
       } else {
         const gap = (p.shares[p.leader] ?? 0) - mine;
         if (gap < AI.attackGap) {
           // React to you: a seat you have just pulled ahead in is worth more to win back.
-          const weight = p.leader === player ? (hostile ? AI.hostileWeight * (1 + input.playerBuzz[i] / 40) : AI.allyWeight) : 1;
+          const weight = p.leader === player ? (hostile ? AI.hostileWeight * (1 + input.playerBuzz[i] / 40) * ignore : AI.allyWeight) : 1;
           u = (AI.attackGap - gap) * 10 * weight;
         }
       }

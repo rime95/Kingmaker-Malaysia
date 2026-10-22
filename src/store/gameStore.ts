@@ -165,7 +165,7 @@ interface Store {
   syncAssembly: (stateId: string, sync: boolean) => void;
   offer: (c: CoalitionId, kind: OfferKind) => void;
   talksRound: () => void;
-  back: (leader: CoalitionId, askDpm: boolean) => void;
+  back: (leader: CoalitionId, askDpm: boolean | "pm") => void;
   agong: () => void;
   endNight: () => void;
   load: (game: GameState) => void;

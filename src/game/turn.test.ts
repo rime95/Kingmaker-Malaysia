@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyAction, buyAsset, previewAction, sellAsset, tapAsset, upgradeAsset } from "./actions";
+import { ACTION_BY_ID, actionCost, applyAction, buyAsset, previewAction, sellAsset, tapAsset, upgradeAsset } from "./actions";
 import { advanceMonth } from "./month";
 import { newGame, projectedSeats, type GameState } from "./state";
 import { advanceWeek } from "./week";
@@ -75,7 +75,9 @@ describe("actions", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.state.me.ap).toBe(g.me.ap - 1);
-    expect(r.state.me.funds).toBe(g.me.funds - 150_000);
+    // A small party's volunteers do ground work for less.
+    expect(r.state.me.funds).toBe(g.me.funds - actionCost(g, ACTION_BY_ID.service, { kind: "seat", seat: seat("P.146") }));
+    expect(actionCost(g, ACTION_BY_ID.service, { kind: "seat", seat: 0 })).toBeLessThan(150_000);
     expect(applyAction(g, "media", { kind: "none" }).ok).toBe(true);
     const poor = { ...g, me: { ...g.me, funds: 10 } };
     expect(applyAction(poor, "media", { kind: "none" }).ok).toBe(false);

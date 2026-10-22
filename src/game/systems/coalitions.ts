@@ -202,9 +202,12 @@ export function moveParty(s: GameState, party: string, to: CoalitionId): GameSta
   const ti = COALITIONS.indexOf(to);
   const seatOffsets = s.seatOffsets.map((row) => [...row]);
   const seatParty = { ...s.seatParty };
+  const entries = { ...s.entries };
   for (const seat of SEATS) {
     if (seatCandidate(s, seat, from) !== party) continue;
-    const contests = contestingIn(seat);
+    // The party's seats come with it: its new coalition stands there from now on.
+    if (!contestingIn(seat, entries).includes(to)) entries[seat.index] = [...(entries[seat.index] ?? []), to];
+    const contests = contestingIn(seat, entries);
     seatOffsets[seat.index][fi] -= COALITION_RULES.personalVote;
     if (contests.includes(to)) {
       seatOffsets[seat.index][ti] += COALITION_RULES.personalVote;
@@ -215,7 +218,7 @@ export function moveParty(s: GameState, party: string, to: CoalitionId): GameSta
     seatParty[seat.index] = rest;
   }
   const partySat = { ...s.partySat, [party]: 60 };
-  return { ...s, coalitions, holders, seatOffsets, seatParty, partySat };
+  return { ...s, coalitions, holders, seatOffsets, seatParty, partySat, entries };
 }
 
 // --- Monthly turn --------------------------------------------------------------------------------

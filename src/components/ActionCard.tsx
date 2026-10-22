@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ACTION_BY_ID, actionBlocked, previewAction, type Target } from "@/game/actions";
+import { ACTION_BY_ID, actionBlocked, actionCost, previewAction, type Target } from "@/game/actions";
 import { hasOrder } from "@/game/systems/orders";
 import { useGame } from "@/store/gameStore";
 import { fmtRM } from "./common";
@@ -19,7 +19,7 @@ export function ActionCard({ id, target, compact = false, dense = false }: { id:
   const hidden = (def.only === "gov" && blocked === "Government only.") || (def.only === "opp" && blocked === "Opposition only.");
   const preview = useMemo(() => (blocked ? null : previewAction(game, id, target)), [game, id, target, blocked]);
   if (hidden) return null;
-  const cost = def.cost(game, target);
+  const cost = actionCost(game, def, target);
   const standing = hasOrder(game, id, target);
 
   let estimate: string | null = null;

@@ -19,6 +19,7 @@ import { DUNS_BY_STATE, projectDuns, runStateElection } from "./dun";
 import { startFormation } from "./formation";
 import { addPoints } from "./career";
 import { buildAnalysis } from "./analysis";
+import { growRoots } from "./growth";
 
 export interface Assembly {
   status: "sitting" | "campaign";
@@ -237,7 +238,8 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
     pacts: [],
     issuesTaken: {},
     calWeight: (s.calWeight ?? 1) * GE.calFade,
-    me: { ...next.me, momentum: Math.min(100, (next.me.momentum ?? 0) * 0.5 + gained * 2) },
+    roots: growRoots(s.roots ?? SEATS.map(() => 0), result.seats.map((r) => { const t = Object.values(r.votes).reduce((a, b) => a + (b ?? 0), 0); return t ? (r.votes[s.player] ?? 0) / t : 0; }), s.player, s.holders.filter((h) => h === s.player).length),
+    me: { ...next.me, momentum: Math.min(40, (next.me.momentum ?? 0) * 0.5 + gained * 0.5) },
   };
   if (s.pacts.length) lines.push({ text: "Your seat pacts have run their course.", tone: "info" });
   lines.push({ text: generalSummary(result, s.player), tone: result.totals[s.player] >= (before[s.player] ?? 0) ? "good" : "bad" });

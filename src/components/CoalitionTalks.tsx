@@ -7,6 +7,7 @@ import { useGame } from "@/store/gameStore";
 import { coalitionLeader } from "@/game/systems/coalitions";
 import { cname, COALITIONS, cshort, MAJORITY, type CoalitionId } from "@/game/world";
 import { coalColor } from "./common";
+import { compromiseOdds } from "@/game/systems/growth";
 
 const OFFER_LABEL: Record<OfferKind, string> = { dpm: "Offer DPM", ministries: "+ Ministries", ma63: "Promise MA63" };
 
@@ -68,6 +69,16 @@ export function CoalitionTalks() {
                   <button className="btn btn-ghost" onClick={() => back(c, true)} title="Granted only if your seats are what takes them past 112.">
                     Back them, ask for DPM
                   </button>
+                  {compromiseOdds(game, f.seats, f.committed, c) > 0 && (
+                    <button
+                      className="btn btn-ghost"
+                      style={{ outline: "1px solid var(--accent)" }}
+                      onClick={() => back(c, "pm")}
+                      title="A compromise Prime Minister: they take your price or walk away from your seats. The odds can change as others sign."
+                    >
+                      Back them if you become PM · ~{Math.round(compromiseOdds(game, f.seats, f.committed, c) * 100)}%
+                    </button>
+                  )}
                 </div>
               )}
             </div>

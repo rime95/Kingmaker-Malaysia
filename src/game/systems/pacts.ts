@@ -7,6 +7,7 @@ import { isGovernment, projectAllFor, type GameState } from "../state";
 import type { StandAside } from "../voter";
 import { SEATS, contestingIn, cshort, type CoalitionId } from "../world";
 import { isPresident } from "./career";
+import { AFFINITY } from "./formation";
 
 export interface Pact {
   with: CoalitionId;
@@ -25,6 +26,13 @@ export const PACT = {
   acrossChance: 0.35,
   /** Weeks before you can ask the same coalition again after a no. */
   cooldown: 8,
+  /** The junior partner gets to stand in this share of the shared seats (where the senior partner can't win alone). */
+  quota: 0.15,
+  quotaMax: 4,
+  /** A friendly senior partner will give up this many of its own seats for an unsplit vote. */
+  friendTolerance: 2,
+  transferBase: 0.45,
+  transferAffinity: 0.35,
 };
 
 const sameSide = (s: GameState, c: CoalitionId) => isGovernment(s, c) === isGovernment(s);
@@ -41,6 +49,16 @@ export function pactSeats(s: GameState, c: CoalitionId): Record<number, Coalitio
     if (!list.includes(c) || !list.includes(s.player)) continue;
     const sh = proj[seat.index].shares;
     out[seat.index] = (sh[c] ?? 0) >= (sh[s.player] ?? 0) ? s.player : c;
+  }
+  // The junior partner's share of the deal: seats the senior partner can't win alone but the two could win together.
+  const aside = Object.keys(out).map(Number).filter((i) => out[i] === s.player);
+  const quota = aside.length >= 3 ? Math.min(PACT.quotaMax, Math.ceil(aside.length * PACT.quota)) : 0;
+  const given = Object.values(out).filter((x) => x === c).length;
+  if (given < quota) {
+    // The senior partner keeps its fortresses (its safest third) and lends the junior partner the next-best seats.
+    const ranked = aside.sort((a, b) => (proj[b].shares[c] ?? 0) - (proj[a].shares[c] ?? 0));
+    const picks = ranked.slice(Math.floor(ranked.length / 3)).slice(0, quota - given);
+    for (const i of picks) out[i] = c;
   }
   return out;
 }
@@ -88,7 +106,10 @@ export function proposePact(s: GameState, c: CoalitionId): { state: GameState; m
   };
   const willing = sameSide(s, c) || hash01("pact", s.seed, s.week, c) < PACT.acrossChance;
   const aside = Object.values(g.seats).filter((x) => x === s.player).length;
-  if (g.them < 0 || (g.them === 0 && g.you > 2) || !willing) {
+  // Seats an ally wins still count for half to them (they're in the same camp).
+  const value = g.them + Math.max(0, g.you) * 0.5;
+  const friendly = (AFFINITY[c]?.[s.player] ?? 0) >= 0.3;
+  if (value < (friendly ? -PACT.friendTolerance : 0) || !willing) {
     const why2 = !willing ? "they won't be seen dealing with your side" : g.them < 0 ? `it would cost them ${-g.them} seats` : "it helps you, not them";
     return {
       state: paid,
@@ -117,9 +138,10 @@ export function endPact(s: GameState, c: CoalitionId): { state: GameState; messa
 export function asideFor(s: Pick<GameState, "pacts" | "player" | "government">): Record<number, StandAside[]> {
   const out: Record<number, StandAside[]> = {};
   for (const p of s.pacts) {
-    const transfer = s.government.includes(p.with) === s.government.includes(s.player) ? PACT.transferSameSide : PACT.transferAcross;
     for (const [k, out_] of Object.entries(p.seats)) {
       const to = out_ === s.player ? p.with : s.player;
+      // How much of a withdrawn vote follows the deal depends on how much its voters like the other side.
+      const transfer = Math.max(PACT.transferAcross, Math.min(0.75, PACT.transferBase + (AFFINITY[out_]?.[to] ?? 0) * PACT.transferAffinity));
       (out[Number(k)] ??= []).push({ out: out_, to, transfer });
     }
   }

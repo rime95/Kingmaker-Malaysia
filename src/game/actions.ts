@@ -17,6 +17,7 @@ import { fire, headhunt, hire, pollError, raise, setAuto, teamAp } from "./syste
 import { NATION, PROJECT_BY_ID, type Nation } from "./systems/nation";
 import { insiderCheck, policySector } from "./systems/wealth";
 import { nominate } from "./systems/nominations";
+import { UNDERDOG, compromiseLine, compromiseOdds, recruitParty, underdog } from "./systems/growth";
 import { ISSUE, openIssues } from "./systems/issues";
 import { collection, toggleMou } from "./systems/funding";
 import { endPact, proposePact } from "./systems/pacts";
@@ -55,6 +56,13 @@ export interface ActionDef {
   rungs?: number[];
   /** Changes beyond your own stats (e.g. an ally's campaign), applied after run. */
   after?: (s: GameState, t: Target) => GameState;
+}
+
+/** What a move costs you: a small party's volunteers do the ground work for less. */
+export function actionCost(s: GameState, def: ActionDef, t: Target): number {
+  const base = def.cost(s, t);
+  if (def.group !== "local") return base;
+  return Math.round(base * (1 - underdog(s.holders.filter((h) => h === s.player).length) * UNDERDOG.volunteers));
 }
 
 export type ActionResult = { ok: true; state: GameState; message: string } | { ok: false; error: string };
@@ -811,7 +819,7 @@ export function actionBlocked(s: GameState, def: ActionDef, t: Target): string |
   if (def.rungs && !def.rungs.includes(s.career.rung)) return `Only as ${def.rungs.map((r) => RUNGS[r]).join(" or ")}.`;
   if (def.target !== t.kind) return "Pick a target first.";
   if (s.me.ap < def.ap) return `Needs ${def.ap} AP (you have ${s.me.ap}).`;
-  const cost = def.cost(s, t);
+  const cost = actionCost(s, def, t);
   if (cost > s.me.funds) return `Needs ${fmtRM(cost)}.`;
   return def.blocked?.(s, t) ?? null;
 }
@@ -822,7 +830,7 @@ export function applyAction(s: GameState, id: string, t: Target): ActionResult {
   const why = actionBlocked(s, def, t);
   if (why) return { ok: false, error: why };
   const me = cloneMe(s.me);
-  me.funds -= def.cost(s, t);
+  me.funds -= actionCost(s, def, t);
   me.ap -= def.ap;
   const message = def.run(me, s, t);
   const base = def.after ? def.after({ ...s, me }, t) : s;
@@ -871,7 +879,8 @@ export type DeepOp =
   | { kind: "wing"; wing: keyof Wings }
   | { kind: "showCause"; id: number }
   | { kind: "sack"; id: number }
-  | { kind: "mou" };
+  | { kind: "mou" }
+  | { kind: "recruit"; party: string };
 
 export function deepMove(s: GameState, op: DeepOp): ActionResult {
   const wrap = (r: { state: GameState; message: string } | { error: string }): ActionResult => ("error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message });
@@ -901,6 +910,8 @@ export function deepMove(s: GameState, op: DeepOp): ActionResult {
       return wrap(sackMember(s, op.id));
     case "mou":
       return wrap(toggleMou(s));
+    case "recruit":
+      return wrap(recruitParty(s, op.party));
   }
 }
 
@@ -1348,13 +1359,17 @@ export function nextTalksRound(s: GameState): ActionResult {
   return { ok: true, state: { ...s, formation: next }, message: `Round ${f.round} of talks is over.` };
 }
 
-export function backForPm(s: GameState, leader: CoalitionId, askDpm: boolean): ActionResult {
+export function backForPm(s: GameState, leader: CoalitionId, askDpm: boolean | "pm"): ActionResult {
   const f = s.formation;
   if (!f || f.role !== "kingmaker") return { ok: false, error: "You aren't the kingmaker." };
   if (!f.candidates.includes(leader)) return { ok: false, error: "Not a candidate." };
   if (f.committed[s.player]) return { ok: false, error: "You have already signed." };
   if (!isPresident(s.career)) return { ok: false, error: LEADERSHIP_ONLY };
-  return { ok: true, state: { ...s, formation: backCandidate(f, s.player, leader, askDpm) }, message: `You back ${cshort(leader)} for Prime Minister.` };
+  return {
+    ok: true,
+    state: { ...s, formation: backCandidate(f, s.player, leader, askDpm) },
+    message: askDpm === "pm" ? `You offer ${cshort(leader)} your seats, if you become Prime Minister.` : `You back ${cshort(leader)} for Prime Minister.`,
+  };
 }
 
 /** Finish the talks (any remaining rounds play out) and let the Agong decide. */
@@ -1367,10 +1382,24 @@ export function goToAgong(s: GameState, midTerm = false): ActionResult {
     f = backCandidate(f, s.player, (AFFINITY[s.player][x] ?? 0) >= (AFFINITY[s.player][y] ?? 0) ? x : y, false);
   }
   while (f.round <= OFFERS.rounds) f = endRound(f, s.player);
-  const o = agongDecides(f, s.player);
+  // The compromise Prime Minister: your candidate takes your price, or walks away from your seats.
+  const pmAsk = f.askedPm ? f.committed[s.player] : undefined;
+  let pmLine: string | null = null;
+  if (pmAsk) {
+    const ok = hash01("compromise", s.seed, s.week) < compromiseOdds(s, f.seats, f.committed, pmAsk);
+    pmLine = compromiseLine(pmAsk, ok).text;
+    if (!ok) {
+      const committed = { ...f.committed };
+      delete committed[s.player];
+      f = { ...f, committed };
+    }
+  }
+  const decided = agongDecides(f, s.player);
+  const o = pmAsk && pmLine && f.committed[s.player] === pmAsk && decided.pm === pmAsk ? { ...decided, pm: s.player } : decided;
   const me = cloneMe(s.me);
   const inGov = o.government.includes(s.player);
   const lines: string[] = [];
+  if (pmLine) lines.push(pmLine);
   if (o.pm === s.player) {
     for (const [c, offer] of Object.entries(f.offers) as [CoalitionId, Offer][]) {
       if (!o.government.includes(c)) continue;

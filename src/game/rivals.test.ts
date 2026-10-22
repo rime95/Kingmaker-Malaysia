@@ -63,7 +63,7 @@ describe("rival parties", () => {
     const g = newGame("PN", 3);
     const i = seat("P.107"); // Sungai Buloh: narrow PKR seat, PN runner-up
     const buzz = [...g.me.buzz];
-    buzz[i] = 20;
+    buzz[i] = 12; // Enough to threaten the seat (with your edge, much more would simply take it).
     const r = step({ ...g, me: { ...g.me, buzz } });
     expect(r.rivals.PH!.targets).toContain(i);
   });

@@ -19,6 +19,8 @@ export interface VoterInputs {
   aside?: Record<number, StandAside[]>;
   /** How much of the GE15 calibration still holds (fades each election, so incumbency isn't for ever). */
   calWeight?: number;
+  /** Voters a coalition has converted, per seat (added to its natural base, not multiplied). */
+  convertBase?: { c: CoalitionId; base: number[] };
 }
 
 export interface StandAside {
@@ -43,12 +45,12 @@ const BASE: number[][] = SEATS.map((seat) => COALITIONS.map((c) => baseScore(sea
 /** How naturally a coalition's voters live in a seat (bloc lean; under 0.05 means hardly any). */
 export const naturalSupport = (seat: number, c: CoalitionId) => BASE[seat][COALITION_INDEX[c]];
 
-function sharesFrom(seat: Seat, adjust: (c: CoalitionId) => number, entries?: Entries, aside?: StandAside[]): Partial<Record<CoalitionId, number>> {
+function sharesFrom(seat: Seat, adjust: (c: CoalitionId) => number, entries?: Entries, aside?: StandAside[], converts?: VoterInputs["convertBase"]): Partial<Record<CoalitionId, number>> {
   const out: Partial<Record<CoalitionId, number>> = {};
   let total = 0;
   const newcomers = entries?.[seat.index] ?? [];
   for (const c of contestingIn(seat, entries)) {
-    const base = BASE[seat.index][COALITION_INDEX[c]];
+    const base = BASE[seat.index][COALITION_INDEX[c]] + (converts && converts.c === c ? converts.base[seat.index] : 0);
     const v = (newcomers.includes(c) ? Math.max(base, NEWCOMER_BASE) : base) * Math.exp(adjust(c));
     out[c] = v;
     total += v;
@@ -111,6 +113,7 @@ export function seatShares(seat: Seat, inputs: VoterInputs, extra?: (c: Coalitio
     },
     inputs.entries,
     inputs.aside?.[seat.index],
+    inputs.convertBase,
   );
 }
 

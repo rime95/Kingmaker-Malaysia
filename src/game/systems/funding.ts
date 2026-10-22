@@ -11,6 +11,7 @@
 import { fmtRM } from "../money";
 import type { GameState, ReportLine } from "../state";
 import { mpOf } from "./people";
+import { UNDERDOG, underdog } from "./growth";
 
 const W = 12 / 52;
 
@@ -63,6 +64,9 @@ export function partyIncome(s: GameState): { label: string; amount: number }[] {
   const out: { label: string; amount: number }[] = [];
   const merch = Math.round(s.me.members * MERCH.perMember * Math.min(2, s.me.nationalBuzz / MERCH.buzzRef));
   if (merch > 0) out.push({ label: "Merchandise and online shop", amount: merch });
+  // A small, noisy party raises money online from its supporters.
+  const crowd = Math.round(UNDERDOG.crowdfund * underdog(s.holders.filter((h) => h === s.player).length) * Math.min(1.5, 0.3 + s.me.nationalBuzz / 50));
+  if (crowd > 0) out.push({ label: "Online crowdfunding", amount: crowd });
   const poll = s.polls.national[0];
   const season = s.parliament.status === "campaign" || s.parliament.deadlineWeek - s.week <= DONORS.beforeDeadline;
   if (season && poll) {

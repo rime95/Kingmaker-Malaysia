@@ -1,6 +1,6 @@
 // Skip 1 Week: the only place time moves. Skip 1 Month is exactly four of these (see month.ts).
 
-import { DECAY, DIFFICULTY, ECONOMY, ECONOMY_DRIFT, MACC, MOOD_DECAY, PRN } from "./config";
+import { DECAY, DIFFICULTY, ECONOMY, ECONOMY_DRIFT, MACC, MOOD_DECAY, PRN, hqCost } from "./config";
 import { ALLOC, fullAllocations, fundingWeek, partyIncome } from "./systems/funding";
 import { assembliesWeek, campaignStates, stateRulers, weeksToElection } from "./systems/assemblies";
 import { DUNS_BY_STATE } from "./systems/dun";
@@ -26,6 +26,7 @@ import { fmtRM } from "./money";
 import { Rng, hash01 } from "./rng";
 import { isGovernment, machineryBase, projectAllFor, serviceBase, voterInputs, weekDate, type GameState, type ReportLine, type WeekReport } from "./state";
 import { dewanWeek } from "./systems/dewan";
+import { UNDERDOG, convertsWeek, underdog } from "./systems/growth";
 import { agendaWeek, oppositionWeek } from "./systems/agenda";
 import { COUNCIL_EVERY, wingsWeek } from "./systems/partyorg";
 import { ASSETS, assetIncome, assetRisk, ceoPay, marketWeek } from "./systems/business";
@@ -47,7 +48,7 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
     if (ruler === s.player) income.push({ label: `State government (${STATE_BY_ID[id].name})`, amount: DUNS_BY_STATE[id].length * PRN.stateIncomePerSeat });
   for (const a of me.assets) income.push({ label: ASSETS[a.type].name, amount: assetIncome(a, gov, me.market) });
   income.push(...partyIncome(s));
-  const expenses: WeekReport["expenses"] = [{ label: "HQ & staff", amount: Math.round(ECONOMY.hqFixed + me.members * ECONOMY.hqPerMember) }];
+  const expenses: WeekReport["expenses"] = [{ label: "HQ & staff", amount: Math.round(hqCost(me.members)) }];
   if (s.team.length && !s.personal.payTeam) expenses.push({ label: "Your team", amount: teamSalaries(s) });
   const donations = teamDonations(s);
   if (donations) income.push({ label: `Donors (${s.team.find((x) => x.role === "fundraiser")?.name})`, amount: donations });
@@ -208,6 +209,7 @@ export function advanceWeek(input: GameState): GameState {
   next = op.state;
   lines.push(...op.lines);
   next = wingsWeek(next);
+  next = { ...next, converts: convertsWeek(next, contested, (i) => serviceBase(next.player, i)) };
   next = fundingWeek(next).state;
 
   // The Dewan Rakyat: meetings open and adjourn; the motion due this week is voted on
@@ -354,7 +356,9 @@ export function advanceWeek(input: GameState): GameState {
       // Only moves bigger than a poll's own wobble count, so noise alone doesn't build a wave.
       const real = (x: number, noise: number) => Math.sign(x) * Math.max(0, Math.abs(x) - noise);
       mom += real(seatsAfter - seatsBefore, DECAY.momentumSeatNoise) * DECAY.momentumPerSeat;
-      if (prevPoll) mom += real(((poll.vote[s.player] ?? 0) - (prevPoll.vote[s.player] ?? 0)) * 100, DECAY.momentumPointNoise) * DECAY.momentumPerPoint;
+      // For a small party, every point gained is a breakthrough.
+      const small = 1 + underdog(s.holders.filter((h) => h === s.player).length) * UNDERDOG.momentum;
+      if (prevPoll) mom += real(((poll.vote[s.player] ?? 0) - (prevPoll.vote[s.player] ?? 0)) * 100, DECAY.momentumPointNoise) * DECAY.momentumPerPoint * small;
     }
     if (next.me.nationalBuzz > 50) mom += 1;
     mom = Math.min(100, Math.max(0, mom));

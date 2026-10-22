@@ -3,7 +3,10 @@
 
 import { writeFileSync } from "node:fs";
 import { describe, it } from "vitest";
-import { applyAction, makePact } from "./actions";
+import { applyAction, backForPm, deepMove, goToAgong, makeOffer, makePact, type OfferKind } from "./actions";
+import { deciding } from "./systems/formation";
+import { RECRUIT, compromiseOdds, recruitBlocked, recruitTargets, recruitWillingness } from "./systems/growth";
+import { AFFINITY } from "./systems/formation";
 import { advanceTurn } from "./month";
 import { newGame, projectAllFor, type GameState } from "./state";
 import { openIssues } from "./systems/issues";
@@ -20,12 +23,18 @@ const tryAct = (s: GameState, id: string, seat?: number) => {
 /** One turn of a sensible player: money if short, pacts, a few new branches, then ground work where seats are winnable. */
 export function botTurn(s: GameState): GameState {
   if (s.night || s.formation) return s;
+  // Grow the coalition first: invite anyone who'd say yes.
+  for (const party of recruitTargets(s)) {
+    if (recruitBlocked(s, party) || recruitWillingness(s, party) < RECRUIT.threshold) continue;
+    const r = deepMove(s, { kind: "recruit", party });
+    if (r.ok) s = r.state;
+  }
   if (s.me.funds < 1_500_000) s = tryAct(s, "dinner");
   if (s.me.funds < 800_000 && s.me.risk < 45) s = tryAct(s, "tycoon");
   for (const c of COALITIONS) {
     if (c === s.player || c === "OTHERS" || pactBlocked(s, c)) continue;
     const g = pactGains(s, c);
-    if (g.you >= 1 && g.them >= 0) {
+    if (g.you >= 1) {
       const r = makePact(s, c);
       if (r.ok) s = r.state;
     }
@@ -46,8 +55,8 @@ export function botTurn(s: GameState): GameState {
       );
       return { i: x.index, gap: best - mine };
     })
-    .filter((t) => t.gap > -0.06 && t.gap < 0.3)
-    .sort((a, b) => Math.abs(a.gap) - Math.abs(b.gap));
+    .sort((a, b) => Math.abs(a.gap) - Math.abs(b.gap))
+    .filter((t, k) => (t.gap > -0.06 && t.gap < 0.3) || k < 6);
   for (const t of targets) {
     if (s.me.ap <= 0 || s.me.funds < 400_000) break;
     if (openIssues(s, t.i).length) s = tryAct(s, "issue", t.i);
@@ -60,23 +69,52 @@ export function botTurn(s: GameState): GameState {
 
 const seatsOf = (s: GameState, c: CoalitionId) => s.holders.filter((h) => h === c).length;
 
+/** Coalition talks: as kingmaker, bargain for the premiership when the odds are decent, else back the friendlier side. */
+function botTalks(s: GameState): GameState {
+  const f = s.formation;
+  if (!f) return s;
+  if (f.role === "kingmaker" && !f.committed[s.player]) {
+    const [x, y] = f.candidates;
+    const ox = compromiseOdds(s, f.seats, f.committed, x);
+    const oy = compromiseOdds(s, f.seats, f.committed, y);
+    const best = ox >= oy ? x : y;
+    const r = Math.max(ox, oy) >= 0.3 ? backForPm(s, best, "pm") : backForPm(s, (AFFINITY[s.player][x] ?? 0) >= (AFFINITY[s.player][y] ?? 0) ? x : y, true);
+    if (r.ok) s = r.state;
+  }
+  if (f.role === "leader") {
+    // As a candidate: sweeten the deal for the biggest undecided coalitions.
+    const undecided = deciding(f, s.player).sort((a, b) => f.seats[b] - f.seats[a]);
+    undecided.forEach((c, k) => {
+      for (const kind of (k === 0 ? ["dpm", "ministries", "ma63"] : ["ministries", "ma63"]) as OfferKind[]) {
+        const r = makeOffer(s, c, kind);
+        if (r.ok) s = r.state;
+      }
+    });
+  }
+  const g = goToAgong(s);
+  return g.ok ? g.state : s;
+}
+
 function playTerms(c: CoalitionId, seed: number) {
   let s = newGame(c, seed);
   const row: Record<string, number | string> = {
     coalition: c,
     start: seatsOf(s, c),
   };
-  for (let ge = 1; ge <= 3; ge++) {
+  for (let ge = 1; ge <= TERMS; ge++) {
     // First term runs to the real deadline; later ones to a mid-term election two years in.
     const turns = ge === 1 ? 32 : 52;
     for (let t = 0; t < turns && !s.night; t++) s = advanceTurn(botTurn(s));
     s = testGeneralElection(s);
     row[`GE${15 + ge}`] = seatsOf(s, c);
-    row[`gov${ge}`] = s.formation ? "talks" : s.government.includes(c) ? "yes" : "no";
-    s = advanceTurn({ ...s, night: null });
+    s = botTalks({ ...s, night: null });
+    row[`gov${ge}`] = s.parliament.pm === c ? "PM" : s.government.includes(c) ? "gov" : "opp";
+    s = advanceTurn(s);
   }
   return row;
 }
+
+const TERMS = Number(process.env.SIM_TERMS ?? 3);
 
 describe.skipIf(!process.env.SIM)("balance simulator", () => {
   it("plays three elections for each coalition", { timeout: 600_000 }, () => {

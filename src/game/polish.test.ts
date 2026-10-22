@@ -48,7 +48,8 @@ describe("advisor", () => {
 
   it("warns about a short runway and MACC risk", () => {
     const g = newGame("MUDA", 1);
-    const tips = advise({ ...g, me: { ...g.me, funds: 50_000, risk: 70 } });
+    // Running machinery everywhere costs more each week than a small party brings in.
+    const tips = advise({ ...g, me: { ...g.me, funds: 50_000, risk: 70, machinery: g.me.machinery.map(() => 100) } });
     expect(tips.some((t) => t.text.startsWith("Money runs out"))).toBe(true);
     expect(tips.some((t) => t.text.startsWith("MACC risk"))).toBe(true);
   });
