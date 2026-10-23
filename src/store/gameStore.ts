@@ -106,6 +106,11 @@ interface Store {
   seeVote: (id: number) => void;
   lang: "en" | "ms";
   sound: boolean;
+  /** The soundtrack, and the master volume (0–1). */
+  music: boolean;
+  volume: number;
+  setMusic: (on: boolean) => void;
+  setVolume: (v: number) => void;
   /** Play-test tools in the ⋯ menu. */
   testTools: boolean;
   setTestTools: (on: boolean) => void;
@@ -236,7 +241,11 @@ export const useGame = create<Store>()(
         voteSeen: [],
         seeVote: (id) => set({ voteSeen: [...get().voteSeen.slice(-40), id] }),
         lang: "en",
-        sound: false,
+        sound: true,
+        music: true,
+        volume: 0.6,
+        setMusic: (music) => set({ music }),
+        setVolume: (volume) => set({ volume }),
         testTools: false,
         setTestTools: (testTools) => set({ testTools }),
         test: (kind) => {
@@ -491,13 +500,13 @@ export const useGame = create<Store>()(
       name: "mpr-save",
       version: SAVE_VERSION,
       storage: safeStorage,
-      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound, testTools: s.testTools }),
+      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound, music: s.music, volume: s.volume, testTools: s.testTools }),
       // Saves from before the turn loop can't be upgraded: start fresh.
       migrate: (persisted, version) => (version < 2 ? { game: null, lens: "holder" } : persisted) as Store,
       // Every load fills fields added since the save was made (safe to repeat).
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<Store>;
-        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound, testTools: p.testTools ?? current.testTools };
+        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound, music: p.music ?? current.music, volume: p.volume ?? current.volume, testTools: p.testTools ?? current.testTools };
       },
     },
   ),

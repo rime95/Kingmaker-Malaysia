@@ -10,6 +10,7 @@ import { CHART_ORDER, fmtRM } from "../common";
 import { coalColor } from "../map/lenses";
 import { useT } from "../i18n";
 import { Icon } from "./icons";
+import { SoundControls } from "../SoundControls";
 
 /** The slim status bar across the top (GE16 "status report" style). */
 export function TopBar({ onSaves }: { onSaves: () => void }) {
@@ -167,6 +168,8 @@ function Menu({ onSaves }: { onSaves: () => void }) {
               {item("+10 AP, +RM 10M", () => test("boost"))}
             </>
           )}
+          <div className="h-px my-1" style={{ background: "var(--line)" }} />
+          <SoundControls />
           <div className="h-px my-1" style={{ background: "var(--line)" }} />
           {item(testTools ? "Hide test tools" : "Show test tools", () => setTestTools(!testTools), "Play-test shortcuts that bend the rules.")}
           {item("Your record & achievements", () => setRecordOpen(true))}

@@ -21,6 +21,7 @@ import { WeekReview } from "./shell/WeekReview";
 import { AlertModal } from "./shell/AlertModal";
 import { NameCoalition } from "./shell/NameCoalition";
 import { PartyRaceCount } from "./PartyRace";
+import { useSoundtrack } from "./SoundControls";
 
 const noop = () => () => {};
 
@@ -28,6 +29,7 @@ export function Game() {
   // Saves load from browser storage, so render only after mounting (no hydration mismatch).
   const mounted = useSyncExternalStore(noop, () => true, () => false);
   const game = useGame((s) => s.game);
+  useSoundtrack(!game ? "title" : game.night ? "night" : "campaign");
   if (!mounted) return null;
   return game ? <Main /> : <NewGame />;
 }

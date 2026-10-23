@@ -16,7 +16,7 @@ export function SaveSlots({ onDone }: { onDone?: () => void }) {
   const refresh = () => setSlots(listSlots());
 
   return (
-    <section className="panel p-4 flex flex-col gap-3">
+    <section id="saves" className="panel p-4 flex flex-col gap-3">
       <h2 className="font-semibold">Saved games</h2>
       {game && (
         <div className="flex flex-wrap gap-2">

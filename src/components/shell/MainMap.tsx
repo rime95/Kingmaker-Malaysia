@@ -28,6 +28,8 @@ export function MainMap() {
   const statesMode = panel === "states";
   const dunFills = useMemo(() => (statesMode ? DUNS.map((d) => coalColor(game.dunHolders[d.index])) : null), [statesMode, game.dunHolders]);
 
+  // Your own seats, outlined in your colour.
+  const mine = useMemo(() => ({ seats: game.holders.flatMap((h, i) => (h === game.player ? [i] : [])), color: coalColor(game.player) }), [game.holders, game.player]);
   const markers = useMemo<MapMarker[]>(() => {
     const out: MapMarker[] = game.bubbles.map((b) => ({
       key: `b${b.id}`,
@@ -47,6 +49,13 @@ export function MainMap() {
         seen.add(i);
         out.push({ key: `p${c}${i}`, seat: i, kind: "pulse", icon: "", color: coalColor(c) });
       }
+    }
+    // Battlegrounds: a rival counter-campaigning where you pushed.
+    for (const [k, b] of Object.entries(game.battlegrounds ?? {})) {
+      const i = Number(k);
+      if (seen.has(i)) continue;
+      seen.add(i);
+      out.push({ key: `bg${i}`, seat: i, kind: "pulse", icon: "", color: coalColor(b.by) });
     }
     return out;
   }, [game, claim]);
@@ -69,6 +78,7 @@ export function MainMap() {
         markers={markers}
         floater={floater}
         safeArea={SAFE_AREA()}
+        outline={mine}
       />
       {hover && (hover.dun ? <DunTip {...hover} /> : <SeatTip {...hover} reads={reads} />)}
     </>

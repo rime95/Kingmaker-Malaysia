@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { DIFFICULTY, DIFFICULTY_ROWS, SCENARIOS, type Difficulty, type ScenarioId } from "@/game/config";
 import { TIER_TEXT } from "@/game/systems/formation";
 import { useGame } from "@/store/gameStore";
@@ -9,6 +9,9 @@ import { cname, COALITION_INFO, SEATS, type CoalitionId } from "@/game/world";
 import { coalColor } from "./common";
 import { SaveSlots } from "./SaveSlots";
 import { Toast } from "./Toast";
+import { MalaysiaMap } from "./map/MalaysiaMap";
+import { SoundControls } from "./SoundControls";
+import { sfx } from "./audio";
 
 const PLAYABLE: CoalitionId[] = ["PH", "BN", "PN", "GPS", "GRS", "WARISAN", "MUDA"];
 const noop = () => () => {};
@@ -23,14 +26,14 @@ export function NewGame() {
   const [name, setName] = useState("");
   const named = name.trim().length >= 2;
 
+  const pickerRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 flex flex-col gap-6">
+    <div className="flex flex-col">
+      <Hero onStart={() => pickerRef.current?.scrollIntoView({ behavior: "smooth" })} />
+    <div ref={pickerRef} className="mx-auto w-full max-w-4xl px-4 py-10 flex flex-col gap-6">
       <div>
-        <div className="eyebrow mb-2">Malaysia · general election</div>
-        <h1 className="text-4xl font-black tracking-tight" style={{ background: "linear-gradient(90deg, var(--primary-a), var(--primary-b))", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
-          Malam Pilihan Raya
-        </h1>
-        <p className="mt-2" style={{ color: "var(--ink-2)" }}>
+        <div className="eyebrow mb-2">Pilih parti anda · Choose your party</div>
+        <p style={{ color: "var(--ink-2)" }}>
           Build your power base, hold what you have and win election night. You are the party president: pick the coalition you will lead.
         </p>
         <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>
@@ -47,16 +50,29 @@ export function NewGame() {
           return (
             <button
               key={c}
-              onClick={() => setPick(c)}
-              className="panel p-4 text-left hover:shadow-md transition-shadow"
+              onClick={() => {
+                setPick(c);
+                sfx("chime");
+              }}
+              className="panel party-card p-4 text-left"
               style={{ borderLeft: `5px solid ${coalColor(c)}`, outline: pick === c ? "2px solid var(--ink)" : undefined }}
               aria-pressed={pick === c}
             >
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-semibold">{info.name}</span>
-                <span className="text-sm tabular-nums" style={{ color: "var(--ink-2)" }}>
-                  {n} seats
+              <div className="flex items-center gap-3">
+                <span className="party-avatar" style={{ background: coalColor(c) }} aria-hidden>
+                  {initials(info.leader)}
                 </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-semibold">{info.name}</span>
+                    <span className="text-sm tabular-nums" style={{ color: "var(--ink-2)" }}>
+                      {n} seats
+                    </span>
+                  </div>
+                  <div className="h-1 rounded-full mt-1" style={{ background: "var(--surface-2)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${Math.max(2, (n / 112) * 100)}%`, background: coalColor(c) }} />
+                  </div>
+                </div>
               </div>
               <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
                 {info.leader} · {info.inGovernment ? "Government" : "Opposition"}
@@ -137,6 +153,73 @@ export function NewGame() {
       <SaveSlots />
       <Toast />
     </div>
+    </div>
+  );
+}
+
+const initials = (name: string) =>
+  name
+    .split(" ")
+    .filter((w) => /^[A-Z]/.test(w) && !["Abdul", "Abang", "Bin", "Binti"].includes(w))
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("");
+
+/** Seats in a random-looking but fixed order, for the title map to light up. */
+const REVEAL = SEATS.map((s) => s.index).sort((a, b) => ((a * 7919) % 223) - ((b * 7919) % 223));
+
+/** The title screen: Malaysia lights up seat by seat behind the title. */
+function Hero({ onStart }: { onStart: () => void }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (n >= SEATS.length) return;
+    const id = setTimeout(() => setN((x) => Math.min(SEATS.length, x + 3)), 45);
+    return () => clearTimeout(id);
+  }, [n]);
+  const lit = useMemo(() => new Set(REVEAL.slice(0, n)), [n]);
+  const fills = useMemo(() => SEATS.map((s) => (lit.has(s.index) ? { fill: coalColor(s.ge15Coalition) } : { fill: "var(--land)" })), [lit]);
+  return (
+    <section className="hero">
+      <div className="hero-map" aria-hidden>
+        <MalaysiaMap className="relative w-full h-full" fills={fills} showDuns="never" controls={false} clip />
+      </div>
+      <div className="hero-shade" aria-hidden />
+      <div className="absolute top-4 right-4 z-10">
+        <SoundControls compact />
+      </div>
+      <div className="relative z-10 flex flex-col items-center text-center px-4">
+        <div className="jalur" aria-hidden>
+          {Array.from({ length: 14 }, (_, i) => (
+            <span key={i} style={{ background: i % 2 ? "#fff" : "#cc0001" }} />
+          ))}
+        </div>
+        <div className="text-xs md:text-sm font-bold tracking-[0.35em] mt-4" style={{ color: "#ffcc00" }}>
+          PILIHAN RAYA UMUM · MALAYSIA
+        </div>
+        <h1 className="hero-title">MALAM PILIHAN RAYA</h1>
+        <p className="text-lg md:text-2xl font-semibold mt-2">222 kerusi. Satu malam. Siapa akan membentuk kerajaan?</p>
+        <p className="text-sm md:text-base mt-1" style={{ color: "var(--ink-2)" }}>
+          222 seats. One night. Who will form the government?
+        </p>
+        <div className="flex flex-wrap justify-center gap-3 mt-7">
+          <button
+            className="btn hero-cta"
+            onClick={() => {
+              sfx("fanfare");
+              onStart();
+            }}
+          >
+            Mula · Start
+          </button>
+          <button className="btn btn-ghost" onClick={() => document.getElementById("saves")?.scrollIntoView({ behavior: "smooth" })}>
+            Load a game
+          </button>
+        </div>
+        <div className="mt-8 text-xs tabular-nums" style={{ color: "var(--muted)" }}>
+          {n < SEATS.length ? `Counting… ${n} / 222` : "GE15: a hung parliament. The next one is yours to win."}
+        </div>
+      </div>
+    </section>
   );
 }
 

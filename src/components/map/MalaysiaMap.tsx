@@ -46,6 +46,10 @@ interface Props {
   safeArea?: { top: number; right: number; bottom: number; left: number };
   /** Hide zoom buttons (e.g. small embedded maps). */
   controls?: boolean;
+  /** Seats to outline in a colour (your own seats on the main map). */
+  outline?: { seats: number[]; color: string } | null;
+  /** Keep the map inside its box when zoomed (embedded maps); the full-screen map may spill under the floating UI. */
+  clip?: boolean;
   className?: string;
   ariaLabel?: string;
 }
@@ -61,7 +65,7 @@ export function MalaysiaMap(props: Props) {
   return <MapView geo={geo} {...props} />;
 }
 
-function MapView({ geo, fills, dunFills, showDuns = "auto", selected, selectedDun, onSelect, onSelectDun, onHover, onHoverDun, focus, markers, floater, safeArea, controls = true, className, ariaLabel }: Props & { geo: MapGeometry }) {
+function MapView({ geo, fills, dunFills, showDuns = "auto", selected, selectedDun, onSelect, onSelectDun, onHover, onHoverDun, focus, markers, floater, safeArea, controls = true, clip = false, outline, className, ariaLabel }: Props & { geo: MapGeometry }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -149,8 +153,8 @@ function MapView({ geo, fills, dunFills, showDuns = "auto", selected, selectedDu
   const zoomBy = (f: number) => svgRef.current && zoomRef.current && select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, f);
 
   return (
-    <div className={className ?? "relative"}>
-      <svg ref={svgRef} viewBox={`0 0 ${MAP_W} ${MAP_H}`} preserveAspectRatio="xMidYMid meet" className="w-full h-full block touch-none select-none" style={{ overflow: "visible" }} role="img" aria-label={ariaLabel ?? "Map of Malaysia's parliamentary seats"}>
+    <div className={className ?? "relative"} style={clip ? { overflow: "hidden" } : undefined}>
+      <svg ref={svgRef} viewBox={`0 0 ${MAP_W} ${MAP_H}`} preserveAspectRatio="xMidYMid meet" className="w-full h-full block touch-none select-none" style={{ overflow: clip ? "hidden" : "visible" }} role="img" aria-label={ariaLabel ?? "Map of Malaysia's parliamentary seats"}>
         <defs>
           <filter id="seat-glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="2" result="b" />
@@ -167,6 +171,7 @@ function MapView({ geo, fills, dunFills, showDuns = "auto", selected, selectedDu
           <path d={geo.seatBorders} className="map-seat-line" />
           <path d={geo.stateBorders} className="map-state-halo" />
           <path d={geo.stateBorders} className="map-state-line" />
+          {outline && <path d={outline.seats.map((i) => geo.seats[i]?.d ?? "").join(" ")} className="map-mine" style={{ stroke: outline.color, color: outline.color }} />}
           {fills.map((f, i) => (f.flipped && geo.seats[i].d ? <path key={i} d={geo.seats[i].d} className="map-flip" /> : null))}
           {selected != null && geo.seats[selected]?.d && <path d={geo.seats[selected].d} className="map-selected" filter="url(#seat-glow)" />}
           {selectedDun != null && geo.duns[selectedDun]?.d && <path d={geo.duns[selectedDun].d} className="map-selected" />}
