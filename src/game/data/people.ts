@@ -110,6 +110,7 @@ export const ROSTERS: Record<string, PartyRoster> = {
   },
   WARISAN: { president: ["Mohd Shafie Apdal", "P.189", 1957], deputy: ["Darell Leiking", null, 1970] },
   MUDA: { president: ["Amira Aisya Abdul Aziz", null, 1993], council: [["Syed Saddiq Syed Abdul Rahman", "P.146", 1992]] },
+  BERSAMA: { president: ["Rafizi Ramli", "P.100", 1977], deputy: ["Nik Nazmi Nik Ahmad", "P.118", 1982] },
   KDM: { president: ["Peter Anthony", null, 1970] },
   PBM: { president: ["Larry Sng Wei Shien", "P.209", 1979] },
 };

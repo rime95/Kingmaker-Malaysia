@@ -488,6 +488,7 @@ export const AI_STANCES: Partial<Record<CoalitionId, Record<string, string>>> = 
   GRS: { ma63: "devolve", cashaid: "expand" },
   WARISAN: { ma63: "devolve", religion: "moderate" },
   MUDA: { integrity: "reform", affirmative: "needs", wage: "raise" },
+  BERSAMA: { integrity: "reform", fuel: "targeted", affirmative: "needs" },
 };
 
 /** Shared pledges with you make a coalition more willing to back you (and clashing ones less). */

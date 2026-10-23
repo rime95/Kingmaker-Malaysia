@@ -151,7 +151,7 @@ const TERMS = Number(process.env.SIM_TERMS ?? 3);
 
 describe.skipIf(!process.env.SIM)("balance simulator", () => {
   it("plays three elections for each coalition", { timeout: 600_000 }, () => {
-    const rows = (["MUDA", "WARISAN", "PN", "PH"] as CoalitionId[]).map((c) => playTerms(c, 7));
+    const rows = (["MUDA", "BERSAMA", "WARISAN", "PN", "PH"] as CoalitionId[]).map((c) => playTerms(c, 7));
     writeFileSync(process.env.SIM_OUT ?? "sim-results.json", JSON.stringify(rows, null, 1));
   });
 });

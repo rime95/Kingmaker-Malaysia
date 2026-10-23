@@ -71,9 +71,9 @@ export interface Career {
 }
 
 /** Leaders' parliamentary seats in leader mode (real where the leader is an MP; otherwise a party stronghold). */
-const LEADER_SEAT: Partial<Record<CoalitionId, string>> = { PH: "P.063", BN: "P.075", PN: "P.143", GPS: "P.194", GRS: "P.175", WARISAN: "P.189", MUDA: "P.146" };
+const LEADER_SEAT: Partial<Record<CoalitionId, string>> = { PH: "P.063", BN: "P.075", PN: "P.143", GPS: "P.194", GRS: "P.175", WARISAN: "P.189", MUDA: "P.146", BERSAMA: "P.100" };
 /** Approximate ages in Oct 2026 for leader mode. */
-const LEADER_AGE: Partial<Record<CoalitionId, number>> = { PH: 79, BN: 73, PN: 79, GPS: 76, GRS: 71, WARISAN: 69, MUDA: 34 };
+const LEADER_AGE: Partial<Record<CoalitionId, number>> = { PH: 79, BN: 73, PN: 79, GPS: 76, GRS: 71, WARISAN: 69, MUDA: 34, BERSAMA: 49 };
 
 /** Fictional names for protégés. */
 const PROTEGES = ["Aisyah Rahman", "Daniel Lim", "Kavitha Raj", "Hafiz Osman", "Tan Mei Ling", "Joanna Jinggut", "Faizal Kadir", "Priya Nair", "Amirul Hakim", "Grace Lajim", "Wong Kar Fai", "Nurul Izzah Hamid"];

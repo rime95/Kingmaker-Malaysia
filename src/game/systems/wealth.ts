@@ -107,7 +107,7 @@ export const PROPERTY_BY_ID: Record<string, PropertyDef> = Object.fromEntries(PR
 export const unitPrice = (s: Pick<GameState, "personal">, def: PropertyDef) => Math.round(def.unitPrice0 * (s.personal.index[def.state] ?? 1));
 
 /** Where each party keeps its land bank (a stronghold state). */
-const LAND_BANK_STATE: Partial<Record<CoalitionId, string>> = { PH: "SGR", BN: "PHG", PN: "KTN", GPS: "SWK", GRS: "SBH", WARISAN: "SBH", MUDA: "JHR" };
+const LAND_BANK_STATE: Partial<Record<CoalitionId, string>> = { PH: "SGR", BN: "PHG", PN: "KTN", GPS: "SWK", GRS: "SBH", WARISAN: "SBH", MUDA: "JHR", BERSAMA: "SGR" };
 
 export function initPersonal(s: Pick<GameState, "player" | "career">): Personal {
   const cash = s.career.mode === "leader" ? WEALTH.startCash.leader : WEALTH.startCash.career;

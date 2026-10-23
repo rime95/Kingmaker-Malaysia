@@ -13,7 +13,7 @@ import { MalaysiaMap } from "./map/MalaysiaMap";
 import { SoundControls } from "./SoundControls";
 import { sfx } from "./audio";
 
-const PLAYABLE: CoalitionId[] = ["PH", "BN", "PN", "GPS", "GRS", "WARISAN", "MUDA"];
+const PLAYABLE: CoalitionId[] = ["PH", "BN", "PN", "GPS", "GRS", "WARISAN", "MUDA", "BERSAMA"];
 const noop = () => () => {};
 const EMPTY: Meta = { best: {} };
 

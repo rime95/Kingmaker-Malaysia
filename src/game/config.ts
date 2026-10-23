@@ -10,12 +10,12 @@ type Lean = Partial<Record<CoalitionId, number>>;
  */
 export const BLOC_LEAN: Record<Region, Record<Bloc, Lean>> = {
   peninsula: {
-    malay: { PH: 0.2, BN: 0.27, PN: 0.5, MUDA: 0.02, OTHERS: 0.01 },
-    chinese: { PH: 0.82, BN: 0.1, PN: 0.05, MUDA: 0.02, OTHERS: 0.01 },
-    indian: { PH: 0.65, BN: 0.18, PN: 0.15, MUDA: 0.01, OTHERS: 0.01 },
+    malay: { PH: 0.2, BN: 0.27, PN: 0.5, MUDA: 0.02, BERSAMA: 0.02, OTHERS: 0.01 },
+    chinese: { PH: 0.82, BN: 0.1, PN: 0.05, MUDA: 0.02, BERSAMA: 0.02, OTHERS: 0.01 },
+    indian: { PH: 0.65, BN: 0.18, PN: 0.15, MUDA: 0.01, BERSAMA: 0.01, OTHERS: 0.01 },
     sabah: { PH: 0.3, BN: 0.3, PN: 0.3, OTHERS: 0.1 },
     sarawak: { PH: 0.3, BN: 0.3, PN: 0.3, OTHERS: 0.1 },
-    other: { PH: 0.4, BN: 0.2, PN: 0.2, MUDA: 0.05, OTHERS: 0.15 },
+    other: { PH: 0.4, BN: 0.2, PN: 0.2, MUDA: 0.05, BERSAMA: 0.04, OTHERS: 0.15 },
   },
   sabah: {
     malay: { PH: 0.15, BN: 0.25, PN: 0.3, GRS: 0.15, WARISAN: 0.12, OTHERS: 0.03 },
@@ -75,6 +75,7 @@ export const START: Record<CoalitionId, { funds: number; members: number }> = {
   GRS: { funds: 8_000_000, members: 200_000 },
   WARISAN: { funds: 6_000_000, members: 150_000 },
   MUDA: { funds: 1_500_000, members: 30_000 },
+  BERSAMA: { funds: 2_000_000, members: 25_000 },
   OTHERS: { funds: 1_000_000, members: 10_000 },
 };
 

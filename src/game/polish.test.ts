@@ -27,9 +27,11 @@ describe("scenarios and difficulty", () => {
   it("difficulty changes your starting money and how hard rivals campaign", () => {
     expect(newGame("PH", 1, { difficulty: "easy" }).me.funds).toBe(START.PH.funds * 1.5);
     const moves = (d: "easy" | "hard") => {
+      // The run-up to polling day, when rivals campaign hardest.
       let g = newGame("PH", 2, { difficulty: d });
+      g = { ...g, parliament: { ...g.parliament, deadlineWeek: g.week + 10 } };
       let total = 0;
-      for (let w = 0; w < 40; w++) {
+      for (let w = 0; w < 6; w++) {
         g = advanceWeek(g);
         total += Object.values(g.rivals).reduce((s, r) => s + r!.targets.length, 0);
       }

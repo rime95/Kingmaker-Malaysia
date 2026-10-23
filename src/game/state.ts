@@ -33,14 +33,14 @@ import type { Asset, Market } from "./systems/business";
 import { policyVoters } from "./systems/policies";
 import { initRivals, rivalNationalEffect, rivalSeatEffect, type Rivals } from "./systems/rivals";
 import { segValue, type SegEffects } from "./systems/segments";
-import { initScorecard, pillarEffect, pillarRows, type Scorecard } from "./systems/scorecard";
+import { initScorecard, pillarEffect, pillarRows, restingScores, type Scorecard } from "./systems/scorecard";
 import type { PolicyEntry } from "./systems/governing";
 import { COALITION_INDEX, ZERO_SWING, naturalSupport, projectAll, type Swing, type VoterInputs } from "./voter";
 import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type CoalitionId, type Entries } from "./world";
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -367,6 +367,23 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
   return state;
 }
 
+/** Parti Bersama joined the game in save version 15: it slots in before Others in coalition-indexed arrays. */
+function addBersama(g: GameState): Partial<GameState> {
+  const at = COALITION_INDEX.BERSAMA;
+  const seatOffsets = g.seatOffsets.map((row) => (row.length < COALITIONS.length ? [...row.slice(0, at), 0, ...row.slice(at)] : row));
+  const fresh = initCoalitions();
+  const rivals = g.player === "BERSAMA" || g.rivals.BERSAMA ? g.rivals : { ...g.rivals, BERSAMA: initRivals(g.player).BERSAMA };
+  const sc = g.scorecard;
+  const scorecard = sc.now.BERSAMA ? sc : { ...sc, now: { ...sc.now, BERSAMA: restingScores(g, "BERSAMA") }, start: { ...sc.start, BERSAMA: restingScores(g, "BERSAMA") } };
+  return {
+    seatOffsets,
+    swing: { ...g.swing, BERSAMA: g.swing.BERSAMA ?? 0 },
+    coalitions: g.coalitions.BERSAMA ? g.coalitions : { ...g.coalitions, BERSAMA: fresh.BERSAMA },
+    rivals,
+    scorecard,
+  };
+}
+
 /** Fills fields added after a save was made, so older saves keep working. */
 export function migrateGame(g: GameState): GameState {
   const migrated: GameState = {
@@ -431,6 +448,8 @@ export function migrateGame(g: GameState): GameState {
     policyLog: g.policyLog ?? [],
   };
   if (!migrated.scorecard) migrated.scorecard = initScorecard(migrated);
+  // Saves from before Parti Bersama: give it a place in every per-coalition table.
+  if ((g.version ?? 0) < 15) Object.assign(migrated, addBersama(migrated));
   if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));
   if (!migrated.objectives.length) migrated.objectives = newObjectives(migrated);

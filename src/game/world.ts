@@ -6,7 +6,7 @@
 import { GE15_RESULTS } from "./data/ge15";
 import { hash01 } from "./rng";
 
-export const COALITIONS = ["PH", "BN", "PN", "GPS", "GRS", "WARISAN", "MUDA", "OTHERS"] as const;
+export const COALITIONS = ["PH", "BN", "PN", "GPS", "GRS", "WARISAN", "MUDA", "BERSAMA", "OTHERS"] as const;
 export type CoalitionId = (typeof COALITIONS)[number];
 
 export interface Coalition {
@@ -29,6 +29,15 @@ export const COALITION_INFO: Record<CoalitionId, Coalition> = {
   GRS: { id: "GRS", name: "Gabungan Rakyat Sabah", short: "GRS", color: "#8a4fd6", leader: "Hajiji Noor", inGovernment: true, blurb: "Sabah's governing coalition. Fights Warisan for the Land Below the Wind." },
   WARISAN: { id: "WARISAN", name: "Parti Warisan", short: "Warisan", color: "#17a2d8", leader: "Shafie Apdal", inGovernment: false, blurb: "Sabah-first party with strength on the east coast of Sabah." },
   MUDA: { id: "MUDA", name: "MUDA", short: "MUDA", color: "#3d3d3d", leader: "Amira Aisya Abdul Aziz", inGovernment: false, blurb: "Youth party. Tiny today, but the Undi18 generation is up for grabs." },
+  BERSAMA: {
+    id: "BERSAMA",
+    name: "Parti Bersama",
+    short: "Bersama",
+    color: "#f5c400",
+    leader: "Rafizi Ramli",
+    inGovernment: false,
+    blurb: "Reformists who left PKR: data-driven policy and clean politics. Two seats in the Klang Valley and a middle class to win over.",
+  },
   OTHERS: { id: "OTHERS", name: "Independents & others", short: "Others", color: "#9a9a9a", leader: "—", inGovernment: true, blurb: "Independents and small parties (KDM, PBM). Most back the government." },
 };
 
@@ -62,6 +71,7 @@ export const PARTIES: Record<string, Party> = {
   GRS: { id: "GRS", name: "Gabungan Rakyat Sabah", coalition: "GRS", leader: "Hajiji Noor", home: "sabah" },
   WARISAN: { id: "WARISAN", name: "Parti Warisan", coalition: "WARISAN", leader: "Shafie Apdal", home: "sabah" },
   MUDA: { id: "MUDA", name: "MUDA", coalition: "MUDA", leader: "Amira Aisya Abdul Aziz", home: "peninsula" },
+  BERSAMA: { id: "BERSAMA", name: "Parti Bersama", coalition: "BERSAMA", leader: "Rafizi Ramli", home: "peninsula" },
   KDM: { id: "KDM", name: "Parti KDM", coalition: "OTHERS", leader: "Peter Anthony", home: "sabah" },
   PBM: { id: "PBM", name: "Parti Bangsa Malaysia", coalition: "OTHERS", leader: "Larry Sng", home: "sarawak" },
   IND: { id: "IND", name: "Independent", coalition: "OTHERS", leader: "—", home: "national" },
@@ -257,7 +267,7 @@ const SEAT_DATA = `1|Padang Besar|PLS|PAS|12514
 97|Selayang|SGR|PKR|23619
 98|Gombak|SGR|PKR|12729
 99|Ampang|SGR|PKR|29681
-100|Pandan|SGR|PKR|48296
+100|Pandan|SGR|BERSAMA|48296
 101|Hulu Langat|SGR|AMANAH|14896
 102|Bangi|SGR|DAP|69701
 103|Puchong|SGR|DAP|57957
@@ -275,7 +285,7 @@ const SEAT_DATA = `1|Padang Besar|PLS|PAS|12514
 115|Batu|KUL|PKR|22241
 116|Wangsa Maju|KUL|PKR|20696
 117|Segambut|KUL|DAP|59684
-118|Setiawangsa|KUL|PKR|12164
+118|Setiawangsa|KUL|BERSAMA|12164
 119|Titiwangsa|KUL|UMNO|4632
 120|Bukit Bintang|KUL|DAP|38977
 121|Lembah Pantai|KUL|PKR|13912
@@ -391,6 +401,7 @@ const WINNER_PROFILE: Record<string, Demographics["ethnic"]> = {
   MCA: mix(0.5, 0.42, 0.07, 0, 0, 0.01),
   MIC: mix(0.5, 0.25, 0.23, 0, 0, 0.02),
   MUDA: mix(0.62, 0.33, 0.04, 0, 0, 0.01),
+  BERSAMA: mix(0.55, 0.28, 0.15, 0, 0, 0.02),
   UMNO: mix(0.82, 0.12, 0.05, 0, 0, 0.01),
   PAS: mix(0.88, 0.08, 0.03, 0, 0, 0.01),
   BERSATU: mix(0.82, 0.12, 0.05, 0, 0, 0.01),
@@ -459,7 +470,7 @@ export const SUPERMAJORITY = Math.ceil((TOTAL_SEATS * 2) / 3); // 148
 
 /** Coalitions that field candidates in a region. */
 export const CONTESTING: Record<Region, CoalitionId[]> = {
-  peninsula: ["PH", "BN", "PN", "MUDA", "OTHERS"],
+  peninsula: ["PH", "BN", "PN", "MUDA", "BERSAMA", "OTHERS"],
   sabah: ["PH", "BN", "PN", "GRS", "WARISAN", "OTHERS"],
   sarawak: ["GPS", "PH", "PN", "OTHERS"],
 };
@@ -474,8 +485,8 @@ export type Entries = Record<number, CoalitionId[]>;
 /** Who stands in a seat: the usual line-up for the region, plus anyone who has opened a branch there. */
 export function contestingIn(seat: Seat, entries?: Entries): CoalitionId[] {
   const list = CONTESTING[seatRegion(seat)];
-  // MUDA only fields candidates in young, urban seats or where it already holds the seat.
-  const base = list.filter((c) => c !== "MUDA" || seat.ge15Coalition === "MUDA" || seat.demo.urbanity > 0.85);
+  // MUDA and Bersama only field candidates in the most urban seats, or where they already hold the seat.
+  const base = list.filter((c) => !(c === "MUDA" || c === "BERSAMA") || seat.ge15Coalition === c || seat.demo.urbanity > 0.85);
   const extra = entries?.[seat.index];
   return extra?.length ? [...base, ...extra.filter((c) => !base.includes(c))] : base;
 }
@@ -504,6 +515,8 @@ export function candidateParty(seat: Seat, c: CoalitionId): string {
       return "WARISAN";
     case "MUDA":
       return "MUDA";
+    case "BERSAMA":
+      return "BERSAMA";
     default:
       return "IND";
   }

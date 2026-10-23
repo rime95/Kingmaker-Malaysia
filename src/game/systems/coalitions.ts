@@ -92,7 +92,7 @@ export function initCoalitions(): Coalitions {
   ) as Coalitions;
 }
 
-const PALETTE_START: Record<CoalitionId, string> = { PH: "#e5383b", BN: "#4f74e8", GPS: "#cf7317", GRS: "#c94f9c", WARISAN: "#1a9fd0", MUDA: "#a8932a", PN: "#159a7c", OTHERS: "#8a8f9c" };
+const PALETTE_START: Record<CoalitionId, string> = { PH: "#e5383b", BN: "#4f74e8", GPS: "#cf7317", GRS: "#c94f9c", WARISAN: "#1a9fd0", MUDA: "#a8932a", BERSAMA: "#f5c400", PN: "#159a7c", OTHERS: "#8a8f9c" };
 
 export function initPartySat(): Record<string, number> {
   return { ...START_SAT };

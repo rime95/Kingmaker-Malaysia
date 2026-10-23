@@ -13,14 +13,16 @@ import { stateRulers } from "./assemblies";
 
 /** How willing one coalition is to serve under another's prime minister (−1 to 1). Row = joiner, column = leader. */
 export const AFFINITY: Record<CoalitionId, Partial<Record<CoalitionId, number>>> = {
-  PH: { BN: 0.5, PN: -0.8, GPS: 0.4, GRS: 0.4, WARISAN: 0.4, MUDA: 0.5, OTHERS: 0.2 },
-  BN: { PH: 0.45, PN: 0.3, GPS: 0.5, GRS: 0.4, WARISAN: 0.1, MUDA: -0.3, OTHERS: 0.2 },
-  PN: { PH: -0.8, BN: 0.35, GPS: 0.2, GRS: 0.1, WARISAN: -0.3, MUDA: -0.6, OTHERS: 0.1 },
-  GPS: { PH: 0.35, BN: 0.5, PN: 0.25, GRS: 0.3, WARISAN: 0.1, MUDA: -0.2, OTHERS: 0.1 },
-  GRS: { PH: 0.35, BN: 0.4, PN: 0.2, GPS: 0.3, WARISAN: -0.4, MUDA: -0.2, OTHERS: 0.1 },
-  WARISAN: { PH: 0.4, BN: 0.1, PN: -0.3, GPS: 0.1, GRS: -0.4, MUDA: 0.3, OTHERS: 0.1 },
-  MUDA: { PH: 0.4, BN: -0.4, PN: -0.6, GPS: -0.2, GRS: -0.1, WARISAN: 0.3, OTHERS: 0 },
-  OTHERS: { PH: 0.25, BN: 0.25, PN: 0.2, GPS: 0.25, GRS: 0.25, WARISAN: 0.2, MUDA: 0.1 },
+  PH: { BN: 0.5, PN: -0.8, GPS: 0.4, GRS: 0.4, WARISAN: 0.4, MUDA: 0.5, BERSAMA: 0.15, OTHERS: 0.2 },
+  BN: { PH: 0.45, PN: 0.3, GPS: 0.5, GRS: 0.4, WARISAN: 0.1, MUDA: -0.3, BERSAMA: -0.3, OTHERS: 0.2 },
+  PN: { PH: -0.8, BN: 0.35, GPS: 0.2, GRS: 0.1, WARISAN: -0.3, MUDA: -0.6, BERSAMA: -0.5, OTHERS: 0.1 },
+  GPS: { PH: 0.35, BN: 0.5, PN: 0.25, GRS: 0.3, WARISAN: 0.1, MUDA: -0.2, BERSAMA: -0.1, OTHERS: 0.1 },
+  GRS: { PH: 0.35, BN: 0.4, PN: 0.2, GPS: 0.3, WARISAN: -0.4, MUDA: -0.2, BERSAMA: -0.1, OTHERS: 0.1 },
+  WARISAN: { PH: 0.4, BN: 0.1, PN: -0.3, GPS: 0.1, GRS: -0.4, MUDA: 0.3, BERSAMA: 0.25, OTHERS: 0.1 },
+  MUDA: { PH: 0.4, BN: -0.4, PN: -0.6, GPS: -0.2, GRS: -0.1, WARISAN: 0.3, BERSAMA: 0.5, OTHERS: 0 },
+  // Bersama left PKR: cool toward PH, close to the other reformers, against PN.
+  BERSAMA: { PH: 0.1, BN: -0.3, PN: -0.6, GPS: -0.1, GRS: 0, WARISAN: 0.2, MUDA: 0.5, OTHERS: 0 },
+  OTHERS: { PH: 0.25, BN: 0.25, PN: 0.2, GPS: 0.25, GRS: 0.25, WARISAN: 0.2, MUDA: 0.1, BERSAMA: 0.05 },
 };
 
 export const BORNEO: CoalitionId[] = ["GPS", "GRS", "WARISAN"];

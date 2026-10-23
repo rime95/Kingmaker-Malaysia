@@ -12,7 +12,7 @@ import { useMemo } from "react";
 export const coalColor = (c: CoalitionId) => `var(--c-${c})`;
 
 /** Fixed chart order: government partners, then opposition. Others is the neutral bucket. */
-export const CHART_ORDER: CoalitionId[] = ["PH", "BN", "GPS", "GRS", "OTHERS", "WARISAN", "MUDA", "PN"];
+export const CHART_ORDER: CoalitionId[] = ["PH", "BN", "GPS", "GRS", "OTHERS", "WARISAN", "MUDA", "BERSAMA", "PN"];
 
 export function useProjections(): Projection[] {
   const game = useGame((s) => s.game);
