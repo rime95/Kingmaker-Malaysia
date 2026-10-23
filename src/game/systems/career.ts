@@ -92,7 +92,7 @@ export function initCareer(player: CoalitionId, seed: number, mode: "career" | "
   const leader = mode === "leader";
   const age = leader ? (LEADER_AGE[player] ?? 60) : 34;
   return {
-    name: leader ? COALITION_INFO[player].leader : name?.trim() || "You",
+    name: name?.trim() || (leader ? COALITION_INFO[player].leader : "You"),
     mode,
     rung: leader ? PRESIDENT : 0,
     points: leader ? 100 : 0,

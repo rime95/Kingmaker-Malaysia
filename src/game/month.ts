@@ -1,9 +1,10 @@
 // Time moves in turns of two weeks; Skip 1 Month is two turns. Each is a run of weekly steps with the reports merged.
 
-import type { GameState, WeekReport } from "./state";
+import type { GameState, ReportLine, WeekReport } from "./state";
+import { autoGround } from "./systems/governing";
 import { TURN_WEEKS } from "./config";
 import { advanceWeek } from "./week";
-import { ACTION_BY_ID, applyAction } from "./actions";
+import { ACTION_BY_ID, applyAction, saturation } from "./actions";
 import { runOrders } from "./systems/orders";
 
 function mergeAmounts(lists: { label: string; amount: number }[][]): { label: string; amount: number }[] {
@@ -17,7 +18,15 @@ export function advanceWeeks(s: GameState, n: number, stopAtNight = false): Game
   let state = s;
   const reports: WeekReport[] = [];
   for (let i = 0; i < n; i++) {
+    // Before a turn ends, your secretary-general spends the AP you left on the ground campaign.
+    let groundLines: ReportLine[] = [];
+    if (i % TURN_WEEKS === 0 && state.strategy.autoGround && !state.night && !state.formation) {
+      const g = autoGround(state, applyAction, saturation);
+      state = g.state;
+      groundLines = g.lines;
+    }
     state = advanceWeek(state);
+    if (groundLines.length) state = { ...state, report: { ...state.report!, lines: [...groundLines, ...state.report!.lines] } };
     // A new turn starts: your standing orders run first.
     if (((i + 1) % TURN_WEEKS === 0 || i === n - 1) && state.orders.length && !state.night) {
       const o = runOrders(state, applyAction, (id) => ACTION_BY_ID[id]?.name ?? id);

@@ -1,6 +1,8 @@
 // Skip 1 Week: the only place time moves. Skip 1 Month is exactly four of these (see month.ts).
 
-import { DECAY, DIFFICULTY, ECONOMY, ECONOMY_DRIFT, MACC, MOOD_DECAY, PRN, hqCost } from "./config";
+import { AI, DECAY, DIFFICULTY, ECONOMY, ECONOMY_DRIFT, MACC, MOOD_DECAY, PRN, hqCost } from "./config";
+import { battlegroundsWeek, bump, scorecardWeek } from "./systems/scorecard";
+import { CRISIS_SWAY } from "./systems/governing";
 import { ALLOC, fullAllocations, fundingWeek, partyIncome } from "./systems/funding";
 import { assembliesWeek, campaignStates, stateRulers, weeksToElection } from "./systems/assemblies";
 import { DUNS_BY_STATE } from "./systems/dun";
@@ -211,6 +213,26 @@ export function advanceWeek(input: GameState): GameState {
   next = wingsWeek(next);
   next = { ...next, converts: convertsWeek(next, contested, (i) => serviceBase(next.player, i)) };
   next = fundingWeek(next).state;
+
+  // A crisis is over: voters judge how the government came through it
+  if (nw.ended) {
+    const well = nw.ended.score >= -2;
+    const pm = next.parliament.pm;
+    next = bump(next, pm, "execution", well ? CRISIS_SWAY : -CRISIS_SWAY, "how the crisis was handled");
+    lines.push({
+      text: `${pm === next.player ? "Your government" : `The ${cshort(pm)} government`} ${well ? "came through" : "stumbled through"} the ${nw.ended.title.toLowerCase()}: ${well ? "voters credit its handling" : "voters blame its handling"}.`,
+      tone: pm === next.player ? (well ? "good" : "bad") : "info",
+    });
+  }
+
+  // What voters think of everyone: pillars settle and rivals campaign on them; hammered seats become battlegrounds
+  const toGo = weeksToElection(next);
+  const sw = scorecardWeek(next, toGo <= AI.lateWeeks ? "late" : toGo <= AI.midWeeks ? "mid" : "early");
+  next = sw.state;
+  lines.push(...sw.lines);
+  const bg = battlegroundsWeek(next);
+  next = bg.state;
+  lines.push(...bg.lines);
 
   // The Dewan Rakyat: meetings open and adjourn; the motion due this week is voted on
   const dw = dewanWeek(next, weekDate(next.week));

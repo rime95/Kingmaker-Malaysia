@@ -10,6 +10,7 @@ import { RUNGS } from "@/game/systems/career";
 import { PartyRaceCard } from "../PartyRace";
 import { ActionCard } from "../ActionCard";
 import { MessageCard } from "../DepthCards";
+import { AUTO } from "@/game/systems/governing";
 
 const TONE = { good: "var(--good)", bad: "var(--bad)", info: "var(--ink-2)" } as const;
 const ICON = { good: "▲", bad: "▼", info: "•" } as const;
@@ -23,7 +24,7 @@ const GROUPS: { id: ActionGroup; title: string }[] = [
 /** Your plan for the turn: the advisor's picks, standing orders, then every nationwide, party and money action. */
 export function CampaignPanel() {
   const game = useGame((s) => s.game)!;
-  const { act, focusSeat, showPanel } = useGame();
+  const { act, focusSeat, showPanel, deep } = useGame();
   const tips = useMemo(() => advise(game).slice(0, 4), [game]);
   const [tourState, setTourState] = useState(STATES[0].id);
   return (
@@ -53,6 +54,19 @@ export function CampaignPanel() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="inset p-2.5 text-sm flex items-center gap-3">
+        <div className="flex-1">
+          <b>Secretary-general runs the ground campaign</b>
+          <div className="text-xs" style={{ color: "var(--ink-2)" }}>
+            Each turn, any AP you leave goes on local issues and service in your closest seats (keeping RM {AUTO.reserve / 1e6}M in reserve). Your turns stay about the big
+            calls.
+          </div>
+        </div>
+        <button className="chip flex-none" aria-pressed={!!game.strategy.autoGround} onClick={() => deep({ kind: "autoGround", on: !game.strategy.autoGround })}>
+          {game.strategy.autoGround ? "On" : "Off"}
+        </button>
       </section>
 
       {game.nominations?.open && (

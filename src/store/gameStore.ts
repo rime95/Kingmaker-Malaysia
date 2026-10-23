@@ -64,7 +64,7 @@ import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result" | "swing";
 /** Side panels that open over the map. */
-export type Panel = "campaign" | "battle" | "party" | "people" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis" | "cabinet";
+export type Panel = "campaign" | "case" | "battle" | "party" | "people" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis" | "cabinet";
 
 export interface Toast {
   id: number;
@@ -165,7 +165,7 @@ interface Store {
   syncAssembly: (stateId: string, sync: boolean) => void;
   offer: (c: CoalitionId, kind: OfferKind) => void;
   talksRound: () => void;
-  back: (leader: CoalitionId, askDpm: boolean | "pm") => void;
+  back: (leader: CoalitionId, askDpm: boolean) => void;
   agong: () => void;
   endNight: () => void;
   load: (game: GameState) => void;

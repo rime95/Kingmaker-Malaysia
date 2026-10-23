@@ -17,6 +17,7 @@ import { projectAll, type VoterInputs } from "../voter";
 import { COALITIONS, contestingIn, cshort, MAJORITY, SEATS, STATE_BY_ID, STATES, type CoalitionId } from "../world";
 import { DUNS_BY_STATE, projectDuns, runStateElection } from "./dun";
 import { startFormation } from "./formation";
+import { commonGround } from "./scorecard";
 import { addPoints } from "./career";
 import { buildAnalysis } from "./analysis";
 import { growRoots } from "./growth";
@@ -245,7 +246,8 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
   lines.push({ text: generalSummary(result, s.player), tone: result.totals[s.player] >= (before[s.player] ?? 0) ? "good" : "bad" });
   // Election Night, then talks to form a government
   next.night = { week: s.week, prevHolders: s.holders };
-  next.formation = startFormation(next, result.totals, before[s.player] ?? 0);
+  next.formation = startFormation(next, result.totals, before[s.player] ?? 0, s.pacts.map((p) => p.with), commonGround(s));
+  if (next.scorecard) next.scorecard = { ...next.scorecard, debateWeek: null };
   lines.push({ text: "Talks to form the next government have begun. The Agong is waiting for statutory declarations.", tone: "info" });
   return next;
 }

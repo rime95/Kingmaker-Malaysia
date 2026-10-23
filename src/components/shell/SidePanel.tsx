@@ -10,6 +10,7 @@ import { States } from "../States";
 import { MoneyPanel } from "../panels/MoneyPanel";
 import { CampaignPanel } from "../panels/CampaignPanel";
 import { BattlePanel } from "../panels/BattlePanel";
+import { CasePanel } from "../panels/CasePanel";
 import { PartyPanel } from "../panels/PartyPanel";
 import { PeoplePanel } from "../panels/PeoplePanel";
 import { TeamPanel } from "../panels/TeamPanel";
@@ -76,6 +77,7 @@ export function SidePanel() {
       </div>
       <div className="flex-1 overflow-y-auto scroll-thin px-5 py-4 @container">
         {panel === "campaign" && <CampaignPanel />}
+        {panel === "case" && <CasePanel />}
         {panel === "battle" && <BattlePanel />}
         {panel === "party" && <PartyPanel />}
         {panel === "people" && <PeoplePanel />}

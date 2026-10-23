@@ -20,6 +20,8 @@ export function NewGame() {
   const [pick, setPick] = useState<CoalitionId | null>(null);
   const [scenario, setScenario] = useState<ScenarioId>("present");
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
+  const [name, setName] = useState("");
+  const named = name.trim().length >= 2;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 flex flex-col gap-6">
@@ -71,6 +73,21 @@ export function NewGame() {
       {pick && (
         <section className="panel p-4 flex flex-col gap-4">
           <h2 className="font-semibold">Your game with {cname(pick)}</h2>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Your name</span>
+            <input
+              className="inset px-3 py-2 text-sm"
+              value={name}
+              maxLength={40}
+              autoFocus
+              placeholder={`e.g. ${COALITION_INFO[pick].leader}`}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && named && start(pick, { mode: "leader", scenario, difficulty, name })}
+            />
+            <span className="text-xs" style={{ color: "var(--muted)" }}>
+              You are the new president of {cname(pick)}, taking over from {COALITION_INFO[pick].leader}.
+            </span>
+          </label>
           <Choice label="Scenario">
             {(Object.keys(SCENARIOS) as ScenarioId[]).map((id) => {
               const locked = id === "underdog" && !underdogUnlocked(meta);
@@ -111,8 +128,8 @@ export function NewGame() {
               {DIFFICULTY[difficulty].text}
             </p>
           </div>
-          <button className="btn self-start" onClick={() => start(pick, { mode: "leader", scenario, difficulty })}>
-            Start
+          <button className="btn self-start" disabled={!named} title={named ? undefined : "Name your character first."} onClick={() => start(pick, { mode: "leader", scenario, difficulty, name })}>
+            {named ? "Start" : "Name your character to start"}
           </button>
         </section>
       )}

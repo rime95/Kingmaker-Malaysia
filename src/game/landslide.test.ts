@@ -18,8 +18,16 @@ describe("a protagonist's landslide", () => {
 
   it("past two-thirds, the edge fades and voters start checking your power", () => {
     const g = holding(170);
-    expect(edgeOf(g)).toBe(1);
+    expect(edgeOf(g)).toBeLessThan(edgeOf(holding(130)));
+    expect(edgeOf(holding(200))).toBe(1);
     expect(checkOnPower(g)).toBeGreaterThan(0);
+  });
+
+  it("voters react to a landslide in the polls, not only to seats already won", () => {
+    const g = holding(100);
+    const polled: GameState = { ...g, polls: { ...g.polls, national: [{ ...g.polls.national[0], seats: { ...g.polls.national[0].seats, MUDA: 180 } }] } };
+    expect(checkOnPower(polled)).toBeGreaterThan(0);
+    expect(edgeOf(polled)).toBeLessThan(edgeOf(g));
   });
 
   it("is biggest for a one-seat party", () => {

@@ -6,6 +6,7 @@ import { COALITION_INFO, SEATS, STATE_BY_ID } from "../world";
 import { ASSEMBLY_STATES, stateRule, stateRulers } from "./assemblies";
 import { PRESIDENT, factionSize } from "./career";
 import { DUNS_BY_STATE } from "./dun";
+import { itemMet } from "./agenda";
 
 export interface Objective {
   id: string;
@@ -74,7 +75,36 @@ export interface AchievementDef {
   check: (s: GameState) => boolean;
 }
 
-const tiers = (s: GameState) => s.tiers.map((t) => t.tier);
+export const tiers = (s: GameState) => s.tiers.map((t) => t.tier);
+
+// --- Legacy: what a great Prime Minister leaves behind, over several terms ---------------------------------------------------------------------------------------
+
+export interface LegacyGoal {
+  id: string;
+  name: string;
+  text: string;
+  /** Progress 0–1 (1 = done), judged while you are Prime Minister. */
+  progress: (s: GameState) => number;
+}
+
+const pm = (s: GameState) => s.parliament.pm === s.player;
+const terms = (s: GameState) => s.tiers.filter((t) => t.tier === "platinum" || t.tier === "diamond").length;
+const toward = (v: number, from: number, to: number) => Math.max(0, Math.min(1, (v - from) / (to - from)));
+
+export const LEGACY: LegacyGoal[] = [
+  { id: "wawasan", name: "Negara Maju", text: "A high-income nation: growth of 5.5% or more with unemployment at 3% or less.", progress: (s) => (pm(s) ? Math.min(toward(s.nation.gdp, 4, 5.5), toward(-s.nation.unemployment, -4, -3)) : 0) },
+  { id: "debt60", name: "Fiscal Discipline", text: "Bring federal debt below 60% of GDP.", progress: (s) => (pm(s) ? toward(-s.nation.debt, -66, -60) : 0) },
+  { id: "living", name: "Rakyat Didahulukan", text: "Cost-of-living pressure down to 40 or below.", progress: (s) => (pm(s) ? toward(-s.nation.col, -55, -40) : 0) },
+  { id: "clean", name: "Clean Government", text: "Integrity 80 and Principle 65 or more while governing.", progress: (s) => (pm(s) ? Math.min(toward(s.me.integrity, 60, 80), toward(s.scorecard?.now[s.player].principle ?? 50, 50, 65)) : 0) },
+  {
+    id: "promises",
+    name: "Janji Ditepati",
+    text: "Keep every promise of a full term.",
+    progress: (s) => (pm(s) && s.agenda?.by === s.player && s.agenda.items.length ? s.agenda.items.filter((it) => itemMet(s, it)).length / s.agenda.items.length : 0),
+  },
+  { id: "mandate", name: "Mandate Renewed", text: "Win re-election as Prime Minister.", progress: (s) => Math.min(1, terms(s) / 2) },
+  { id: "era", name: "An Era", text: "Lead the country through three terms.", progress: (s) => Math.min(1, terms(s) / 3) },
+];
 
 export const ACHIEVEMENTS: AchievementDef[] = [
   { id: "first-week", name: "Selamat Datang", text: "Play your first week.", check: (s) => s.week >= 1 },
@@ -105,6 +135,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: "dynasty", name: "Dynasty", text: "Hand over to a protégé.", check: (s) => s.career.generation >= 2 },
   { id: "everyseat", name: "Sapu Bersih", text: "Win every assembly seat in a state.", check: (s) => ASSEMBLY_STATES.some((id) => DUNS_BY_STATE[id].every((d) => s.dunHolders[d] === s.player)) },
   { id: "borneo", name: "Land Below the Wind", text: "Hold ten seats in Sabah and Sarawak.", check: (s) => SEATS.filter((x) => (x.state === "SBH" || x.state === "SWK") && s.holders[x.index] === s.player).length >= 10 },
+  // Legacy goals: a promise record only counts after a year in office.
+  ...LEGACY.map((l) => ({ id: `legacy-${l.id}`, name: l.name, text: l.text, check: (s: GameState) => l.progress(s) >= 1 && (l.id !== "promises" || s.week - (s.agenda?.week ?? s.week) >= 52) })),
 ];
 
 /** Newly earned achievements this week. */

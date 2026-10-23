@@ -103,7 +103,7 @@ export const EFFECT = {
   /** Per point of constituency service above the seat's starting level (permanent). */
   service: 0.006,
   /** Per point of buzz (fades). */
-  buzz: 0.007,
+  buzz: 0.005,
   /** Per point of machinery above the starting level (turnout). */
   machinery: 0.004,
   /** Momentum: national swing per point, and the point at which ground work counts double. */
@@ -365,17 +365,26 @@ export const SCENARIOS: Record<ScenarioId, { label: string; text: string }> = {
 export const hqCost = (members: number) => ECONOMY.hqFixed * Math.min(1, Math.max(0.15, members / ECONOMY.hqFullMembers)) + members * ECONOMY.hqPerMember;
 
 /** The player's edge for a game (1 = none). You're the protagonist: whatever party you lead, you can win. */
-export function edgeOf(s: { settings: { difficulty: Difficulty }; holders?: string[]; player?: string }): number {
+type Standing = { holders?: string[]; player?: string; polls?: { national: { seats: Record<string, number> }[] } };
+
+/** How big you are, as voters see it: the seats you hold, or the latest poll's count if that's higher (they react to a coming landslide). */
+export function standing(s: Standing): number {
+  const held = s.holders && s.player ? s.holders.filter((h) => h === s.player).length : 60;
+  return Math.max(held, (s.player && s.polls?.national[0]?.seats[s.player]) || 0);
+}
+
+export function edgeOf(s: { settings: { difficulty: Difficulty } } & Standing): number {
   const base = DIFFICULTY[s.settings.difficulty].edge - 1;
   const seats = s.holders && s.player ? s.holders.filter((h) => h === s.player).length : 60;
-  // Biggest when you're small (up to 2.5×); it lasts all the way to a two-thirds majority, then fades (gone by 165).
+  // Biggest when you're small (up to 2.5×); it lasts all the way to a two-thirds majority, then fades (gone by 200).
   const small = Math.max(0, Math.min(1, (40 - seats) / 40));
-  const big = Math.max(0, Math.min(1, (seats - EDGE_FADE_FROM) / 17));
+  const big = Math.max(0, Math.min(1, (standing(s) - EDGE_FADE_FROM) / EDGE_FADE_OVER));
   return 1 + base * (1 + 1.5 * small) * (1 - big);
 }
 
 /** The edge starts to fade at a two-thirds majority. */
 export const EDGE_FADE_FROM = 148;
+export const EDGE_FADE_OVER = 52;
 
 /** Every party starts with at least this much money (times your edge), so small parties can play. */
 export const MIN_START_FUNDS = 5_000_000;

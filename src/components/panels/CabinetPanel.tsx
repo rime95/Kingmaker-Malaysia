@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PORTFOLIOS, type PortfolioId } from "@/game/data/people";
-import { KPIS, KPI_INFO, shadowBoost } from "@/game/systems/agenda";
+import { KPIS, KPI_INFO, agendaText, shadowBoost } from "@/game/systems/agenda";
 import { PORTFOLIO_KPI, ministerEffect } from "@/game/systems/nation";
 import { byId } from "@/game/systems/people";
 import { useGame } from "@/store/gameStore";
@@ -32,6 +32,7 @@ function Ministers() {
         {rows.map((port) => {
           const p = byId(game, game.cabinet[port.id]);
           const e = ministerEffect(game, port.id);
+          const promise = game.agenda?.by === game.player ? game.agenda.items.find((it) => KPI_INFO[it.kpi].post === port.id) : undefined;
           return (
             <li key={port.id} className="inset px-2.5 py-1.5 text-xs">
               <div className="flex justify-between gap-2">
@@ -51,12 +52,18 @@ function Ministers() {
                   <span style={{ color: "var(--bad)" }}>Vacant</span>
                 )}
               </div>
+              {promise && (
+                <div className="truncate" style={{ color: e < 0 ? "var(--bad)" : "var(--accent)" }} title={agendaText(promise)}>
+                  {e < 0 ? "⚠ Putting your promise at risk: " : "Delivers your promise: "}
+                  {agendaText(promise)}
+                </div>
+              )}
             </li>
           );
         })}
       </ul>
       <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
-        Competence above 60 helps, below it hurts; an empty ministry hurts most.
+        Competence above 60 helps, below it hurts; an empty ministry hurts most. A strong cabinet also raises your Execution with voters.
       </p>
     </section>
   );

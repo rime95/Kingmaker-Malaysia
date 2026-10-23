@@ -20,9 +20,10 @@ export const SECTIONS: Section[] = [
     id: "campaign",
     label: () => "Campaign",
     icon: "campaign",
-    sub: "Your plan, the battlegrounds, seat pacts and candidates",
+    sub: "Your plan, your case to the voters, the battlegrounds, seat pacts and candidates",
     tabs: [
       { id: "campaign", label: () => "Plan" },
+      { id: "case", label: () => "Your case" },
       { id: "battle", label: () => "Battlegrounds & pacts" },
       { id: "nominations", label: () => "Nominations" },
       { id: "rivals", label: () => "Rivals" },

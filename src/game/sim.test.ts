@@ -3,9 +3,11 @@
 
 import { writeFileSync } from "node:fs";
 import { describe, it } from "vitest";
-import { applyAction, backForPm, deepMove, goToAgong, makeOffer, makePact, type OfferKind } from "./actions";
+import { adoptPolicy, applyAction, backForPm, deepMove, goToAgong, makeOffer, makePact, previewPolicy, type OfferKind } from "./actions";
+import { POLICIES } from "./systems/policies";
+import { DEBATE, ENDORSERS, caseBlocked, debateRival, freshness, type CaseMove, type DebateLine, type Endorser } from "./systems/scorecard";
 import { deciding } from "./systems/formation";
-import { RECRUIT, compromiseOdds, recruitBlocked, recruitTargets, recruitWillingness } from "./systems/growth";
+import { RECRUIT, recruitBlocked, recruitTargets, recruitWillingness } from "./systems/growth";
 import { AFFINITY } from "./systems/formation";
 import { advanceTurn } from "./month";
 import { newGame, projectAllFor, type GameState } from "./state";
@@ -23,6 +25,32 @@ const tryAct = (s: GameState, id: string, seat?: number) => {
 /** One turn of a sensible player: money if short, pacts, a few new branches, then ground work where seats are winnable. */
 export function botTurn(s: GameState): GameState {
   if (s.night || s.formation) return s;
+  // A manifesto: once a year, take any stance that would win seats.
+  if (s.week % 52 === 0)
+    for (const p of POLICIES) {
+      const best = p.options.map((_, k) => ({ k, gain: k === (s.me.policies[p.id] ?? 0) ? 0 : previewPolicy(s, p.id, k) })).sort((a, b) => b.gain - a.gain)[0];
+      if (best.gain >= 1) {
+        const r = adoptPolicy(s, p.id, best.k);
+        if (r.ok) s = r.state;
+      }
+    }
+  // Make the case: answer attacks, cost the plan, launch policies, show delivery, line up endorsements, debate.
+  const caseTry = (m: CaseMove) => {
+    if (caseBlocked(s, m)) return;
+    const r = deepMove(s, { kind: "case", ...m });
+    if (r.ok) s = r.state;
+  };
+  caseTry({ move: "rebut" });
+  caseTry({ move: "whitePaper" });
+  if (freshness(s, "launch") > 0.6) caseTry({ move: "launch" });
+  if (freshness(s, "showcase") > 0.6) caseTry({ move: "showcase" });
+  for (const who of Object.keys(ENDORSERS) as Endorser[]) caseTry({ move: "endorse", who });
+  if (s.parliament.status === "campaign") {
+    const rival = debateRival(s);
+    const gap = (l: DebateLine) => DEBATE[l].pillars.reduce((a, p) => a + s.scorecard.now[s.player][p] - s.scorecard.now[rival][p], 0);
+    const line = (Object.keys(DEBATE) as DebateLine[]).sort((a, b) => gap(b) - gap(a))[0];
+    caseTry({ move: "debate", line });
+  }
   // Grow the coalition first: invite anyone who'd say yes.
   for (const party of recruitTargets(s)) {
     if (recruitBlocked(s, party) || recruitWillingness(s, party) < RECRUIT.threshold) continue;
@@ -76,16 +104,13 @@ export function botTurn(s: GameState): GameState {
 
 const seatsOf = (s: GameState, c: CoalitionId) => s.holders.filter((h) => h === c).length;
 
-/** Coalition talks: as kingmaker, bargain for the premiership when the odds are decent, else back the friendlier side. */
+/** Coalition talks: as kingmaker, back the friendlier side and ask for DPM; as a candidate, make offers. */
 function botTalks(s: GameState): GameState {
   const f = s.formation;
   if (!f) return s;
   if (f.role === "kingmaker" && !f.committed[s.player]) {
     const [x, y] = f.candidates;
-    const ox = compromiseOdds(s, f.seats, f.committed, x);
-    const oy = compromiseOdds(s, f.seats, f.committed, y);
-    const best = ox >= oy ? x : y;
-    const r = Math.max(ox, oy) >= 0.3 ? backForPm(s, best, "pm") : backForPm(s, (AFFINITY[s.player][x] ?? 0) >= (AFFINITY[s.player][y] ?? 0) ? x : y, true);
+    const r = backForPm(s, (AFFINITY[s.player][x] ?? 0) >= (AFFINITY[s.player][y] ?? 0) ? x : y, true);
     if (r.ok) s = r.state;
   }
   if (f.role === "leader") {

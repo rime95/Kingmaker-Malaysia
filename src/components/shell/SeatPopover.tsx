@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { allyIn } from "@/game/actions";
+import { allyIn, saturation } from "@/game/actions";
 import { BUBBLE_INFO } from "@/game/systems/bubbles";
 import { asideFor } from "@/game/systems/pacts";
 import { mpOf } from "@/game/systems/people";
@@ -117,10 +117,17 @@ export function SeatPopover() {
 
         <SeatIssues seat={i} compact />
 
+        {game.battlegrounds?.[i] && (
+          <p className="text-[11px]" style={{ color: "var(--bad)" }}>
+            Battleground: <b>{cshort(game.battlegrounds[i].by)}</b> is counter-campaigning here.
+          </p>
+        )}
+
         {contests ? (
           <>
             <div className="text-[11px]" style={{ color: "var(--muted)" }}>
               Service {Math.round(game.me.service[i])} · machinery {Math.round(game.me.machinery[i])} · buzz {Math.round(game.me.buzz[i])} · {game.me.ap} AP left
+              {saturation(game, i) < 0.8 && <span style={{ color: "var(--bad)" }}> · visits here land at {Math.round(saturation(game, i) * 100)}%</span>}
             </div>
             <div className="grid gap-1">
               {SEAT_MOVES.map((id) => (

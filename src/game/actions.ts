@@ -17,7 +17,7 @@ import { fire, headhunt, hire, pollError, raise, setAuto, teamAp } from "./syste
 import { NATION, PROJECT_BY_ID, type Nation } from "./systems/nation";
 import { insiderCheck, policySector } from "./systems/wealth";
 import { nominate } from "./systems/nominations";
-import { UNDERDOG, compromiseLine, compromiseOdds, recruitParty, underdog } from "./systems/growth";
+import { UNDERDOG, recruitParty, underdog } from "./systems/growth";
 import { ISSUE, openIssues } from "./systems/issues";
 import { collection, toggleMou } from "./systems/funding";
 import { endPact, proposePact } from "./systems/pacts";
@@ -26,6 +26,8 @@ import { courtChallenge, critique, publishProbe, setShadow, startProbe, streetRa
 import { setTheme } from "./systems/message";
 import { fundWing, sackMember, showCause, type Wings } from "./systems/partyorg";
 import { startFormation } from "./systems/formation";
+import { bump, caseMove, onPledgeChange, type CaseMove } from "./systems/scorecard";
+import { logPolicy } from "./systems/governing";
 import { seatCounts } from "./state";
 import { hash01 } from "./rng";
 import { careerAfterFormation } from "./progress";
@@ -825,6 +827,13 @@ export function actionBlocked(s: GameState, def: ActionDef, t: Target): string |
   return def.blocked?.(s, t) ?? null;
 }
 
+/** Repeat visits to one seat give less: the same crowd has already heard you. */
+export const saturation = (s: GameState, i: number) => 1 / (1 + (s.seatWork?.[i] ?? 0) * SATURATION);
+export const SATURATION = 0.12;
+
+/** Dirty money and handouts cost you Principle in voters' eyes, not just integrity. */
+const PRINCIPLE_HIT: Record<string, number> = { kickback: 5, glcPosts: 3, dedak: 3, handout: 1 };
+
 export function applyAction(s: GameState, id: string, t: Target): ActionResult {
   const def = ACTION_BY_ID[id];
   if (!def) return { ok: false, error: "Unknown action." };
@@ -833,8 +842,22 @@ export function applyAction(s: GameState, id: string, t: Target): ActionResult {
   const me = cloneMe(s.me);
   me.funds -= actionCost(s, def, t);
   me.ap -= def.ap;
-  const message = def.run(me, s, t);
-  const base = def.after ? def.after({ ...s, me }, t) : s;
+  let message = def.run(me, s, t);
+  let pre: GameState = s;
+  if (t.kind === "seat" && def.group === "local") {
+    // Saturation: only part of a repeat visit's gains land. The pressure also builds toward a rival response.
+    const i = t.seat;
+    const k = saturation(s, i);
+    me.buzz[i] = s.me.buzz[i] + (me.buzz[i] - s.me.buzz[i]) * k;
+    me.service[i] = s.me.service[i] + (me.service[i] - s.me.service[i]) * k;
+    me.machinery[i] = s.me.machinery[i] + (me.machinery[i] - s.me.machinery[i]) * k;
+    if (k < 0.7) message += ` (Diminishing returns: only ${Math.round(k * 100)}% lands here now. Spread out, or make your case nationally.)`;
+    const seatWork = [...(s.seatWork ?? SEATS.map(() => 0))];
+    seatWork[i] += def.ap;
+    pre = { ...s, seatWork };
+  }
+  if (PRINCIPLE_HIT[id]) pre = bump(pre, s.player, "principle", -PRINCIPLE_HIT[id], "the dirty-money stories");
+  const base = def.after ? def.after({ ...pre, me }, t) : pre;
   // Campaigning in your own coalition's seats wins the loyalty of their MPs (your faction).
   const loyalty = [...s.career.loyalty];
   const seats = t.kind === "seat" ? [t.seat] : t.kind === "state" ? SEATS.filter((x) => x.state === t.state).map((x) => x.index) : [];
@@ -881,7 +904,9 @@ export type DeepOp =
   | { kind: "showCause"; id: number }
   | { kind: "sack"; id: number }
   | { kind: "mou" }
-  | { kind: "recruit"; party: string };
+  | { kind: "recruit"; party: string }
+  | ({ kind: "case" } & CaseMove)
+  | { kind: "autoGround"; on: boolean };
 
 export function deepMove(s: GameState, op: DeepOp): ActionResult {
   const wrap = (r: { state: GameState; message: string } | { error: string }): ActionResult => ("error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message });
@@ -911,8 +936,19 @@ export function deepMove(s: GameState, op: DeepOp): ActionResult {
       return wrap(sackMember(s, op.id));
     case "mou":
       return wrap(toggleMou(s));
-    case "recruit":
-      return wrap(recruitParty(s, op.party));
+    case "recruit": {
+      // Taking in another party's MPs looks like frog-buying to some voters.
+      const r = recruitParty(s, op.party);
+      return wrap("error" in r || r.state.coalitions[s.player].members.length === s.coalitions[s.player].members.length ? r : { ...r, state: bump(r.state, s.player, "principle", -3, "taking in defectors") });
+    }
+    case "case":
+      return wrap(caseMove(s, op));
+    case "autoGround":
+      return {
+        ok: true,
+        state: { ...s, strategy: { ...s.strategy, autoGround: op.on } },
+        message: op.on ? "Your secretary-general will run the ground campaign in the closest seats each turn, with any AP you leave." : "You take the ground campaign back into your own hands.",
+      };
   }
 }
 
@@ -1124,7 +1160,9 @@ export function adoptPolicy(s: GameState, policyId: string, option: number): Act
     me.unity = clamp(me.unity - 5);
     return { ok: true, state: { ...s, me }, message: `${policy.name}: the bill was defeated ${vote.yes}–${vote.no}. A humiliation for the government.` };
   }
+  const from = s.me.policies[policyId] ?? 0;
   me.policies = { ...me.policies, [policyId]: option };
+  s = logPolicy(onPledgeChange(s, policyId, from, option), policyId, option, gov);
   if (MULTIRACIAL.includes(s.player) && opt.trustMultiracial) me.trust = clamp(me.trust + opt.trustMultiracial);
   if (opt.integrity) me.integrity = clamp(me.integrity + opt.integrity);
   if (!gov && (opt.fiscal ?? 0) < 0) me.integrity = clamp(me.integrity + opt.fiscal! * UNFUNDED_INTEGRITY_PER_FISCAL);
@@ -1360,7 +1398,7 @@ export function nextTalksRound(s: GameState): ActionResult {
   return { ok: true, state: { ...s, formation: next }, message: `Round ${f.round} of talks is over.` };
 }
 
-export function backForPm(s: GameState, leader: CoalitionId, askDpm: boolean | "pm"): ActionResult {
+export function backForPm(s: GameState, leader: CoalitionId, askDpm: boolean): ActionResult {
   const f = s.formation;
   if (!f || f.role !== "kingmaker") return { ok: false, error: "You aren't the kingmaker." };
   if (!f.candidates.includes(leader)) return { ok: false, error: "Not a candidate." };
@@ -1369,7 +1407,7 @@ export function backForPm(s: GameState, leader: CoalitionId, askDpm: boolean | "
   return {
     ok: true,
     state: { ...s, formation: backCandidate(f, s.player, leader, askDpm) },
-    message: askDpm === "pm" ? `You offer ${cshort(leader)} your seats, if you become Prime Minister.` : `You back ${cshort(leader)} for Prime Minister.`,
+    message: `You back ${cshort(leader)} for Prime Minister.`,
   };
 }
 
@@ -1383,24 +1421,10 @@ export function goToAgong(s: GameState, midTerm = false): ActionResult {
     f = backCandidate(f, s.player, (AFFINITY[s.player][x] ?? 0) >= (AFFINITY[s.player][y] ?? 0) ? x : y, false);
   }
   while (f.round <= OFFERS.rounds) f = endRound(f, s.player);
-  // The compromise Prime Minister: your candidate takes your price, or walks away from your seats.
-  const pmAsk = f.askedPm ? f.committed[s.player] : undefined;
-  let pmLine: string | null = null;
-  if (pmAsk) {
-    const ok = hash01("compromise", s.seed, s.week) < compromiseOdds(s, f.seats, f.committed, pmAsk);
-    pmLine = compromiseLine(pmAsk, ok).text;
-    if (!ok) {
-      const committed = { ...f.committed };
-      delete committed[s.player];
-      f = { ...f, committed };
-    }
-  }
-  const decided = agongDecides(f, s.player);
-  const o = pmAsk && pmLine && f.committed[s.player] === pmAsk && decided.pm === pmAsk ? { ...decided, pm: s.player } : decided;
+  const o = agongDecides(f, s.player);
   const me = cloneMe(s.me);
   const inGov = o.government.includes(s.player);
   const lines: string[] = [];
-  if (pmLine) lines.push(pmLine);
   if (o.pm === s.player) {
     for (const [c, offer] of Object.entries(f.offers) as [CoalitionId, Offer][]) {
       if (!o.government.includes(c)) continue;

@@ -41,7 +41,7 @@ export function CoalitionCard() {
                 <span className="min-w-0">
                   <span className="font-medium">{p}</span>{" "}
                   <span className="text-xs" style={{ color: "var(--muted)" }}>
-                    {PARTIES[p]?.leader}
+                    {k === 0 ? game.career.name : PARTIES[p]?.leader}
                     {k === 0 ? " · leads" : ""}
                   </span>
                 </span>

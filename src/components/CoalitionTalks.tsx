@@ -7,7 +7,6 @@ import { useGame } from "@/store/gameStore";
 import { coalitionLeader } from "@/game/systems/coalitions";
 import { cname, COALITIONS, cshort, MAJORITY, type CoalitionId } from "@/game/world";
 import { coalColor } from "./common";
-import { compromiseOdds } from "@/game/systems/growth";
 
 const OFFER_LABEL: Record<OfferKind, string> = { dpm: "Offer DPM", ministries: "+ Ministries", ma63: "Promise MA63" };
 
@@ -35,7 +34,9 @@ export function CoalitionTalks() {
             ? "Your party leadership is negotiating. You aren't party president yet, so you watch from the sidelines."
             : f.role === "leader"
             ? `You are a prime-minister candidate. Win statutory declarations (SDs) from other coalitions: make offers, then end the round to see who signs. ${MAJORITY} SDs make a majority.`
-            : `You are the kingmaker. Neither ${cshort(x)} nor ${cshort(y)} can easily reach ${MAJORITY} without you. Back one of them, and name your price.`}
+            : f.seats[game.player] >= 10
+              ? `You are the kingmaker. ${cshort(x)} and ${cshort(y)} lead the two biggest blocs, and your ${f.seats[game.player]} seats could decide it. Back one of them, and name your price.`
+              : `${cshort(x)} and ${cshort(y)} lead the two biggest blocs. With ${f.seats[game.player]} seat${f.seats[game.player] === 1 ? "" : "s"}, you can pick a side: back the winner early and you may earn a post.`}
         </p>
       </header>
 
@@ -69,16 +70,6 @@ export function CoalitionTalks() {
                   <button className="btn btn-ghost" onClick={() => back(c, true)} title="Granted only if your seats are what takes them past 112.">
                     Back them, ask for DPM
                   </button>
-                  {compromiseOdds(game, f.seats, f.committed, c) > 0 && (
-                    <button
-                      className="btn btn-ghost"
-                      style={{ outline: "1px solid var(--accent)" }}
-                      onClick={() => back(c, "pm")}
-                      title="A compromise Prime Minister: they take your price or walk away from your seats. The odds can change as others sign."
-                    >
-                      Back them if you become PM · ~{Math.round(compromiseOdds(game, f.seats, f.committed, c) * 100)}%
-                    </button>
-                  )}
                 </div>
               )}
             </div>

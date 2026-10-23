@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { backForPm, callGeneralElection, dewanVote, goToAgong, makeOffer, nextTalksRound } from "./actions";
 import { isGovernment, newGame, type GameState } from "./state";
-import { OFFERS, agongDecides, pickCandidates, sdCount, startFormation, willingness } from "./systems/formation";
+import { OFFERS, agongDecides, blocSeats, pickCandidates, sdCount, startFormation, willingness } from "./systems/formation";
 import { isHostile } from "./systems/rivals";
 import { advanceWeek } from "./week";
 import { COALITIONS, type CoalitionId } from "./world";
@@ -85,7 +85,7 @@ describe("forming a government", () => {
 
   it("a kingmaker who provides the majority gets the DPM", () => {
     const g = newGame("GPS", 1);
-    // Under 10 seats you're a kingmaker, not a candidate.
+    // A small party is a kingmaker, not a candidate.
     const f = startFormation(g, seatsOf({ PH: 104, PN: 80, BN: 6, GPS: 9, GRS: 7 }), 23);
     const base: GameState = { ...g, formation: { ...f, committed: { PH: "PH", PN: "PN", BN: "PH", GRS: "PN" } } };
     expect(sdCount(base.formation!, "PH")).toBe(110);
@@ -95,6 +95,35 @@ describe("forming a government", () => {
     const o = agongDecides(backed.state.formation!, "GPS");
     expect(o.pm).toBe("PH");
     expect(o.dpmGranted).toBe(true);
+  });
+
+  it("a 16-seat party is a kingmaker: the two biggest blocs compete", () => {
+    const g = newGame("MUDA", 1);
+    const seats = seatsOf({ PH: 70, PN: 85, BN: 25, GPS: 22, GRS: 4, MUDA: 16 });
+    const f = startFormation(g, seats, 1);
+    expect(f.role).toBe("kingmaker");
+    expect(f.candidates).not.toContain("MUDA");
+    expect(f.candidates).toEqual(expect.arrayContaining(["PH", "PN"]));
+  });
+
+  it("blocs, not single coalitions, decide the candidates", () => {
+    // BN is a natural partner of PH (same side): the PH bloc (70 + 45) beats PN alone (80).
+    const seats = seatsOf({ PN: 80, PH: 70, BN: 45, GPS: 20 });
+    expect(blocSeats("PH", seats)).toBe(115);
+    expect(pickCandidates(seats)[0]).toBe("PH");
+    // A pact partner joins your bloc, and signs for you at once.
+    const g = newGame("WARISAN", 2);
+    const f = startFormation(g, seatsOf({ PN: 80, PH: 50, BN: 20, WARISAN: 45, MUDA: 30 }), 3, ["MUDA"]);
+    expect(f.role).toBe("leader");
+    expect(f.committed.MUDA).toBe("WARISAN");
+    expect(f.log.some((l) => l.includes("your election pact"))).toBe(true);
+  });
+
+  it("a shared enemy is common ground", () => {
+    const g = newGame("BN", 3);
+    const f = startFormation(g, seatsOf({ PH: 90, PN: 80, BN: 30, MUDA: 5 }), 30);
+    // MUDA loathes PN: it leans to PH for that reason alone.
+    expect(willingness(f, "MUDA", "PH", "BN") - willingness(f, "MUDA", "PN", "BN")).toBeGreaterThan(1);
   });
 
   it("time moving on resolves unfinished talks", () => {

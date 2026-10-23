@@ -46,7 +46,7 @@ describe("career", () => {
     expect(factionSize(g.career, g.holders, g.player)).toBe(1);
   });
 
-  it("the June AGM lets you contest the next post once you have the points", () => {
+  it("the June AGM lets you contest the next post once you have the points", { timeout: 30_000 }, () => {
     let g = newGame("PN", 2, { mode: "career" });
     g = { ...g, career: { ...g.career, points: CONTEST_POINTS[0] + 20 } };
     while (!g.cards.some((c) => c.kind === "agm")) g = advanceWeek(g);

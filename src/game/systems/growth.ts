@@ -3,16 +3,14 @@
 //   instead of starting from your thin natural base every time.
 // - Recruiting: invite an unhappy party to join your coalition, MPs and all. Invite a small coalition's lead party and
 //   the whole coalition merges into yours.
-// - The compromise Prime Minister: in a hung parliament, the kingmaker can demand the top job as the price of its seats
-//   (as Bersatu's ~30 seats did in 2020). The big bloc agrees if it can't get there any other way and doesn't hate you.
 // All draws are hash01. Numbers TEMPORARY.
 
 import { hash01 } from "../rng";
-import type { GameState, ReportLine } from "../state";
+import type { GameState } from "../state";
 import { COALITIONS, MAJORITY, PARTIES, SUPERMAJORITY, cshort, type CoalitionId } from "../world";
 import { AFFINITY } from "./formation";
 import { naturalSupport } from "../voter";
-import { edgeOf } from "../config";
+import { edgeOf, standing } from "../config";
 import { coalitionOf, moveParty } from "./coalitions";
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
@@ -21,7 +19,7 @@ const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 
 /** 1 for a one-seat party, fading to 0 by 40 seats: big parties ignore you, and a rising newcomer gets a hearing. */
 export const underdog = (seats: number) => Math.max(0, Math.min(1, (UNDERDOG.seats - seats) / UNDERDOG.seats));
-export const UNDERDOG = { seats: 40, rivalCut: 0.5, recruit: 0.2, compromise: 0.2, momentum: 2, volunteers: 0.5, crowdfund: 40_000 };
+export const UNDERDOG = { seats: 40, rivalCut: 0.5, recruit: 0.2, momentum: 2, volunteers: 0.5, crowdfund: 40_000 };
 
 // --- Converts -------------------------------------------------------------------------------------
 
@@ -41,8 +39,8 @@ export const CONVERT = {
 export function convertsWeek(s: GameState, contested: number[], serviceBase: (i: number) => number): number[] {
   const out = [...(s.converts ?? [])];
   const mySeats = s.holders.filter((h) => h === s.player).length;
-  // A rising movement: strongest when small, gone at a two-thirds majority.
-  const rising = Math.max(0, (SUPERMAJORITY - mySeats) / SUPERMAJORITY);
+  // A rising movement: strongest when small, gone at a two-thirds majority (held or polled).
+  const rising = Math.max(0, (SUPERMAJORITY - standing(s)) / SUPERMAJORITY);
   for (let i = 0; i < out.length; i++) {
     if (!contested.includes(i)) {
       out[i] *= 1 - CONVERT.fade;
@@ -154,22 +152,3 @@ export function recruitParty(s: GameState, party: string): { state: GameState; m
       : `${PARTIES[party]?.name ?? party} leaves ${cshort(from)} and joins you with ${gained} MPs.`,
   };
 }
-
-// --- The compromise Prime Minister ----------------------------------------------------------------
-
-/** Will a candidate accept you as Prime Minister in return for your seats? Needs you to be decisive. */
-export function compromiseOdds(s: GameState, seats: Record<CoalitionId, number>, committed: Partial<Record<CoalitionId, CoalitionId>>, leader: CoalitionId): number {
-  const theirs = (Object.entries(committed) as [CoalitionId, CoalitionId][]).filter(([c, l]) => l === leader && c !== s.player).reduce((a, [c]) => a + seats[c], 0);
-  const mine = seats[s.player] ?? 0;
-  if (theirs >= MAJORITY || theirs + mine < MAJORITY - 8) return 0;
-  const aff = AFFINITY[leader]?.[s.player] ?? 0;
-  // Being decisive, being liked and being a real force all help; asking a party far bigger than you is hard.
-  // Big blocs also like a weak Prime Minister they think they can control.
-  return clamp(0.35 + aff * 0.5 + Math.min(0.25, mine / 120) - Math.max(0, seats[leader] - mine * 3) / 400 + underdog(mine) * UNDERDOG.compromise + (edgeOf(s) - 1) * 0.6, 0, 0.95);
-}
-
-export const compromiseLine = (leader: CoalitionId, ok: boolean): ReportLine =>
-  ok
-    ? { text: `${cshort(leader)} accepts your price: you become Prime Minister at the head of a compromise government.`, tone: "good" }
-    : { text: `${cshort(leader)} refuses to serve under you. Without your seats, they look elsewhere.`, tone: "bad" };
-

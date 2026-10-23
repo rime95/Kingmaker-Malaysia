@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useGame } from "@/store/gameStore";
 import { winChance } from "@/game/systems/polls";
-import { SEATS, STATE_BY_ID, contestingIn } from "@/game/world";
+import { SEATS, STATE_BY_ID, contestingIn, cshort } from "@/game/world";
 import { PactsCard } from "../PactsCard";
 import { chancePct, useReads } from "../common";
 
@@ -57,6 +57,27 @@ export function BattlePanel() {
     <div className="flex flex-col gap-5">
       {list("Seats you could take", "Best chances first. Click one to fly there and act.", lists.targets)}
       {list("Seats you could lose", "Your own seats, shakiest first.", lists.risk)}
+      <section>
+        <h3 className="eyebrow mb-1">Where rivals fight back</h3>
+        <p className="text-[11px] mb-1.5" style={{ color: "var(--muted)" }}>
+          Hammer one rival seat and its holder digs in, spending there and countering your canvassers. Pick your fights, or win the argument nationally.
+        </p>
+        {Object.keys(game.battlegrounds ?? {}).length === 0 ? (
+          <p className="text-xs" style={{ color: "var(--ink-2)" }}>
+            No battlegrounds right now.
+          </p>
+        ) : (
+          <ul className="grid gap-1 @md:grid-cols-2">
+            {Object.entries(game.battlegrounds).map(([k, b]) => (
+              <li key={k}>
+                <button className="inset w-full px-2.5 py-1.5 text-left text-xs" onClick={() => focusSeat(Number(k))}>
+                  <b>{SEATS[Number(k)].name}</b> <span style={{ color: "var(--bad)" }}>· {cshort(b.by)} counter-campaigning, {Math.max(0, b.until - game.week)} wks left</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       <PactsCard />
     </div>
   );

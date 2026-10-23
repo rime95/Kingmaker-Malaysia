@@ -7,6 +7,9 @@
 // - Ministers matter: each portfolio's minister pushes their indicator by their competence.
 // - Mega projects cost money every week while they are built and pay off for years once finished.
 // - Crises are arcs of several weeks with a decision at the start.
+// - Who governs matters: your government has a steady hand (the numbers lean your way), while a government led by
+//   anyone else drifts into misrule (slower growth, dearer living, weaker investment, crises that bite harder). Both
+//   scale with your edge. That is your case to the rakyat: we govern better.
 // The old `economy` and `fiscal` scores are derived from these each week. Noise uses hash01. All numbers TEMPORARY.
 
 import type { PortfolioId } from "../data/people";
@@ -14,6 +17,7 @@ import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
 import { SEATS, STATE_BY_ID } from "../world";
 import { byId } from "./people";
+import { edgeOf } from "../config";
 
 export interface Nation {
   /** Real GDP growth, % a year. */
@@ -121,6 +125,8 @@ export interface Crisis {
   weeksLeft: number;
   /** How hard it bites (the response chosen can soften or worsen it). */
   severity: number;
+  /** Approval and growth when it began (to judge the government's handling). */
+  from?: { approval: number; gdp: number };
 }
 
 export const NATION = {
@@ -136,6 +142,26 @@ export const NATION = {
   roadshowFdi: 5,
   /** Chance a crisis leads straight into another. */
   chainChance: 0.35,
+};
+
+/** Who governs: +1 is your steady hand, −1 another coalition's misrule (both grow with your edge). */
+export function stewardship(s: GameState): number {
+  const e = edgeOf(s) - 1;
+  return s.parliament.pm === s.player ? STEWARD.you + e : -(STEWARD.them + e);
+}
+export const STEWARD = {
+  /** Base steadiness of your government, and misrule of anyone else's (before your edge). */
+  you: 0.5,
+  them: 0.5,
+  /** Per point of stewardship: growth, inflation, unemployment, cost of living, investment, approval targets. */
+  gdp: 0.5,
+  inflation: -0.35,
+  unemployment: -0.3,
+  col: -6,
+  fdi: 6,
+  approval: 4,
+  /** Crisis damage per point (negative: yours bite less). */
+  crisis: -0.2,
 };
 
 /** Which crisis can follow which. */
@@ -175,6 +201,7 @@ function targets(s: GameState) {
   const finished = n.projects.filter((p) => p.done).map((p) => PROJECT_BY_ID[p.id].done);
   const sum = (k: keyof ProjectDef["done"]) => finished.reduce((t, d) => t + (d[k] ?? 0), 0);
   const building = n.projects.filter((p) => !p.done).length;
+  const w = stewardship(s);
 
   const gdp = 4.2 + m("economy") * 0.4 + (n.fdi - 60) * 0.02 + sum("gdp") + building * 0.08 + (n.stimulus > 0 ? 0.8 : 0) - (n.opr - 2.75) * 0.4 + (pol("infra") === 1 ? 0.3 : 0) + (pol("wage") === 1 ? -0.15 : 0);
   const fuel = pol("fuel");
@@ -188,7 +215,15 @@ function targets(s: GameState) {
   const pay = n.civilPay === "raise" ? 3 : n.civilPay === "freeze" ? -3 : 0;
   const approval =
     50 + (n.gdp - 4.4) * 3 - (n.inflation - 2) * 3 - (n.unemployment - 3.2) * 4 - (n.col - 50) * 0.35 + sum("approval") + pay + (m("health") + m("education") + m("communications")) * 1.5 + m("rural") * 1;
-  return { gdp, inflation, unemployment, ringgit, col, fdi, approval };
+  return {
+    gdp: gdp + w * STEWARD.gdp,
+    inflation: inflation + w * STEWARD.inflation,
+    unemployment: unemployment + w * STEWARD.unemployment,
+    ringgit,
+    col: col + w * STEWARD.col,
+    fdi: fdi + w * STEWARD.fdi,
+    approval: approval + w * STEWARD.approval,
+  };
 }
 
 export interface NationWeek {
@@ -200,12 +235,15 @@ export interface NationWeek {
   crisis: string | null;
   /** Projects that opened (their states get service in their seats). */
   opened: ProjectDef[];
+  /** A crisis ended: how the government came through it (positive = well). */
+  ended: { title: string; score: number } | null;
 }
 
 /** One week of the national economy. */
 export function nationWeek(s: GameState): NationWeek {
   const n = { ...s.nation, projects: s.nation.projects.map((p) => ({ ...p })) };
   const lines: ReportLine[] = [];
+  let ended: NationWeek["ended"] = null;
   const t = targets(s);
   const noise = (k: string, size: number) => (hash01("nation", k, s.seed, s.week) - 0.5) * size;
   const move = (cur: number, target: number, size: number, key: string) => cur + (target - cur) * NATION.pull + noise(key, size);
@@ -221,7 +259,7 @@ export function nationWeek(s: GameState): NationWeek {
   if (n.crisis) {
     const def = CRISIS_BY_KIND[n.crisis.kind];
     const home = 1 - ministerEffect(s, "home") * 0.15;
-    const k = n.crisis.severity * home;
+    const k = n.crisis.severity * home * Math.max(0.4, 1 + stewardship(s) * STEWARD.crisis);
     n.gdp += (def.weekly.gdp ?? 0) * k;
     n.inflation += (def.weekly.inflation ?? 0) * k;
     n.unemployment += (def.weekly.unemployment ?? 0) * k;
@@ -232,12 +270,13 @@ export function nationWeek(s: GameState): NationWeek {
     n.crisis = { ...n.crisis, weeksLeft: n.crisis.weeksLeft - 1 };
     if (n.crisis.weeksLeft <= 0) {
       lines.push({ text: `The ${def.title.toLowerCase()} is over.`, tone: "info" });
+      if (n.crisis.from) ended = { title: def.title, score: n.approval - n.crisis.from.approval + (n.gdp - n.crisis.from.gdp) * 3 };
       n.crisis = null;
       // Crises can chain: a currency crash or a virus can tip the economy into recession.
       const next = CRISIS_CHAIN[def.kind];
       if (next && hash01("chain", s.seed, s.week) < NATION.chainChance) {
         const nd = CRISIS_BY_KIND[next];
-        n.crisis = { kind: nd.kind, startWeek: s.week, weeksLeft: nd.weeks, severity: 0.8 };
+        n.crisis = { kind: nd.kind, startWeek: s.week, weeksLeft: nd.weeks, severity: 0.8, from: { approval: n.approval, gdp: n.gdp } };
         lines.push({ text: `It isn't over: the ${def.title.toLowerCase()} has tipped into a ${nd.title.toLowerCase()}.`, tone: "bad" });
       }
     }
@@ -245,7 +284,7 @@ export function nationWeek(s: GameState): NationWeek {
   let crisis: string | null = null;
   if (!n.crisis && s.week % 4 === 0 && s.week > 8 && hash01("crisis", s.seed, s.week) < NATION.crisisChancePerMonth) {
     const def = CRISES[Math.floor(hash01("crisiskind", s.seed, s.week) * CRISES.length)];
-    n.crisis = { kind: def.kind, startWeek: s.week, weeksLeft: def.weeks, severity: 1 };
+    n.crisis = { kind: def.kind, startWeek: s.week, weeksLeft: def.weeks, severity: 1, from: { approval: n.approval, gdp: n.gdp } };
     crisis = def.kind;
   }
 
@@ -281,7 +320,7 @@ export function nationWeek(s: GameState): NationWeek {
   fiscal += ministerEffect(s, "finance") * 0.05;
   n.debt = clamp(n.debt + ((50 - s.fiscal) / 50) * 0.04 - (n.gdp - 4) * 0.004 - (n.inflation - 2) * 0.003, 30, 100);
   if (s.week % 4 === 0) n.history = [...n.history, { week: s.week, gdp: n.gdp, inflation: n.inflation, unemployment: n.unemployment, approval: n.approval, ringgit: n.ringgit, debt: n.debt }].slice(-130);
-  return { nation: n, fiscal, lines, crisis, opened };
+  return { nation: n, fiscal, lines, crisis, opened, ended };
 }
 
 /** The old 0–100 economy score, derived from the indicators. */

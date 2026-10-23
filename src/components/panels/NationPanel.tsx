@@ -7,6 +7,9 @@ import { AGENDA, KPIS, KPI_INFO, OPP, agendaText, badness, brokenPromise, challe
 import { useGame } from "@/store/gameStore";
 import { MAJORITY, cshort } from "@/game/world";
 import { ActionCard } from "../ActionCard";
+import { RECORD_KPIS, better, reportCard } from "@/game/systems/governing";
+import { LEGACY } from "@/game/systems/goals";
+import { POLICY_BY_ID } from "@/game/systems/policies";
 
 /** The state of the country: the government's promises, the numbers, and what you can do about them. */
 export function NationPanel() {
@@ -30,6 +33,7 @@ export function NationPanel() {
       )}
 
       <AgendaCard />
+      <RecordCard />
 
       <section>
         <div className="flex items-baseline justify-between mb-2">
@@ -83,6 +87,7 @@ export function NationPanel() {
       )}
 
       {(pm || n.projects.length > 0) && <Projects />}
+      <LegacyCard />
     </div>
   );
 }
@@ -311,3 +316,105 @@ function Projects() {
   );
 }
 
+
+/** The government's record so far (the report card voters will see), and what each of your decisions did. */
+function RecordCard() {
+  const game = useGame((s) => s.game)!;
+  const card = reportCard(game);
+  const mine = game.agenda?.by === game.player;
+  const decisions = (game.policyLog ?? []).filter((e) => e.gov).slice(0, 6);
+  if (!card && !decisions.length) return null;
+  const fmtBy = (k: Kpi, v: number) => `${v >= 0 ? "▲" : "▼"} ${KPI_INFO[k].label.toLowerCase()} ${Math.abs(v) < 1 ? Math.abs(v).toFixed(1) : Math.abs(v).toFixed(0)}`;
+  return (
+    <section className="inset p-3">
+      {card && (
+        <>
+          <div className="flex items-baseline justify-between mb-1">
+            <h3 className="eyebrow">{mine ? "Your record so far" : `The ${cshort(game.agenda!.by)} government's record`}</h3>
+            <span className="text-[11px] font-semibold" style={{ color: card.grade > 0.05 ? "var(--good)" : card.grade < -0.25 ? "var(--bad)" : "var(--ink-2)" }}>
+              {card.verdict}
+            </span>
+          </div>
+          <p className="text-xs mb-1.5" style={{ color: "var(--ink-2)" }}>
+            Promises kept {card.kept} of {card.total}
+            {card.broken ? ` · ${card.broken} broken` : ""} · since the term began:{" "}
+            {card.moves
+              .filter((m) => Math.abs(m.by) >= (m.kpi === "col" || m.kpi === "fdi" || m.kpi === "approval" ? 1 : 0.1))
+              .map((m) => (
+                <span key={m.kpi} style={{ color: m.by >= 0 ? "var(--good)" : "var(--bad)" }}>
+                  {fmtBy(m.kpi, m.by)}{" "}
+                </span>
+              ))}
+          </p>
+          <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+            When the campaign starts, this record goes before the voters: a good one lifts the government&apos;s Execution and Principle, a bad one sinks them.
+          </p>
+        </>
+      )}
+      {mine && decisions.length > 0 && (
+        <div className="mt-2.5">
+          <h4 className="text-xs font-semibold mb-1">What your decisions did</h4>
+          <ul className="flex flex-col gap-1">
+            {decisions.map((e) => {
+              const opt = POLICY_BY_ID[e.policy]?.options[e.option];
+              const moved = RECORD_KPIS.map((k) => ({ k, v: better(game, e.at, k) }))
+                .filter((x) => Math.abs(x.v) >= (x.k === "col" || x.k === "fdi" || x.k === "approval" ? 1 : 0.1))
+                .sort((a, b) => Math.abs(b.v) - Math.abs(a.v))
+                .slice(0, 3);
+              return (
+                <li key={`${e.week}-${e.policy}`} className="text-xs flex gap-2">
+                  <span className="flex-none tabular-nums" style={{ color: "var(--muted)" }}>
+                    {game.week - e.week} wks ago
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <b>{opt?.label ?? e.policy}</b>
+                    {moved.length ? ": since then " : ": too early to tell"}
+                    {moved.map((x) => (
+                      <span key={x.k} style={{ color: x.v >= 0 ? "var(--good)" : "var(--bad)" }}>
+                        {fmtBy(x.k, x.v)}{" "}
+                      </span>
+                    ))}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+            Policies take months to work through: numbers drift toward their new level, faster with a capable minister.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** What a great Prime Minister leaves behind. */
+function LegacyCard() {
+  const game = useGame((s) => s.game)!;
+  return (
+    <section>
+      <h3 className="eyebrow mb-2">Your legacy</h3>
+      <ul className="grid gap-1.5 @md:grid-cols-2">
+        {LEGACY.map((l) => {
+          const done = game.achievements[`legacy-${l.id}`] !== undefined;
+          const p = done ? 1 : l.progress(game);
+          return (
+            <li key={l.id} className="inset px-2.5 py-2 text-xs" style={done ? { outline: "1px solid var(--good)" } : undefined}>
+              <div className="flex justify-between">
+                <b className="text-[13px]">{l.name}</b>
+                <span style={{ color: done ? "var(--good)" : "var(--muted)" }}>{done ? "✓ Achieved" : `${Math.round(p * 100)}%`}</span>
+              </div>
+              <div style={{ color: "var(--ink-2)" }}>{l.text}</div>
+              <div className="h-1 rounded-full mt-1" style={{ background: "var(--surface-2)" }}>
+                <div className="h-full rounded-full" style={{ width: `${p * 100}%`, background: done ? "var(--good)" : "var(--accent)" }} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+        Counted while you are Prime Minister.
+      </p>
+    </section>
+  );
+}

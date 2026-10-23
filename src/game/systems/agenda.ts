@@ -11,6 +11,8 @@ import type { GameState, ReportLine } from "../state";
 import { addSeg } from "./segments";
 import { byId } from "./people";
 import { cshort } from "../world";
+import { bump } from "./scorecard";
+import { RECORD_SWAY, pledgeAgenda, reportCard, snapshot, type Snapshot } from "./governing";
 
 export type Kpi = "gdp" | "inflation" | "unemployment" | "debt" | "col" | "approval" | "fdi";
 
@@ -36,6 +38,8 @@ export interface AgendaItem {
   target: number;
   /** Value when promised. */
   from: number;
+  /** The manifesto pledge this promise comes from (your government). */
+  pledge?: string;
 }
 
 export interface Agenda {
@@ -44,6 +48,10 @@ export interface Agenda {
   by: CoalitionId;
   week: number;
   items: AgendaItem[];
+  /** The numbers when the term began (for the report card). */
+  start?: Snapshot;
+  /** The record has gone before the voters (once a campaign). */
+  judged?: boolean;
 }
 type CoalitionId = GameState["player"];
 
@@ -70,20 +78,20 @@ const targetFor = (k: Kpi, v: number): number => {
 
 export const itemMet = (s: Pick<GameState, "nation">, it: AgendaItem) => (KPI_INFO[it.kpi].upIsGood ? s.nation[it.kpi] >= it.target : s.nation[it.kpi] <= it.target);
 
-/** Three promises, leaning towards what's going worst. */
+/** The promises for a term: your own government's come from your manifesto; the rest lean towards what's going worst. */
 export function rollAgenda(s: GameState): Agenda {
   const pool = KPIS.map((k) => ({ k, w: 0.3 + badness(s, k) }));
-  const items: AgendaItem[] = [];
-  for (let n = 0; n < AGENDA.items; n++) {
+  const items: AgendaItem[] = s.parliament.pm === s.player ? pledgeAgenda(s) : [];
+  for (let n = items.length; n < AGENDA.items; n++) {
     const left = pool.filter((x) => !items.some((i) => i.kpi === x.k));
     let r = hash01("agenda", s.seed, s.geCount, s.parliament.pm, n) * left.reduce((a, x) => a + x.w, 0);
     const k = (left.find((x) => (r -= x.w) <= 0) ?? left.at(-1)!).k;
     items.push({ kpi: k, from: s.nation[k], target: targetFor(k, s.nation[k]) });
   }
-  return { term: s.geCount, by: s.parliament.pm, week: s.week, items };
+  return { term: s.geCount, by: s.parliament.pm, week: s.week, items, start: snapshot(s) };
 }
 
-export const agendaText = (it: AgendaItem) => `${KPI_INFO[it.kpi].label} ${KPI_INFO[it.kpi].upIsGood ? "up to" : "down to"} ${KPI_INFO[it.kpi].fmt(it.target)}`;
+export const agendaText = (it: AgendaItem) => `${KPI_INFO[it.kpi].label} ${KPI_INFO[it.kpi].upIsGood ? "up to" : "down to"} ${KPI_INFO[it.kpi].fmt(it.target)}${it.pledge ? ` (${it.pledge})` : ""}`;
 
 /** Weekly: a new government sets its agenda; kept promises build approval each month. */
 export function agendaWeek(s: GameState): { state: GameState; lines: ReportLine[] } {
@@ -96,6 +104,17 @@ export function agendaWeek(s: GameState): { state: GameState; lines: ReportLine[
   } else if (s.agenda && s.week % 4 === 0) {
     const met = s.agenda.items.filter((it) => itemMet(s, it)).length;
     if (met) state = { ...state, nation: { ...state.nation, approval: clamp(state.nation.approval + met * AGENDA.monthlyApproval, 5, 95) } };
+  }
+  // The campaign begins: the government's record goes before the voters.
+  if (s.parliament.status === "campaign" && state.agenda && !state.agenda.judged) {
+    const card = reportCard(state);
+    const by = state.agenda.by;
+    state = { ...state, agenda: { ...state.agenda, judged: true } };
+    if (card) {
+      state = bump(bump(state, by, "execution", card.grade * RECORD_SWAY.execution), by, "principle", card.grade * RECORD_SWAY.principle);
+      const whose = by === s.player ? "Your" : `The ${cshort(by)}`;
+      lines.push({ text: `${whose} government's record goes before the voters: ${card.kept} of ${card.total} promises kept. ${card.verdict}`, tone: by === s.player ? (card.grade >= 0 ? "good" : "bad") : "info" });
+    }
   }
   return { state, lines };
 }
@@ -215,9 +234,11 @@ export function publishProbe(s: GameState): { state: GameState; lines: ReportLin
       nation: { ...state.nation, approval: clamp(state.nation.approval - 6, 5, 95) },
       cabinet: minister && s.government.includes(s.player) === false ? { ...state.cabinet, [p.post]: undefined } : state.cabinet,
     };
+    state = bump(bump(state, s.parliament.pm, "principle", -8), s.parliament.pm, "execution", -3);
     lines.push({ text: `Your exposé on ${p.title} lands${minister ? `: ${minister.name} resigns` : ""}. The government reels.`, tone: "good" });
   } else {
     state = { ...state, me: { ...state.me, integrity: clamp(state.me.integrity - 6), scandal: clamp(state.me.scandal + 12), funds: state.me.funds - 500_000 } };
+    state = bump(state, s.player, "credibility", -5, "your failed exposé");
     lines.push({ text: `Your claims about ${p.title} fall apart. A defamation suit costs RM 500k and your credibility.`, tone: "bad" });
   }
   return { state, lines };

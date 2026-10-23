@@ -2,12 +2,11 @@
 // Two prime-minister candidates gather statutory declarations (SDs) from coalitions. Each coalition leans toward a
 // candidate by ideology (affinity), old partnerships, momentum (who already has more SDs) and what it has been
 // offered. Talks run for up to three rounds; then the Agong appoints whoever can command the House.
+// The candidates lead the two biggest blocs (a coalition plus its natural and pact partners), so a small party is a
+// kingmaker: it picks a side and names a price, but never the premiership itself.
 // You are either one of the two candidates (you make offers) or the kingmaker (you choose a side and name a price).
 
 import { DIFFICULTY, edgeOf } from "../config";
-
-/** With this many seats, you can run for Prime Minister yourself. */
-export const PROTAGONIST_SEATS = 10;
 import type { GameState } from "../state";
 import { COALITIONS, cshort, MAJORITY, SUPERMAJORITY, type CoalitionId } from "../world";
 import { stateRulers } from "./assemblies";
@@ -65,13 +64,23 @@ export interface Formation {
   log: string[];
   /** Kingmaker: the price you asked for. */
   askedDpm?: boolean;
-  /** Kingmaker: you asked to be Prime Minister yourself. */
-  askedPm?: boolean;
   /** Difficulty: extra willingness partners need before backing you. */
   greed?: number;
   /** Your edge: extra willingness to back you. */
   edge?: number;
+  /** Your pre-election pact partners (they sign for you at once). */
+  pactWith?: CoalitionId[];
+  /** Common ground with you beyond ideology (shared pledges, past cooperation), by coalition. */
+  common?: Partial<Record<CoalitionId, number>>;
 }
+
+export const COMMON = {
+  /** "Anyone but X": a coalition that loathes one candidate leans to the other. */
+  enemyAff: -0.5,
+  enemy: 0.2,
+  /** Borneo coalitions move together. */
+  borneo: 0.15,
+};
 
 export interface WinTier {
   week: number;
@@ -91,13 +100,46 @@ export const TIER_TEXT: Record<WinTier["tier"], { name: string; text: string }> 
 
 const aff = (joiner: CoalitionId, leader: CoalitionId) => (joiner === leader ? 1 : AFFINITY[joiner][leader] ?? 0);
 
-/** The two prime-minister candidates: the biggest coalition, and the biggest one that isn't its natural partner. */
-export function pickCandidates(seats: Record<CoalitionId, number>): [CoalitionId, CoalitionId] {
-  const ranked = COALITIONS.filter((c) => c !== "OTHERS").sort((a, b) => seats[b] - seats[a]);
-  const a = ranked[0];
-  const b = ranked.find((c) => c !== a && aff(c, a) < 0.3) ?? ranked[1];
+/** Would this coalition sign for that leader straight away? (A close ally on the same side, or a pact partner.) */
+const naturalPartner = (c: CoalitionId, leader: CoalitionId, oldGov: CoalitionId[], pacts: [CoalitionId, CoalitionId][]) =>
+  pacts.some(([x, y]) => (x === c && y === leader) || (y === c && x === leader)) || (aff(c, leader) >= 0.45 && oldGov.includes(c) === oldGov.includes(leader));
+
+/** A coalition's bloc: itself plus the smaller coalitions that would sign for it at once. */
+export function blocSeats(leader: CoalitionId, seats: Record<CoalitionId, number>, oldGov: CoalitionId[] = [], pacts: [CoalitionId, CoalitionId][] = []): number {
+  return COALITIONS.filter((c) => c === leader || (c !== "OTHERS" && seats[c] <= seats[leader] && naturalPartner(c, leader, oldGov, pacts))).reduce((a, c) => a + (seats[c] ?? 0), 0);
+}
+
+/** The two prime-minister candidates: the leaders of the two biggest blocs that aren't natural partners. */
+export function pickCandidates(seats: Record<CoalitionId, number>, oldGov: CoalitionId[] = [], pacts: [CoalitionId, CoalitionId][] = []): [CoalitionId, CoalitionId] {
+  const bloc = (c: CoalitionId) => blocSeats(c, seats, oldGov, pacts);
+  const ranked = COALITIONS.filter((c) => c !== "OTHERS" && seats[c] > 0).sort((a, b) => bloc(b) - bloc(a) || seats[b] - seats[a]);
+  const a = ranked[0] ?? "PH";
+  const b = ranked.find((c) => c !== a && aff(c, a) < 0.3 && !naturalPartner(c, a, oldGov, pacts)) ?? ranked[1] ?? COALITIONS.find((c) => c !== a && c !== "OTHERS")!;
   return [a, b];
 }
+
+/** Why a coalition leans toward a candidate, in words (for the talks log). */
+export function reasons(f: Formation, joiner: CoalitionId, leader: CoalitionId, player: CoalitionId): string[] {
+  const out: string[] = [];
+  const other = f.candidates.find((c) => c !== leader)!;
+  const mine = leader === player;
+  if (mine && f.pactWith?.includes(joiner)) out.push("your election pact");
+  if (aff(joiner, leader) >= 0.4) out.push("old allies");
+  if (aff(joiner, other) <= COMMON.enemyAff) out.push(`both oppose ${cshort(other)}`);
+  if (BORNEO.includes(joiner) && BORNEO.some((b) => b !== joiner && f.committed[b] === leader)) out.push("Borneo stands together");
+  if (mine && (f.common?.[joiner] ?? 0) > 0.05) out.push("shared pledges");
+  if (mine && f.offers[joiner]?.ma63) out.push("MA63 promised");
+  if (mine && f.offers[joiner]?.dpm) out.push("the DPM post");
+  if (mine && f.offers[joiner]?.ministries) out.push("ministries");
+  if (!mine && (f.rivalOffers[joiner] ?? 0) > 0) out.push(BORNEO.includes(joiner) ? "MA63 promised" : "a better offer");
+  if (!out.length && sdCount(f, leader) > sdCount(f, other)) out.push("the bigger side");
+  return out;
+}
+
+const signLine = (f: Formation, c: CoalitionId, leader: CoalitionId, player: CoalitionId, now = "") => {
+  const why = reasons(f, c, leader, player);
+  return `${cshort(c)} (${f.seats[c]}) signs SDs for ${cshort(leader)}${now}${why.length ? `: ${why.join("; ")}` : ""}.`;
+};
 
 export function sdCount(f: Formation, leader: CoalitionId): number {
   return (Object.entries(f.committed) as [CoalitionId, CoalitionId][]).filter(([, l]) => l === leader).reduce((s, [c]) => s + f.seats[c], 0);
@@ -107,8 +149,13 @@ export function willingness(f: Formation, joiner: CoalitionId, leader: Coalition
   let w = aff(joiner, leader);
   if (f.oldGovernment.includes(joiner) === f.oldGovernment.includes(leader)) w += OFFERS.oldPartners;
   w += (sdCount(f, leader) / MAJORITY) * OFFERS.bandwagon;
+  // Common objectives: a shared enemy, Borneo solidarity.
+  const other = f.candidates.find((c) => c !== leader);
+  if (other && aff(joiner, other) <= COMMON.enemyAff) w += COMMON.enemy;
+  if (BORNEO.includes(joiner) && BORNEO.some((b) => b !== joiner && f.committed[b] === leader)) w += COMMON.borneo;
   if (leader === player) {
     w += f.edge ?? 0;
+    w += f.common?.[joiner] ?? 0;
     const o = f.offers[joiner];
     if (o?.dpm) w += OFFERS.dpm.willingness;
     w += (o?.ministries ?? 0) * OFFERS.ministries.willingness;
@@ -118,13 +165,16 @@ export function willingness(f: Formation, joiner: CoalitionId, leader: Coalition
   return w;
 }
 
-export function startFormation(s: GameState, seats: Record<CoalitionId, number>, seatsBefore: number): Formation {
-  let candidates = pickCandidates(seats);
-  // You're the protagonist: with a real bloc of seats you can run for Prime Minister yourself, against the biggest.
-  if (!candidates.includes(s.player) && seats[s.player] >= PROTAGONIST_SEATS && edgeOf(s) > 1) {
-    const top = candidates[0] === s.player ? candidates[1] : candidates[0];
-    candidates = [top, s.player];
-  }
+/** Talks open. `pactWith`: your pre-election pact partners (pacts end on polling day, so they're passed in). */
+export function startFormation(
+  s: GameState,
+  seats: Record<CoalitionId, number>,
+  seatsBefore: number,
+  pactWith: CoalitionId[] = [],
+  common: Partial<Record<CoalitionId, number>> = {},
+): Formation {
+  const pacts = pactWith.map((c) => [s.player, c] as [CoalitionId, CoalitionId]);
+  const candidates = pickCandidates(seats, s.government, pacts);
   const role = candidates.includes(s.player) ? "leader" : "kingmaker";
   const f: Formation = {
     week: s.week,
@@ -139,16 +189,18 @@ export function startFormation(s: GameState, seats: Record<CoalitionId, number>,
     seatsBefore,
     greed: DIFFICULTY[s.settings.difficulty].greed,
     edge: (edgeOf(s) - 1) * 0.5,
+    pactWith,
+    common,
     log: [`${cshort(candidates[0])} (${seats[candidates[0]]} seats) and ${cshort(candidates[1])} (${seats[candidates[1]]}) are racing to ${MAJORITY}.`],
   };
-  // Natural partners sign straight away for the candidate they like most (never on your behalf).
+  // Natural partners sign straight away for the candidate they like most (never on your behalf); pact partners for you.
   for (const c of COALITIONS) {
     if (f.committed[c] || c === s.player || !seats[c]) continue;
     const [x, y] = candidates;
-    const best = aff(c, x) >= aff(c, y) ? x : y;
-    if (aff(c, best) >= 0.45 && f.oldGovernment.includes(c) === f.oldGovernment.includes(best)) {
+    const best = role === "leader" && pactWith.includes(c) ? s.player : aff(c, x) >= aff(c, y) ? x : y;
+    if (naturalPartner(c, best, f.oldGovernment, pacts)) {
       f.committed[c] = best;
-      f.log.push(`${cshort(c)} (${seats[c]}) signs SDs for ${cshort(best)} at once.`);
+      f.log.push(signLine(f, c, best, s.player, " at once"));
     }
   }
   return f;
@@ -179,7 +231,7 @@ export function endRound(f: Formation, player: CoalitionId): Formation {
     const w = Math.max(wx, wy);
     if (w >= threshold || (last && w > 0)) {
       next.committed[c] = best;
-      next.log.push(`${cshort(c)} (${f.seats[c]}) signs SDs for ${cshort(best)}.`);
+      next.log.push(signLine(next, c, best, player));
     } else if (last) next.log.push(`${cshort(c)} stays on the crossbench.`);
   }
   next.round = f.round + 1;
@@ -187,9 +239,9 @@ export function endRound(f: Formation, player: CoalitionId): Formation {
 }
 
 /** Kingmaker: back a candidate, optionally asking for Deputy Prime Minister. */
-export function backCandidate(f: Formation, player: CoalitionId, leader: CoalitionId, ask: boolean | "pm"): Formation {
-  const next: Formation = { ...f, committed: { ...f.committed, [player]: leader }, log: [...f.log], askedDpm: ask === true, askedPm: ask === "pm" };
-  next.log.push(`You sign SDs for ${cshort(leader)}${ask === "pm" ? ", on one condition: you become Prime Minister" : ask ? ", asking for Deputy Prime Minister" : ""}.`);
+export function backCandidate(f: Formation, player: CoalitionId, leader: CoalitionId, ask: boolean): Formation {
+  const next: Formation = { ...f, committed: { ...f.committed, [player]: leader }, log: [...f.log], askedDpm: ask };
+  next.log.push(`You sign SDs for ${cshort(leader)}${ask ? ", asking for Deputy Prime Minister" : ""}.`);
   return next;
 }
 

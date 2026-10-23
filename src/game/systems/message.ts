@@ -31,6 +31,8 @@ export const THEME_BY_ID: Record<string, Theme> = Object.fromEntries(THEMES.map(
 export interface Strategy {
   theme: string | null;
   since: number;
+  /** Your secretary-general runs the seat-by-seat ground campaign each turn. */
+  autoGround?: boolean;
 }
 
 export const MESSAGE = { disciplineWeeks: 12, switchCapital: 10, switchBuzz: 3 };
