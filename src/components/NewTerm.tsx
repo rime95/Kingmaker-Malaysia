@@ -28,7 +28,8 @@ export function NewTerm() {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto tv" role="dialog" aria-label="Form your cabinet">
       <div className="mx-auto max-w-[1100px] px-4 py-6 flex flex-col gap-4">
-        <header className="panel p-5 text-center flex flex-col items-center gap-2 relative overflow-hidden">
+        <header className="panel songket-bg p-5 text-center flex flex-col items-center gap-2 relative overflow-hidden">
+          <span className="seal absolute right-4 top-4 hidden sm:inline-grid">Angkat sumpah</span>
           <JalurGemilang height={34} wave />
           <div className="text-xs font-bold tracking-[0.3em] tv-gold">ISTANA NEGARA · ANGKAT SUMPAH</div>
           <h2 className="text-2xl md:text-3xl font-black">{game.career.name}, Prime Minister of Malaysia</h2>

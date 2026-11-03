@@ -278,12 +278,18 @@ function fill(m: Mutable, party: string, rank: number, seed: number, week: numbe
   fill(m, party, from, seed, week, s, lines);
 }
 
-/** A party member takes over an empty seat (stands in at the next election; for now they sit for it). */
+/** Is someone from the state this seat is in? */
+const fromSeatState = (p: Person, seat: number) => homeOf(p) === regionOf(SEATS[seat].state);
+
+/**
+ * A party member takes over an empty seat (stands in at the next election; for now they sit for it). Always someone
+ * from the state: a senior member, else a branch chief stepping up, else a new local recruit.
+ */
 function replaceMp(m: Mutable, party: string, seat: number, seed: number, week: number, s: Pick<GameState, "player" | "coalitions">, lines: ReportLine[]) {
-  const free = m.people.filter((p) => p.party === party && p.seat === null && !p.retired && p.rank >= 1 && p.rank <= 2 && p.id !== m.youId).sort((a, b) => b.influence - a.influence);
+  const free = m.people.filter((p) => p.party === party && p.seat === null && !p.retired && p.rank >= 1 && p.rank <= 2 && p.id !== m.youId && fromSeatState(p, seat)).sort((a, b) => b.influence - a.influence);
   let pick = free[0];
   if (!pick) {
-    pick = m.people.filter((p) => p.party === party && p.rank === 0 && p.id !== m.youId)[0];
+    pick = m.people.filter((p) => p.party === party && p.rank === 0 && p.id !== m.youId && fromSeatState(p, seat))[0];
     if (pick) {
       pick.rank = 1;
       fill(m, party, 0, seed, week, s, lines);
@@ -398,10 +404,11 @@ export function seatWinners(s: GameState, winners: { seat: number; party: string
       m.people.push(p);
       continue;
     }
-    const free = m.people.filter((p) => p.party === w.party && p.seat === null && !p.retired && p.rank >= 1 && p.rank <= 3 && p.id !== m.youId).sort((a, b) => b.influence - a.influence);
+    // The party's candidate here is someone from the state.
+    const free = m.people.filter((p) => p.party === w.party && p.seat === null && !p.retired && p.rank >= 1 && p.rank <= 3 && p.id !== m.youId && fromSeatState(p, w.seat)).sort((a, b) => b.influence - a.influence);
     let cand = free.find((p) => hash01("cand", s.seed, s.week, w.seat, p.id) < 0.5) ?? free[0];
     if (!cand) {
-      cand = m.people.filter((p) => p.party === w.party && p.rank === 0 && p.id !== m.youId).sort((a, b) => b.influence - a.influence)[0];
+      cand = m.people.filter((p) => p.party === w.party && p.rank === 0 && p.id !== m.youId && fromSeatState(p, w.seat)).sort((a, b) => b.influence - a.influence)[0];
       if (cand) {
         cand.rank = 1;
         cand.since = s.week;

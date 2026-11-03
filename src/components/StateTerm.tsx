@@ -33,7 +33,8 @@ export function StateTerm() {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto tv" role="dialog" aria-modal="true" aria-label={`Form the ${name} government`}>
       <div className="mx-auto max-w-[1000px] px-4 py-6 flex flex-col gap-4">
-        <header className="panel p-5 text-center flex flex-col items-center gap-2">
+        <header className="panel songket-bg p-5 text-center flex flex-col items-center gap-2 relative">
+          <span className="seal absolute right-4 top-4 hidden sm:inline-grid">Angkat sumpah</span>
           <div className="flex items-center gap-2">
             <JalurGemilang height={26} wave />
             <CoalitionFlag game={game} c={game.player} size={22} />

@@ -118,6 +118,9 @@ interface Store {
   floater: Floater | null;
   /** Week in review, shown after time moves on. */
   reportOpen: boolean;
+  /** Show the turn summary card after each turn (otherwise it waits on the docket). */
+  summaryOn: boolean;
+  setSummaryOn: (on: boolean) => void;
   /** Decision cards you put off ("decide later") until you open them again. */
   snoozed: number[];
   budgetSnoozed: boolean;
@@ -274,6 +277,8 @@ export const useGame = create<Store>()(
         toast: null,
         floater: null,
         reportOpen: false,
+        summaryOn: true,
+        setSummaryOn: (summaryOn) => set({ summaryOn }),
         snoozed: [],
         budgetSnoozed: false,
         voteSeen: [],
@@ -616,13 +621,13 @@ export const useGame = create<Store>()(
       name: "mpr-save",
       version: SAVE_VERSION,
       storage: safeStorage,
-      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound, music: s.music, volume: s.volume, testTools: s.testTools }),
+      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound, music: s.music, volume: s.volume, testTools: s.testTools, summaryOn: s.summaryOn }),
       // Saves from before the turn loop can't be upgraded: start fresh.
       migrate: (persisted, version) => (version < 2 ? { game: null, lens: "holder" } : persisted) as Store,
       // Every load fills fields added since the save was made (safe to repeat).
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<Store>;
-        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound, music: p.music ?? current.music, volume: p.volume ?? current.volume, testTools: p.testTools ?? current.testTools };
+        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound, music: p.music ?? current.music, volume: p.volume ?? current.volume, testTools: p.testTools ?? current.testTools, summaryOn: p.summaryOn ?? current.summaryOn };
       },
     },
   ),

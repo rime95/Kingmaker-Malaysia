@@ -46,7 +46,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 20;
+export const SAVE_VERSION = 22;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -508,7 +508,8 @@ export function migrateGame(g: GameState): GameState {
   migrated.stateNight = g.stateNight ?? null;
   migrated.laws = g.laws ?? { hopping: "2022" };
   // Saves from before home states and one-MP-one-seat: homes for everyone, local chiefs, no empty seats.
-  if ((g.version ?? 0) < 20 && migrated.people.length) {
+  // Saves before version 22 could still have state chiefs (or generated MPs) from other states: locals take over.
+  if ((g.version ?? 0) < 22 && migrated.people.length) {
     Object.assign(migrated, fillVacantSeats(migrateHomes(migrated)));
     migrated.postBase = pullTable(migrated);
   }

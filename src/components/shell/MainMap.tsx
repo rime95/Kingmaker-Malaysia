@@ -175,8 +175,9 @@ function DunTip({ i, x, y }: { i: number; x: number; y: number }) {
   );
 }
 
-/** Screen space taken by the floating UI (top bar + lens bar, nav rail, ticker), so "show all" frames Malaysia in the rest. */
+/** Screen space taken by the war-room furniture (command bar, timeline, rail, docket, ticker), so "show all" frames Malaysia in the rest. */
 function SAFE_AREA() {
-  const phone = typeof window !== "undefined" && window.innerWidth < 768;
-  return phone ? { top: 170, right: 10, bottom: 130, left: 10 } : { top: 160, right: 60, bottom: 70, left: 100 };
+  const w = typeof window !== "undefined" ? window.innerWidth : 1440;
+  if (w < 768) return { top: 120, right: 10, bottom: 140, left: 10 };
+  return { top: 130, right: w >= 1024 ? 340 : 60, bottom: 120, left: 110 };
 }

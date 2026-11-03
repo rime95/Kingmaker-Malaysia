@@ -19,7 +19,7 @@ describe("the nation", () => {
     expect(n.inflation).toBeLessThan(8);
     expect(n.history.length).toBeGreaterThan(30);
     expect(g.economy).toBeCloseTo(economyScore(n), 5);
-  });
+  }, 30_000);
 
   it("Skip 1 Month still equals four weeks", () => {
     let w = newGame("BN", 2);

@@ -22,7 +22,9 @@ import { ElectionAnalysisModal } from "./ElectionAnalysis";
 import { LensBar } from "./shell/LensBar";
 import { SidePanel } from "./shell/SidePanel";
 import { NewsTicker } from "./shell/NewsTicker";
-import { WeekReview } from "./shell/WeekReview";
+import { Docket } from "./shell/Docket";
+import { Timeline } from "./shell/Timeline";
+import { TurnSummary } from "./shell/TurnSummary";
 import { AlertModal } from "./shell/AlertModal";
 import { NameCoalition } from "./shell/NameCoalition";
 import { PartyRaceCount } from "./PartyRace";
@@ -44,15 +46,16 @@ export function Game() {
  * Phones: navigation moves to the bottom, panels and the seat card become sheets.
  */
 function Main() {
-  const { panel, selected, analysisOpen, recordOpen } = useGame();
+  const { panel, selected, analysisOpen, recordOpen, reportOpen, summaryOn } = useGame();
   const game = useGame((s) => s.game)!;
   const [savesOpen, setSavesOpen] = useState(false);
-  const overlay = activeOverlay(game, { savesOpen, recordOpen, analysisOpen });
+  const [docketOpen, setDocketOpen] = useState(false);
+  const overlay = activeOverlay(game, { savesOpen, recordOpen, analysisOpen, summary: reportOpen && summaryOn && !game.night });
   const overlayRef = useRef(overlay);
   useEffect(() => {
     overlayRef.current = overlay;
   }, [overlay]);
-  // Keyboard: N or Space for the next turn, 1–6 for the sections (not while typing or a dialog is open).
+  // Keyboard: N or Space ends the turn, 1–4 open the hubs (not while typing or a dialog is open).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
@@ -61,7 +64,7 @@ function Main() {
       if (e.key === "n" || e.key === "N" || (e.key === " " && el.tagName !== "BUTTON")) {
         e.preventDefault();
         st.skipWeek();
-      } else if (/^[1-6]$/.test(e.key)) openSection(SECTIONS[Number(e.key) - 1]);
+      } else if (/^[1-4]$/.test(e.key)) openSection(SECTIONS[Number(e.key) - 1]);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -78,40 +81,53 @@ function Main() {
   }, [coalitions]);
 
   return (
-    <div className="fixed inset-0 overflow-hidden main-map">
+    <div className="fixed inset-0 overflow-hidden main-map war-room">
       <MainMap />
 
-      <div className="absolute inset-x-3 top-3 z-30">
-        <TopBar onSaves={() => setSavesOpen(true)} />
+      {/* Command bar and the timeline of what is coming */}
+      <div className="absolute inset-x-3 top-3 z-30 flex flex-col gap-1.5">
+        <TopBar onSaves={() => setSavesOpen(true)} onDocket={() => setDocketOpen(true)} />
+        <div className="timeline-bar panel px-3 py-1.5">
+          <Timeline />
+        </div>
       </div>
 
-      <div className="hidden md:flex absolute left-3 top-[88px] bottom-[72px] z-20 flex-col justify-center pointer-events-none">
+      {/* The command rail */}
+      <div className="hidden md:flex absolute left-3 top-[132px] bottom-[64px] z-20 flex-col pointer-events-none">
         <div className="pointer-events-auto">
           <NavRail />
         </div>
       </div>
 
-      {!panel && (
-        <div className="absolute left-3 md:left-[92px] top-[88px] z-10 max-w-[calc(100%-24px)] md:max-w-[620px]">
-          <LensBar />
+      {/* The open hub, as a dossier over the map */}
+      {panel && (
+        <div className="absolute inset-x-3 md:right-auto md:left-[100px] top-[132px] bottom-[128px] md:bottom-[64px] z-30 flex">
+          <SidePanel />
         </div>
       )}
 
-      {panel && (
-        <div className="absolute inset-x-3 md:right-auto md:left-[92px] top-[88px] bottom-[128px] md:bottom-[72px] z-30 flex">
-          <SidePanel />
+      {/* Map view and legend */}
+      {!panel && (
+        <div className="absolute left-3 md:left-[100px] bottom-[128px] md:bottom-[64px] z-10 max-w-[calc(100%-24px)] md:max-w-[560px]">
+          <LensBar />
         </div>
       )}
 
       {selected !== null && panel !== "seat" && <SeatPopover />}
 
-      {!panel && selected === null && (
-        <div className="absolute left-3 md:left-[92px] bottom-[128px] md:bottom-[72px] z-20 max-h-[50vh] flex">
-          <WeekReview />
+      {/* The docket: a column on wide screens, a sheet on narrow ones */}
+      <div className="hidden lg:flex absolute right-3 top-[132px] bottom-[64px] z-20 w-[312px]">
+        <Docket />
+      </div>
+      {docketOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 flex justify-end" style={{ background: "rgb(4 8 16 / 0.6)" }} onClick={() => setDocketOpen(false)}>
+          <div className="h-full w-full max-w-[380px] p-3 slide-in" onClick={(e) => e.stopPropagation()}>
+            <Docket compact />
+          </div>
         </div>
       )}
 
-      <div className="md:hidden absolute inset-x-3 bottom-[64px] z-30">
+      <div className="md:hidden absolute inset-x-3 bottom-[60px] z-30">
         <NavRail />
       </div>
       <div className="absolute inset-x-3 bottom-3 z-20">
@@ -132,6 +148,7 @@ function Main() {
       {overlay === "record" && <RecordModal />}
       {overlay === "analysis" && <ElectionAnalysisModal />}
       {overlay === "race" && <PartyRaceCount />}
+      {overlay === "summary" && <TurnSummary />}
       {overlay === "newterm" && <NewTerm />}
       {overlay === "statenight" && <StateNight />}
       {overlay === "statetalks" && <StateTalksScreen />}

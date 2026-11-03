@@ -1,11 +1,12 @@
-// The left menu: six sections, each a set of tabs (the panels). Seat moves live on the map; everything else in here.
+// The command rail: four hubs, grouped by what you are trying to do. Seat moves live on the map; planning lives here.
+// Older panel ids still open the right page (aliases), so links from cards and the advisor keep working.
 
 import type { Panel } from "@/store/gameStore";
 import type { GameState } from "@/game/state";
 import { isGovernment } from "@/game/state";
 import type { ICONS } from "./icons";
 
-export type SectionId = "campaign" | "party" | "government" | "parliament" | "money" | "seat";
+export type SectionId = "campaign" | "party" | "government" | "money" | "seat";
 
 export interface Section {
   id: SectionId;
@@ -13,6 +14,8 @@ export interface Section {
   icon: keyof typeof ICONS;
   sub: string;
   tabs: { id: Panel; label: (g: GameState) => string }[];
+  /** Panels shown inside one of the tabs (the tab they belong to). */
+  aliases?: Partial<Record<Panel, Panel>>;
 }
 
 export const SECTIONS: Section[] = [
@@ -20,20 +23,20 @@ export const SECTIONS: Section[] = [
     id: "campaign",
     label: () => "Campaign",
     icon: "campaign",
-    sub: "Your plan, your case to the voters, the battlegrounds, seat pacts and candidates",
+    sub: "Win seats: your plan and message, the battlegrounds and pacts, your candidates, your rivals",
     tabs: [
-      { id: "campaign", label: () => "Plan" },
-      { id: "case", label: () => "Your case" },
-      { id: "battle", label: () => "Battlegrounds & pacts" },
+      { id: "campaign", label: () => "Plan & message" },
+      { id: "battle", label: () => "Seats & pacts" },
       { id: "nominations", label: () => "Nominations" },
       { id: "rivals", label: () => "Rivals" },
     ],
+    aliases: { case: "campaign" },
   },
   {
     id: "party",
     label: () => "Party",
     icon: "party",
-    sub: "Your party's health, its lieutenants and generals, its people and your own staff",
+    sub: "Hold the party together: its health and wings, your lieutenants and generals, its people, your own staff",
     tabs: [
       { id: "party", label: () => "Overview" },
       { id: "leadership", label: () => "Leadership" },
@@ -43,26 +46,17 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "government",
-    label: (g) => (isGovernment(g) ? "Government" : "Opposition"),
+    label: (g) => (isGovernment(g) ? "Govern" : "Opposition"),
     icon: "nation",
-    sub: "The country's numbers, the levers, policy and the Budget",
+    sub: "Run the country, or hold it to account: the numbers, policy and the Budget, the cabinet, the Dewan and the states",
     tabs: [
       { id: "nation", label: () => "Dashboard" },
       { id: "policy", label: () => "Policy & Budget" },
       { id: "cabinet", label: (g) => (isGovernment(g) ? "Cabinet" : "Shadow cabinet") },
-    ],
-  },
-  {
-    id: "parliament",
-    label: () => "Parliament",
-    icon: "parliament",
-    sub: "The Dewan Rakyat and the state assemblies",
-    tabs: [
-      { id: "parliament", label: () => "Dewan Rakyat" },
-      { id: "orderpaper", label: () => "Order paper" },
-      { id: "analysis", label: () => "Last election" },
+      { id: "parliament", label: () => "Dewan" },
       { id: "states", label: () => "States" },
     ],
+    aliases: { orderpaper: "parliament", analysis: "nation" },
   },
   {
     id: "money",
@@ -71,13 +65,11 @@ export const SECTIONS: Section[] = [
     sub: "The war chest, Bursa, property and your own fortune",
     tabs: [{ id: "treasury", label: () => "Money" }],
   },
-  {
-    id: "seat",
-    label: () => "Seat",
-    icon: "seat",
-    sub: "Everything about the seat you clicked",
-    tabs: [{ id: "seat", label: () => "Seat" }],
-  },
 ];
 
-export const sectionOf = (p: Panel | null) => (p ? SECTIONS.find((s) => s.tabs.some((t) => t.id === p)) : undefined);
+/** The full seat card (opened from the seat card on the map); not on the rail. */
+const SEAT_SECTION: Section = { id: "seat", label: () => "Seat", icon: "seat", sub: "Everything about the seat you clicked", tabs: [{ id: "seat", label: () => "Seat" }] };
+
+export const sectionOf = (p: Panel | null) => (p ? [...SECTIONS, SEAT_SECTION].find((s) => s.tabs.some((t) => t.id === p) || s.aliases?.[p]) : undefined);
+/** The tab a panel lives under. */
+export const tabOf = (p: Panel | null): Panel | null => (p ? (sectionOf(p)?.aliases?.[p] ?? p) : null);

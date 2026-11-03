@@ -7,40 +7,63 @@ import { fmtRM } from "../common";
 import { Icon } from "./icons";
 import { TermText } from "../Term";
 
-const TONE = { good: "var(--good)", bad: "var(--bad)", info: "var(--ink-2)" } as const;
+const TONE = {
+  good: "var(--good)",
+  bad: "var(--bad)",
+  info: "var(--ink-2)",
+} as const;
 
-export function ReportBody({ report, limit }: { report: WeekReport; limit?: number }) {
+export function ReportBody({
+  report,
+  limit,
+  figures = true,
+}: {
+  report: WeekReport;
+  limit?: number;
+  figures?: boolean;
+}) {
   const focusSeat = useGame((s) => s.focusSeat);
   const totalIn = report.income.reduce((a, l) => a + l.amount, 0);
   const totalOut = report.expenses.reduce((a, l) => a + l.amount, 0);
-  const all = report.lines.length ? report.lines : [{ text: "A quiet week.", tone: "info" as const }];
+  const all = report.lines.length
+    ? report.lines
+    : [{ text: "A quiet week.", tone: "info" as const }];
   // Bad news first, then good, then the rest.
   const order = { bad: 0, good: 1, info: 2 } as const;
-  const lines = [...all].sort((a, b) => order[a.tone ?? "info"] - order[b.tone ?? "info"]).slice(0, limit ?? all.length);
+  const lines = [...all]
+    .sort((a, b) => order[a.tone ?? "info"] - order[b.tone ?? "info"])
+    .slice(0, limit ?? all.length);
   const delta = report.seatsAfter - report.seatsBefore;
   return (
     <div className="flex flex-col gap-3 text-sm">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="inset p-2.5">
-          <div className="text-[11px]" style={{ color: "var(--muted)" }}>
-            Seats if held today
+      {figures && (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="inset p-2.5">
+            <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+              Seats if held today
+            </div>
+            <div className="font-bold tabular-nums">
+              {report.seatsAfter}{" "}
+              {delta !== 0 && (
+                <span
+                  className="text-xs"
+                  style={{ color: delta > 0 ? "var(--good)" : "var(--bad)" }}
+                >
+                  {delta > 0 ? "▲" : "▼"} {Math.abs(delta)}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="font-bold tabular-nums">
-            {report.seatsAfter}{" "}
-            {delta !== 0 && (
-              <span className="text-xs" style={{ color: delta > 0 ? "var(--good)" : "var(--bad)" }}>
-                {delta > 0 ? "▲" : "▼"} {Math.abs(delta)}
-              </span>
-            )}
+          <div className="inset p-2.5">
+            <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+              Cash flow
+            </div>
+            <div className="font-bold tabular-nums">
+              {fmtRM(totalIn - totalOut)}
+            </div>
           </div>
         </div>
-        <div className="inset p-2.5">
-          <div className="text-[11px]" style={{ color: "var(--muted)" }}>
-            Cash flow
-          </div>
-          <div className="font-bold tabular-nums">{fmtRM(totalIn - totalOut)}</div>
-        </div>
-      </div>
+      )}
       <ul className="flex flex-col gap-1.5">
         {lines.map((l, i) => (
           <li key={i} className="flex gap-2">
@@ -54,16 +77,23 @@ export function ReportBody({ report, limit }: { report: WeekReport; limit?: numb
         ))}
         {limit && all.length > limit && (
           <li className="text-xs" style={{ color: "var(--muted)" }}>
-            and {all.length - limit} more in the news ticker.
+            and {all.length - limit} more.
           </li>
         )}
       </ul>
       {report.movers.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {report.movers.map((m) => (
-            <button key={m.seatIndex} className="chip" onClick={() => focusSeat(m.seatIndex)}>
+            <button
+              key={m.seatIndex}
+              className="chip"
+              onClick={() => focusSeat(m.seatIndex)}
+            >
               {SEATS[m.seatIndex].name}
-              <span className="tabular-nums" style={{ color: m.delta >= 0 ? "var(--good)" : "var(--bad)" }}>
+              <span
+                className="tabular-nums"
+                style={{ color: m.delta >= 0 ? "var(--good)" : "var(--bad)" }}
+              >
                 {m.delta >= 0 ? "▲" : "▼"} {Math.abs(m.delta * 100).toFixed(1)}
               </span>
             </button>
@@ -79,10 +109,19 @@ export function WeekReview() {
   const { game, reportOpen, closeReport } = useGame();
   if (!game?.report || !reportOpen || game.night) return null;
   return (
-    <section className="panel pop-in p-4 w-full md:w-[380px] max-h-full overflow-y-auto scroll-thin" aria-label="Week in review">
+    <section
+      className="panel pop-in p-4 w-full md:w-[380px] max-h-full overflow-y-auto scroll-thin"
+      aria-label="Week in review"
+    >
       <div className="flex items-center gap-2 mb-3">
         <div className="flex-1">
-          <div className="eyebrow">{(game.report.weeks ?? 1) >= 4 ? "Month in review" : (game.report.weeks ?? 1) === 2 ? "Fortnight in review" : "Week in review"}</div>
+          <div className="eyebrow">
+            {(game.report.weeks ?? 1) >= 4
+              ? "Month in review"
+              : (game.report.weeks ?? 1) === 2
+                ? "Fortnight in review"
+                : "Week in review"}
+          </div>
           <div className="text-xs" style={{ color: "var(--muted)" }}>
             to {weekLabel(game.week)}
           </div>

@@ -1,35 +1,42 @@
 @import "tailwindcss";
 
-/* One dark, map-first theme. Panels float over the map as frosted glass. */
+/*
+ * Bilik Gerakan: the war room at night. Songket navy, brass and ivory, with Jalur red for alarms.
+ * Solid desk panels (no frosted glass), a serif for headings (Fraunces), Plex Sans for the interface, Plex Mono for codes.
+ */
 :root {
-  --gold: #ffcc00;
+  --gold: #c9a24a;
+  --brass: #c9a24a;
+  --brass-hi: #e3c27a;
+  --brass-lo: #8c6f2e;
   --gold-ink: #1a1300;
-  --loss: #d9363e;
-  --bg: #0b0e1a;
-  --land: #1b2135;
-  --surface: rgb(16 20 34 / 0.88);
-  --surface-2: rgb(255 255 255 / 0.05);
-  --raised: #151a2b;
-  --ink: #eceef6;
-  --ink-2: #aab0c4;
-  --muted: #6f7790;
-  --line: rgb(255 255 255 / 0.08);
-  --accent: #f5a524;
-  --primary-a: #3b82f6;
-  --primary-b: #8b5cf6;
+  --loss: #e0303a;
+  --bg: #0a1120;
+  --land: #18233a;
+  --surface: #0f1829;
+  --surface-2: rgb(239 231 214 / 0.045);
+  --raised: #142036;
+  --ink: #efe7d6;
+  --ink-2: #b9b2a2;
+  --muted: #858a9b;
+  --line: rgb(201 162 74 / 0.16);
+  --line-strong: rgb(201 162 74 / 0.42);
+  --accent: #c9a24a;
+  --primary-a: #d7b25c;
+  --primary-b: #b38a35;
   /* Status colours: reserved for good / bad news, always shown with an icon. */
-  --good: #34d17a;
-  --bad: #f2555a;
+  --good: #3fb37f;
+  --bad: #e0303a;
 
-  /* Coalition identity (validated against --land). Order on charts: PH, BN, GPS, GRS, Warisan, MUDA, PN; Others is neutral. */
+  /* Coalition identity (checked against --land). Order on charts: PH, BN, GPS, GRS, Warisan, MUDA, PN; Others is neutral. */
   --c-PH: #e5383b;
-  --c-BN: #4f74e8;
-  --c-GPS: #cf7317;
-  --c-GRS: #c94f9c;
-  --c-WARISAN: #1a9fd0;
-  --c-MUDA: #a8932a;
-  --c-BERSAMA: #f5c400;
-  --c-PN: #159a7c;
+  --c-BN: #5379ec;
+  --c-GPS: #d27a1c;
+  --c-GRS: #cc55a2;
+  --c-WARISAN: #22a7d8;
+  --c-MUDA: #b39d33;
+  --c-BERSAMA: #f2c20a;
+  --c-PN: #17a283;
   --c-OTHERS: #8a8f9c;
 
   /* Ethnic-majority lens. */
@@ -39,6 +46,13 @@
   --e-sabah: #3a86ff;
   --e-sarawak: #c9a227;
   --e-mixed: #5d6478;
+
+  --font-ui: var(--font-plex), system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* The songket motif: a gold diamond lattice, as a tile. */
+  --songket: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23c9a24a' stroke-width='1'%3E%3Cpath d='M12 1 23 12 12 23 1 12Z'/%3E%3Cpath d='M12 7 17 12 12 17 7 12Z'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='1.4' fill='%23c9a24a'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
 
@@ -46,25 +60,105 @@ html,
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-ui);
 }
 
 body {
-  background: radial-gradient(1200px 700px at 70% 10%, rgb(59 130 246 / 0.08), transparent 60%), var(--bg);
+  background:
+    radial-gradient(1100px 700px at 65% 0%, rgb(201 162 74 / 0.06), transparent 60%),
+    radial-gradient(900px 600px at 0% 100%, rgb(204 0 1 / 0.04), transparent 60%),
+    var(--bg);
 }
 
-/* Surfaces */
+/* Type */
+.display,
+.panel h2,
+.modal-card h2,
+.dossier-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.mono {
+  font-family: var(--font-mono);
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Surfaces: solid desk panels with a brass hairline across the top. */
 .panel {
-  background: var(--surface);
+  background: linear-gradient(180deg, rgb(20 32 54 / 0.97), rgb(15 24 41 / 0.97));
   border: 1px solid var(--line);
-  border-radius: 16px;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.35);
+  border-top-color: var(--line-strong);
+  border-radius: 14px;
+  box-shadow:
+    0 14px 40px rgb(0 0 0 / 0.45),
+    inset 0 1px 0 rgb(227 194 122 / 0.08);
 }
 .inset {
   background: var(--surface-2);
-  border-radius: 12px;
+  border-radius: 10px;
+}
+
+/* Songket: a band of the motif on an edge, or a faint wash behind a surface. */
+.songket-edge {
+  position: relative;
+}
+.songket-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  background-image: var(--songket);
+  background-size: 12px 12px;
+  opacity: 0.35;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.songket-bg {
+  position: relative;
+  isolation: isolate;
+}
+.songket-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--songket);
+  background-size: 28px 28px;
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: -1;
+}
+.brass-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+  opacity: 0.6;
+}
+
+/* A seal stamp: sworn in, passed, signed. */
+/* Shown with a display utility (e.g. "hidden sm:inline-grid"). */
+.seal {
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  border: 2px solid var(--brass);
+  color: var(--brass-hi);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.1;
+  box-shadow:
+    inset 0 0 0 4px rgb(201 162 74 / 0.12),
+    0 0 18px rgb(201 162 74 / 0.18);
+  transform: rotate(-8deg);
 }
 
 /* Cards respond to the pointer: every card lifts its surface a little; clickable ones glow, lift and press. */
@@ -78,17 +172,17 @@ body {
 }
 .inset:hover,
 .card:hover {
-  background: rgb(255 255 255 / 0.075);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  background: rgb(239 231 214 / 0.07);
+  box-shadow: inset 0 0 0 1px rgb(201 162 74 / 0.14);
 }
 button.inset:hover:not(:disabled),
 .card-action:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgb(59 130 246 / 0.14), rgb(139 92 246 / 0.12)) !important;
-  border-color: rgb(139 92 246 / 0.55) !important;
+  background: linear-gradient(135deg, rgb(201 162 74 / 0.12), rgb(201 162 74 / 0.05)) !important;
+  border-color: rgb(201 162 74 / 0.55) !important;
   box-shadow:
     0 8px 22px rgb(0 0 0 / 0.35),
-    0 0 0 1px rgb(139 92 246 / 0.35),
-    0 0 18px rgb(99 102 241 / 0.18);
+    0 0 0 1px rgb(201 162 74 / 0.4),
+    0 0 18px rgb(201 162 74 / 0.12);
   transform: translateY(-1px);
 }
 button.inset:active:not(:disabled),
@@ -105,7 +199,7 @@ button.inset:active:not(:disabled),
 
 /* Keyboard focus is always visible. */
 :focus-visible {
-  outline: 2px solid var(--primary-a);
+  outline: 2px solid var(--brass-hi);
   outline-offset: 2px;
   border-radius: 8px;
 }
@@ -113,8 +207,8 @@ button.inset:active:not(:disabled),
 /* A number that just changed flashes once. */
 @keyframes flash {
   0% {
-    color: var(--accent);
-    text-shadow: 0 0 12px rgb(245 165 36 / 0.6);
+    color: var(--brass-hi);
+    text-shadow: 0 0 12px rgb(227 194 122 / 0.6);
   }
   100% {
     color: inherit;
@@ -125,16 +219,16 @@ button.inset:active:not(:disabled),
   animation: flash 900ms ease-out;
 }
 
-/* "Next week" breathes when you have spent all your action points. */
+/* "End turn" breathes when you have spent all your action points. */
 @keyframes ready {
   0%,
   100% {
-    box-shadow: 0 6px 20px rgb(99 102 241 / 0.35);
+    box-shadow: 0 6px 20px rgb(201 162 74 / 0.3);
   }
   50% {
     box-shadow:
-      0 6px 26px rgb(99 102 241 / 0.7),
-      0 0 0 4px rgb(139 92 246 / 0.25);
+      0 6px 28px rgb(201 162 74 / 0.65),
+      0 0 0 4px rgb(227 194 122 / 0.22);
   }
 }
 .btn-ready {
@@ -149,19 +243,19 @@ button.inset:active:not(:disabled),
   padding: 4px 11px;
   font-size: 12px;
   color: var(--ink-2);
-  background: var(--surface-2);
-  border: 1px solid transparent;
+  background: transparent;
+  border: 1px solid rgb(239 231 214 / 0.16);
   cursor: pointer;
   transition:
     background 120ms,
     color 120ms,
-    box-shadow 120ms,
+    border-color 120ms,
     transform 100ms;
 }
 .chip:hover:not(:disabled) {
   color: var(--ink);
-  background: rgb(255 255 255 / 0.11);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+  border-color: var(--line-strong);
+  background: rgb(201 162 74 / 0.08);
 }
 .chip:active:not(:disabled) {
   transform: scale(0.96);
@@ -172,25 +266,33 @@ button.inset:active:not(:disabled),
 }
 .chip[aria-pressed="true"],
 .chip[data-on="true"] {
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--brass);
+  border-color: var(--brass);
+  color: var(--gold-ink);
+  font-weight: 650;
 }
 
 .btn {
-  border-radius: 10px;
+  border-radius: 9px;
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 650;
-  color: #fff;
-  background: linear-gradient(90deg, var(--primary-a), var(--primary-b));
-  box-shadow: 0 6px 20px rgb(99 102 241 / 0.35);
-  transition: filter 120ms, transform 120ms;
+  color: var(--gold-ink);
+  background: linear-gradient(180deg, var(--primary-a), var(--primary-b));
+  border: 1px solid rgb(227 194 122 / 0.6);
+  box-shadow:
+    0 6px 18px rgb(0 0 0 / 0.35),
+    inset 0 1px 0 rgb(255 240 200 / 0.45);
+  transition:
+    filter 120ms,
+    transform 120ms;
 }
 .btn:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.07);
 }
 .btn:active {
   transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.25);
 }
 .btn:disabled {
   opacity: 0.45;
@@ -198,10 +300,14 @@ button.inset:active:not(:disabled),
   filter: none;
 }
 .btn-ghost {
-  background: var(--surface-2);
+  background: transparent;
   color: var(--ink);
   box-shadow: none;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgb(201 162 74 / 0.1);
+  filter: none;
 }
 
 .swatch {
@@ -215,9 +321,9 @@ button.inset:active:not(:disabled),
 .eyebrow {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--brass);
 }
 
 .tooltip {
@@ -239,7 +345,7 @@ button.inset:active:not(:disabled),
   font-weight: 650;
   fill: var(--ink);
   paint-order: stroke;
-  stroke: rgb(11 14 26 / 0.85);
+  stroke: rgb(10 17 32 / 0.85);
   stroke-width: 3px;
   stroke-linejoin: round;
   pointer-events: none;
@@ -265,7 +371,7 @@ button.inset:active:not(:disabled),
 }
 .map-seat-line {
   fill: none;
-  stroke: rgb(11 14 26 / 0.45);
+  stroke: rgb(10 17 32 / 0.45);
   stroke-width: 0.5px;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
@@ -273,7 +379,7 @@ button.inset:active:not(:disabled),
 /* State borders: a dark halo under a bright line, so they read clearly over seat borders at any zoom. */
 .map-state-halo {
   fill: none;
-  stroke: rgb(11 14 26 / 0.9);
+  stroke: rgb(10 17 32 / 0.9);
   stroke-width: 4.5px;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
@@ -281,20 +387,20 @@ button.inset:active:not(:disabled),
 }
 .map-state-line {
   fill: none;
-  stroke: rgb(236 238 246 / 0.92);
+  stroke: rgb(227 194 122 / 0.75);
   stroke-width: 2px;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
 .map-dun {
-  stroke: rgb(236 238 246 / 0.28);
+  stroke: rgb(239 231 214 / 0.26);
   stroke-width: 0.6px;
   stroke-dasharray: 2 2;
   vector-effect: non-scaling-stroke;
 }
 .map-dun-filled {
-  stroke: rgb(11 14 26 / 0.6);
+  stroke: rgb(10 17 32 / 0.6);
   stroke-dasharray: none;
   cursor: pointer;
 }
@@ -311,13 +417,15 @@ button.inset:active:not(:disabled),
 }
 .map-selected {
   fill: none;
-  stroke: #fff;
+  stroke: var(--brass-hi);
+  filter: drop-shadow(0 0 4px rgb(227 194 122 / 0.8));
   stroke-width: 2.6px;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
 .map-label-state {
-  fill: rgb(236 238 246 / 0.8);
+  fill: rgb(227 194 122 / 0.85);
+  font-family: var(--font-display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 700;
@@ -327,7 +435,7 @@ button.inset:active:not(:disabled),
   animation: bubble-in 300ms ease-out;
 }
 .map-bubble-ring {
-  fill: rgb(245 165 36 / 0.25);
+  fill: rgb(201 162 74 / 0.28);
   animation: ring 1.6s ease-out infinite;
   transform-origin: center;
   transform-box: fill-box;
@@ -341,7 +449,7 @@ button.inset:active:not(:disabled),
   font-weight: 700;
   fill: #fff;
   paint-order: stroke;
-  stroke: rgb(11 14 26 / 0.9);
+  stroke: rgb(10 17 32 / 0.9);
   stroke-width: 3px;
   pointer-events: none;
 }
@@ -381,12 +489,11 @@ button.inset:active:not(:disabled),
 .map-controls button {
   width: 38px;
   height: 38px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  color: var(--brass-hi);
   font-size: 18px;
-  backdrop-filter: blur(10px);
 }
 .map-controls button:hover {
   background: var(--raised);
@@ -457,7 +564,7 @@ button.inset:active:not(:disabled),
 /* Thin scrollbars inside panels */
 .scroll-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 0.15) transparent;
+  scrollbar-color: rgb(201 162 74 / 0.28) transparent;
 }
 
 .map-float {
@@ -465,7 +572,7 @@ button.inset:active:not(:disabled),
   font-weight: 800;
   fill: var(--accent);
   paint-order: stroke;
-  stroke: rgb(11 14 26 / 0.9);
+  stroke: rgb(10 17 32 / 0.9);
   stroke-width: 4px;
   animation: float-svg 1.6s ease-out forwards;
 }
@@ -479,8 +586,6 @@ button.inset:active:not(:disabled),
 /* Panels inside the side panel are flat sections, not glass on glass. */
 .side-panel .panel {
   background: var(--surface-2);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
   box-shadow: none;
   border-color: transparent;
 }
@@ -502,7 +607,7 @@ button.inset:active:not(:disabled),
 
 /* Navigation: icons wake up on hover. */
 .nav-item:not([aria-pressed="true"]):hover {
-  background: rgb(255 255 255 / 0.07) !important;
+  background: rgb(201 162 74 / 0.08) !important;
   color: var(--ink) !important;
 }
 .nav-item svg {
@@ -582,12 +687,11 @@ button.inset:active:not(:disabled),
 
 /* Election Night: a TV broadcast */
 .tv {
-  background: radial-gradient(1200px 600px at 50% -10%, rgb(229 56 59 / 0.12), transparent 60%), radial-gradient(900px 500px at 100% 100%, rgb(59 130 246 / 0.1), transparent 60%), var(--bg);
+  background: radial-gradient(1200px 600px at 50% -10%, rgb(204 0 1 / 0.12), transparent 60%), radial-gradient(900px 500px at 100% 100%, rgb(201 162 74 / 0.08), transparent 60%), var(--bg);
 }
 .tv-bar {
-  background: linear-gradient(90deg, rgb(11 14 26 / 0.95), rgb(20 26 46 / 0.95));
-  border-bottom: 2px solid var(--accent);
-  backdrop-filter: blur(8px);
+  background: linear-gradient(90deg, rgb(10 17 32 / 0.97), rgb(20 32 54 / 0.97));
+  border-bottom: 2px solid var(--brass);
 }
 .tv-live {
   display: inline-flex;
@@ -771,14 +875,14 @@ button.inset:active:not(:disabled),
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: radial-gradient(1000px 600px at 50% 40%, rgb(30 40 80 / 0.6), transparent 70%), var(--bg);
+  background: radial-gradient(1000px 600px at 50% 40%, rgb(28 44 76 / 0.7), transparent 70%), var(--bg);
 }
 .hero-map {
   position: absolute;
   inset: 4% -6% -4% -6%;
   opacity: 0.55;
   pointer-events: none;
-  filter: saturate(1.15) drop-shadow(0 0 30px rgb(59 130 246 / 0.25));
+  filter: saturate(1.1) drop-shadow(0 0 30px rgb(201 162 74 / 0.18));
   animation: hero-drift 30s ease-in-out infinite alternate;
 }
 @keyframes hero-drift {
@@ -789,7 +893,7 @@ button.inset:active:not(:disabled),
 .hero-shade {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, rgb(11 14 26 / 0.35) 0%, rgb(11 14 26 / 0.8) 70%), linear-gradient(transparent 60%, var(--bg));
+  background: radial-gradient(ellipse at center, rgb(10 17 32 / 0.35) 0%, rgb(10 17 32 / 0.8) 70%), linear-gradient(transparent 60%, var(--bg));
   pointer-events: none;
 }
 .hero-title {
@@ -798,7 +902,7 @@ button.inset:active:not(:disabled),
   letter-spacing: -0.02em;
   line-height: 0.95;
   margin-top: 10px;
-  background: linear-gradient(180deg, #fff6d5 0%, #ffcc00 45%, #d99a00 100%);
+  background: linear-gradient(180deg, #fff6dc 0%, #e3c27a 48%, #a8822f 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -1362,15 +1466,20 @@ button.inset:active:not(:disabled),
   place-items: center;
   padding: 16px;
   overflow-y: auto;
-  background: rgb(5 7 14 / 0.72);
+  background: rgb(4 8 16 / 0.76);
   backdrop-filter: blur(3px);
 }
+/* A dossier: navy card, brass rule along the top, a faint songket wash. */
 .modal-card {
-  background: var(--raised);
+  position: relative;
+  background: linear-gradient(180deg, #16233b, #101a2d);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-top: 2px solid var(--brass);
+  border-radius: 14px;
   padding: 20px;
-  box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.7);
+  box-shadow:
+    0 30px 80px -20px rgb(0 0 0 / 0.75),
+    inset 0 1px 0 rgb(227 194 122 / 0.12);
   max-height: calc(100vh - 32px);
   overflow-y: auto;
 }
@@ -1381,7 +1490,7 @@ button.inset:active:not(:disabled),
   color: #1b1712;
   border-radius: 6px;
   padding: 12px 16px;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   box-shadow: inset 0 0 40px rgb(120 90 40 / 0.25);
 }
 .legacy-paper > div {
@@ -1405,4 +1514,166 @@ abbr.term {
 }
 .modal-top {
   align-items: start;
+}
+
+/* ── The war room: command bar, timeline, rail, docket ─────────────────────────────────────────── */
+.command-bar {
+  border-top: 2px solid var(--brass);
+}
+.gov-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-2);
+}
+.gov-badge[data-gov="true"] {
+  background: rgb(201 162 74 / 0.16);
+  color: var(--brass-hi);
+}
+.ap-pip {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  background: rgb(239 231 214 / 0.08);
+  border: 1px solid var(--line-strong);
+  transition: background 200ms, box-shadow 200ms;
+}
+.ap-pip[data-on="true"] {
+  background: var(--brass-hi);
+  border-color: var(--brass-hi);
+  box-shadow: 0 0 6px rgb(227 194 122 / 0.55);
+}
+.menu-item:hover {
+  background: rgb(201 162 74 / 0.1);
+}
+.timeline-bar {
+  border-radius: 10px;
+}
+.timeline-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+  padding: 3px 10px 3px 4px;
+  border-radius: 999px;
+  border: 1px solid rgb(239 231 214 / 0.1);
+  transition: border-color 120ms, color 120ms, background 120ms;
+}
+.timeline-chip:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.timeline-when {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgb(239 231 214 / 0.07);
+  color: var(--ink);
+}
+.timeline-urgent {
+  border-color: rgb(201 162 74 / 0.5);
+  color: var(--ink);
+}
+.timeline-urgent .timeline-when {
+  background: var(--brass);
+  color: var(--gold-ink);
+  animation: urgent 2.2s ease-in-out infinite;
+}
+@keyframes urgent {
+  50% {
+    box-shadow: 0 0 0 3px rgb(227 194 122 / 0.25);
+  }
+}
+.rail {
+  padding-left: 10px;
+}
+@media (max-width: 767px) {
+  .rail {
+    padding-left: 6px;
+  }
+  .rail.songket-edge::before {
+    display: none;
+  }
+}
+.rail-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--bad);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.docket {
+  border-top: 2px solid var(--brass);
+}
+.docket-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+}
+.docket-hot {
+  border-color: rgb(201 162 74 / 0.45);
+  background: linear-gradient(90deg, rgb(201 162 74 / 0.12), rgb(201 162 74 / 0.03));
+  box-shadow: 0 0 14px rgb(201 162 74 / 0.12);
+}
+/* Keep the map's zoom buttons clear of the docket and the ticker. */
+.main-map .map-controls {
+  bottom: 64px;
+}
+@media (min-width: 1024px) {
+  .main-map .map-controls {
+    right: 336px;
+  }
+}
+@media (max-width: 767px) {
+  .main-map .map-controls {
+    bottom: 232px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .timeline-urgent .timeline-when {
+    animation: none;
+  }
+}
+
+/* The title screen: a night skyline in brass under the title, and the title set in the serif. */
+.hero-skyline {
+  position: absolute;
+  inset: auto 0 0 0;
+  width: 100%;
+  height: 17%;
+  opacity: 0.75;
+  pointer-events: none;
+  z-index: 1;
+}
+.hero-title {
+  font-family: var(--font-display) !important;
+  font-size: clamp(34px, 6.6vw, 92px) !important;
+  max-width: 100%;
+  text-wrap: balance;
+}
+/* Maps inside broadcasts and dossiers keep their zoom buttons in their own corner. */
+.main-map .tv .map-controls,
+.main-map .modal-card .map-controls,
+.main-map .side-panel .map-controls {
+  right: 12px;
+  bottom: 12px;
 }

@@ -58,7 +58,7 @@ export function NewGame() {
                 sfx("chime");
               }}
               className="panel party-card p-4 text-left"
-              style={{ borderLeft: `5px solid ${coalColor(c)}`, outline: pick === c ? "2px solid var(--ink)" : undefined }}
+              style={{ borderLeft: `5px solid ${coalColor(c)}`, outline: pick === c ? "2px solid var(--brass)" : undefined, boxShadow: pick === c ? "0 0 24px rgb(201 162 74 / 0.25)" : undefined }}
               aria-pressed={pick === c}
             >
               <div className="flex items-center gap-3">
@@ -201,12 +201,13 @@ function Hero({ onStart }: { onStart: () => void }) {
         <MalaysiaMap className="relative w-full h-full" fills={fills} showDuns="never" controls={false} clip />
       </div>
       <div className="hero-shade" aria-hidden />
+      <Skyline />
       <div className="absolute top-4 right-4 z-10">
         <SoundControls compact />
       </div>
       <div className="relative z-10 flex flex-col items-center text-center px-4">
         <JalurGemilang height={44} wave className="hero-flag" />
-        <div className="text-xs md:text-sm font-bold tracking-[0.35em] mt-4" style={{ color: "#ffcc00" }}>
+        <div className="text-xs md:text-sm font-bold tracking-[0.35em] mt-4" style={{ color: "var(--brass-hi)" }}>
           PILIHAN RAYA UMUM · MALAYSIA
         </div>
         <h1 className="hero-title">MALAM PILIHAN RAYA</h1>
@@ -233,6 +234,45 @@ function Hero({ onStart }: { onStart: () => void }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * A stylised night skyline under the title: a tall tower of vertical fins beside a low hall of pointed roofs (an
+ * original drawing in the spirit of a parliament house, not a likeness), lit in brass.
+ */
+function Skyline() {
+  const fins = Array.from({ length: 9 }, (_, k) => k);
+  const roofs = Array.from({ length: 11 }, (_, k) => k);
+  return (
+    <svg className="hero-skyline" viewBox="0 0 1200 220" preserveAspectRatio="xMidYMax meet" aria-hidden>
+      <defs>
+        <linearGradient id="sky-glow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#c9a24a" stopOpacity="0.35" />
+          <stop offset="1" stopColor="#c9a24a" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="150" width="1200" height="70" fill="url(#sky-glow)" opacity="0.4" />
+      {/* The tower */}
+      <g transform="translate(560 18)">
+        <rect x="0" y="0" width="92" height="190" fill="#0d1628" stroke="#c9a24a" strokeOpacity="0.55" />
+        {fins.map((k) => (
+          <rect key={k} x={6 + k * 9.6} y="6" width="3" height="178" fill="#c9a24a" opacity={0.18 + (k % 3) * 0.08} />
+        ))}
+        <rect x="-6" y="-6" width="104" height="8" fill="#c9a24a" opacity="0.7" />
+      </g>
+      {/* The hall */}
+      <g transform="translate(300 150)">
+        <rect x="0" y="12" width="600" height="58" fill="#0d1628" stroke="#c9a24a" strokeOpacity="0.4" />
+        {roofs.map((k) => (
+          <path key={k} d={`M${k * 54 + 4} 12 L${k * 54 + 31} -14 L${k * 54 + 58} 12 Z`} fill="#0d1628" stroke="#c9a24a" strokeOpacity="0.6" />
+        ))}
+        {roofs.map((k) => (
+          <rect key={`w${k}`} x={k * 54 + 22} y="28" width="18" height="26" fill="#e3c27a" opacity={0.12 + ((k * 7) % 5) * 0.05} />
+        ))}
+      </g>
+      <rect x="0" y="219" width="1200" height="1" fill="#c9a24a" opacity="0.6" />
+    </svg>
   );
 }
 

@@ -14,7 +14,7 @@ import type { CardDef } from "./events";
 import type { GameState, ReportLine } from "../state";
 import { COALITIONS, FT, SEATS, STATES, candidateParty, contestingIn, regionOf } from "../world";
 import { seatCandidate } from "./coalitions";
-import { HIERARCHY_PARTIES, guessHome, homeOf, type Person } from "./people";
+import { HIERARCHY_PARTIES, guessHome, homeOf, recruitPerson, type Person } from "./people";
 import { blocOfName } from "./names";
 
 export const NATIONAL_POSTS = ["sg", "treasurer", "info", "director", "youth", "wanita", "puteri"] as const;
@@ -110,8 +110,10 @@ function fitFor(p: Person, key: string): number {
 /** Fill every empty post of every party (and clear posts whose holder has left). */
 export function autoPosts(s: GameState): GameState {
   const posts: Posts = {};
+  let people = s.people;
+  let next = s.nextPersonId;
   for (const party of HIERARCHY_PARTIES) {
-    const pool = postPool(s, party);
+    const pool = postPool({ ...s, people }, party);
     const ids = new Set(pool.map((p) => p.id));
     const keys = postKeys(s, party);
     const cur: Partial<Record<string, number>> = {};
@@ -119,14 +121,26 @@ export function autoPosts(s: GameState): GameState {
     const used = new Set(Object.values(cur));
     for (const key of keys) {
       if (cur[key] !== undefined) continue;
-      const pick = pool.filter((p) => !used.has(p.id)).sort((a, b) => fitFor(b, key) - fitFor(a, key))[0];
+      const free = pool.filter((p) => !used.has(p.id));
+      // A state chief is always from the state: with nobody local free, the party brings in a local organiser.
+      let pick = key.startsWith("chief:") ? free.filter((p) => homeOf(p) === key.slice(6)).sort((a, b) => fitFor(b, key) - fitFor(a, key))[0] : free.sort((a, b) => fitFor(b, key) - fitFor(a, key))[0];
+      if (!pick && key.startsWith("chief:")) {
+        pick = { ...recruitPerson(next++, party, s.seed, s.week, s, localSeat(party, key.slice(6))), rank: 1 };
+        people = [...people, pick];
+      }
       if (!pick) continue;
       cur[key] = pick.id;
       used.add(pick.id);
     }
     posts[party] = cur;
   }
-  return { ...s, posts };
+  return { ...s, posts, people, nextPersonId: next };
+}
+
+/** A seat in a region to recruit a local from: one the party stands in, else any. */
+function localSeat(party: string, region: string): number {
+  const inRegion = SEATS.filter((x) => regionOf(x.state) === region);
+  return (inRegion.find((x) => COALITIONS.some((c) => candidateParty(x, c) === party)) ?? inRegion[0]).index;
 }
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
@@ -346,6 +360,8 @@ export function postsWeek(s: GameState): { state: GameState; lines: ReportLine[]
 export function migrateHomes(s: GameState): GameState {
   // Generated people took seats wherever they were needed: a Sabah or Sarawak name says more about where they are from.
   const people = s.people.map((p) => {
+    // A generated MP was drawn for their seat: that is where they are from.
+    if (!p.real && p.seat !== null && p.id !== s.youId) return { ...p, home: regionOf(SEATS[p.seat].state) };
     if (p.home) return p;
     const borneo = !p.real && ["sabah", "sarawak"].includes(blocOfName(p.name));
     return { ...p, home: borneo ? guessHome(p) : homeOf(p) };
@@ -355,14 +371,8 @@ export function migrateHomes(s: GameState): GameState {
   const posts: Posts = {};
   for (const [party, list] of Object.entries(s.posts ?? {})) {
     const hasLocal = (r: string) => people.some((p) => p.party === party && !p.retired && !p.chairman && p.id !== s.youId && p.home === r);
-    posts[party] = Object.fromEntries(
-      Object.entries(list).filter(([k, id]) => {
-        if (!k.startsWith("chief:")) return true;
-        if (party !== yours) return false;
-        const r = k.slice(6);
-        return byId.get(id!)?.home === r || !hasLocal(r);
-      }),
-    );
+    // Chiefs from outside their state step down; autoPosts finds (or recruits) a local.
+    posts[party] = Object.fromEntries(Object.entries(list).filter(([k, id]) => !k.startsWith("chief:") || (party === yours && byId.get(id!)?.home === k.slice(6))));
   }
   return autoPosts({ ...s, people, posts });
 }

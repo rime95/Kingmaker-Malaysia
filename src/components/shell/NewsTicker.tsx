@@ -21,8 +21,8 @@ export function NewsTicker() {
       onClick={() => useGame.setState({ reportOpen: true })}
       aria-label="News headlines. Click for the week in review."
     >
-      <span className="eyebrow flex-none rounded-md px-2 py-0.5" style={{ background: "rgb(242 85 90 / 0.15)", color: "var(--bad)" }}>
-        ● Live
+      <span className="eyebrow flex-none rounded px-2 py-0.5 mono" style={{ background: "var(--brass)", color: "var(--gold-ink)" }}>
+        Wire
       </span>
       <span className="flex-1 overflow-hidden">
         <span className="ticker-track text-sm">
