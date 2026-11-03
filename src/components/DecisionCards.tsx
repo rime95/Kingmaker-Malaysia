@@ -18,7 +18,7 @@ export function DecisionCards() {
           <article key={card.id} className="panel p-4 flex flex-col gap-2" style={{ borderLeft: "4px solid var(--accent)" }}>
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="font-semibold">{def.title}</h3>
-              <span className="text-[11px] whitespace-nowrap" style={{ color: left <= 1 ? "var(--bad)" : "var(--muted)" }}>
+              <span className="text-xs whitespace-nowrap" style={{ color: left <= 1 ? "var(--bad)" : "var(--muted)" }}>
                 {left <= 1 ? "Decide this week" : `${left} weeks to decide`}
               </span>
             </div>
@@ -36,7 +36,7 @@ export function DecisionCards() {
                   <div className="text-sm font-semibold">
                     {c.label}
                     {i === def.defaultChoice && (
-                      <span className="ml-2 text-[11px] font-normal" style={{ color: "var(--muted)" }}>
+                      <span className="ml-2 text-xs font-normal" style={{ color: "var(--muted)" }}>
                         default if you don&apos;t decide
                       </span>
                     )}
@@ -45,7 +45,7 @@ export function DecisionCards() {
                     {describeEffect(c.effect)}
                   </div>
                   {c.note && (
-                    <div className="text-[11px] mt-0.5 italic" style={{ color: "var(--muted)" }}>
+                    <div className="text-xs mt-0.5 italic" style={{ color: "var(--muted)" }}>
                       {c.note}
                     </div>
                   )}

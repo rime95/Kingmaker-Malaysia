@@ -12,10 +12,9 @@ import { useGame } from "@/store/gameStore";
 import { contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
 import { ActionCard } from "../ActionCard";
 import { chancePct, fmtRM, pct, useReads } from "../common";
-import { coalColor } from "../map/lenses";
 import { SeatIssues } from "./SeatBits";
 import { Icon } from "./icons";
-import { PartyFlag } from "../flags";
+import { CoalitionFlag, PartyFlag } from "../flags";
 
 export const SEAT_MOVES = ["ground", "ceramah", "walkabout", "issue", "service", "machinery", "handout"];
 
@@ -97,7 +96,7 @@ export function SeatPopover() {
         <div className="flex flex-wrap gap-x-3 text-[11px]" style={{ color: "var(--ink-2)" }}>
           {shares.map(([c, v]) => (
             <span key={c} className="inline-flex items-center gap-1">
-              <span className="swatch" style={{ background: coalColor(c), width: 8, height: 8 }} />
+              <CoalitionFlag game={game} c={c} size={10} />
               {cshort(c)} {pct(v)}
             </span>
           ))}

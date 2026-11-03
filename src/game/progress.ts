@@ -3,7 +3,7 @@
 import { TURN_WEEKS } from "./config";
 import { youArePm } from "./systems/people";
 import type { GameState, ReportLine } from "./state";
-import { AP_BY_RUNG, CAREER, MP, PRESIDENT, addPoints, factionSize, promote, rungName, succession } from "./systems/career";
+import { AP_BY_RUNG, CAREER, MP, PRESIDENT, addPoints, factionSize, promote, rungName } from "./systems/career";
 import { ACHIEVEMENTS, OBJECTIVE_REWARD, newAchievements, newObjectives, objectiveMet } from "./systems/goals";
 import type { Formation, FormationOutcome } from "./systems/formation";
 import { SEATS } from "./world";
@@ -21,10 +21,11 @@ export function careerWeek(s: GameState): { state: GameState; lines: ReportLine[
     c.age += 1;
     if (c.age >= c.retireAge - 1 && c.age < c.retireAge) lines.push({ text: `${c.name} turns ${c.age}. The party is already talking about succession: ${c.protege} is ready.`, tone: "info" });
   }
-  if (c.age >= c.retireAge) {
-    const old = c.name;
-    c = succession(c, s.seed, s.week);
-    lines.push({ text: `${old} retires at ${s.career.age}. ${c.name} takes over: generation ${c.generation} of your dynasty.`, tone: "info" });
+  // Time to go: the game pauses on your legacy, then your protégé takes over.
+  let ending = s.ending;
+  if (c.age >= c.retireAge && !ending) {
+    ending = { reason: "retired", week: s.week };
+    lines.push({ text: `${c.name} retires at ${c.age}. ${c.protege} is ready to take over.`, tone: "info" });
   }
   if (s.week % 4 === 0) {
     const faction = factionSize(c, s.holders, s.player);
@@ -36,7 +37,7 @@ export function careerWeek(s: GameState): { state: GameState; lines: ReportLine[
     lines.push({ text: "Party unity has collapsed. Rivals inside the party will challenge your leadership at the next AGM.", tone: "bad" });
   }
   const apMax = (AP_BY_RUNG[c.rung] + (pm ? 2 : 0) + teamAp(s)) * TURN_WEEKS;
-  return { state: { ...s, career: c, me: { ...s.me, apMax } }, lines };
+  return { state: { ...s, career: c, ending, me: { ...s.me, apMax } }, lines };
 }
 
 export function goalsWeek(s: GameState): { state: GameState; lines: ReportLine[] } {

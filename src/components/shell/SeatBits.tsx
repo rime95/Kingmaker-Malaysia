@@ -11,7 +11,7 @@ export function SeatIssues({ seat, compact }: { seat: number; compact?: boolean 
   const taken = game.issuesTaken[seat] ?? [];
   if (compact)
     return (
-      <div className="text-[11px]" style={{ color: "var(--ink-2)" }}>
+      <div className="text-xs" style={{ color: "var(--ink-2)" }}>
         Local issues: {issues.map((d) => (taken.includes(d.id) ? `${d.name} ✓` : d.name)).join(" · ")}
       </div>
     );
@@ -22,7 +22,7 @@ export function SeatIssues({ seat, compact }: { seat: number; compact?: boolean 
         {issues.map((d) => (
           <span
             key={d.id}
-            className="chip !py-0.5 !px-2 text-[11px]"
+            className="chip !py-0.5 !px-2 text-xs"
             style={taken.includes(d.id) ? { outline: "1px solid var(--good)", color: "var(--good)" } : undefined}
           >
             {taken.includes(d.id) ? "✓ " : ""}
@@ -30,7 +30,7 @@ export function SeatIssues({ seat, compact }: { seat: number; compact?: boolean 
           </span>
         ))}
       </div>
-      <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+      <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
         Take one up ({ISSUE.ap} AP): a lasting +{Math.round((isGovernment(game) ? ISSUE.gov : ISSUE.opp) * 100)} to your pull here. New issues surface after
         each general election.
       </p>
@@ -46,12 +46,12 @@ export function WhyBreakdown({ seat }: { seat: number }) {
   const max = Math.max(...rows.map((r) => Math.abs(r.value)), 0.05);
   return (
     <details className="mt-2">
-      <summary className="text-[11px] font-semibold cursor-pointer" style={{ color: "var(--ink-2)" }}>
+      <summary className="text-xs font-semibold cursor-pointer" style={{ color: "var(--ink-2)" }}>
         Why? Your pull here by source
       </summary>
       <div className="flex flex-col gap-0.5 mt-1">
         {rows.map((r) => (
-          <div key={r.label} className="grid grid-cols-[minmax(0,1fr)_70px_34px] items-center gap-2 text-[11px]">
+          <div key={r.label} className="grid grid-cols-[minmax(0,1fr)_70px_34px] items-center gap-2 text-xs">
             <span className="truncate" style={{ color: "var(--ink-2)" }}>
               {r.label}
             </span>
@@ -72,7 +72,7 @@ export function WhyBreakdown({ seat }: { seat: number }) {
           </div>
         ))}
       </div>
-      <p className="text-[10.5px] mt-1" style={{ color: "var(--muted)" }}>
+      <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
         Points of pull (log-odds × 100). Roughly, +10 moves a close seat about 2.5 points of the vote.
       </p>
     </details>

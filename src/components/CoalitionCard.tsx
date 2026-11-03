@@ -54,7 +54,7 @@ export function CoalitionCard() {
                     <div className="flex-1 h-1 rounded-full" style={{ background: "var(--surface-2)" }}>
                       <div className="h-full rounded-full" style={{ width: `${sat}%`, background: unhappy ? "var(--bad)" : "var(--ink-2)" }} />
                     </div>
-                    <span className="text-[11px] tabular-nums w-16 text-right" style={{ color: unhappy ? "var(--bad)" : "var(--muted)" }}>
+                    <span className="text-xs tabular-nums w-16 text-right" style={{ color: unhappy ? "var(--bad)" : "var(--muted)" }}>
                       {unhappy ? "▲ restless" : `goodwill ${Math.round(sat)}`}
                     </span>
                   </div>
@@ -63,7 +63,7 @@ export function CoalitionCard() {
             );
           })}
         </ul>
-        <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+        <p className="text-xs" style={{ color: "var(--muted)" }}>
           Partners grow restless in opposition and when trust is low. Below {COALITION_RULES.leave} goodwill they walk out and their MPs cross the floor.
         </p>
       </div>

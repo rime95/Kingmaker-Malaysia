@@ -49,7 +49,7 @@ function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
           </div>
         </div>
         <span
-          className="text-[11px] font-semibold rounded-full px-2 py-0.5 whitespace-nowrap border"
+          className="text-xs font-semibold rounded-full px-2 py-0.5 whitespace-nowrap border"
           style={{ borderColor: hostile ? "var(--bad)" : "var(--line)", color: hostile ? "var(--bad)" : "var(--ink-2)" }}
         >
           {hostile ? "▲ Hostile to you" : "Ally"}
@@ -72,7 +72,7 @@ function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
         <div className="h-1.5 rounded-full mt-1" style={{ background: "var(--surface-2)" }}>
           <div className="h-full rounded-full" style={{ width: `${r.strength}%`, background: coalColor(c) }} />
         </div>
-        <div className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+        <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>
           National buzz {Math.round(r.nationalBuzz)} · service built {Math.round(builtService)} pts
         </div>
       </div>
@@ -103,7 +103,7 @@ function RivalCard({ c, r }: { c: CoalitionId; r: Rival }) {
       )}
 
       {r.recent.length > 0 && (
-        <ul className="text-[11px] flex flex-col gap-0.5" style={{ color: "var(--ink-2)" }}>
+        <ul className="text-xs flex flex-col gap-0.5" style={{ color: "var(--ink-2)" }}>
           {r.recent.slice(0, 3).map((line, i) => (
             <li key={i}>{line}</li>
           ))}
@@ -120,7 +120,7 @@ function Stat({ label, value, delta }: { label: string; value: string; delta?: n
       <div className="font-semibold tabular-nums">
         {value}
         {delta ? (
-          <span className="ml-1 text-[11px]" style={{ color: "var(--ink-2)" }}>
+          <span className="ml-1 text-xs" style={{ color: "var(--ink-2)" }}>
             ({delta > 0 ? "+" : "−"}
             {Math.abs(delta)})
           </span>

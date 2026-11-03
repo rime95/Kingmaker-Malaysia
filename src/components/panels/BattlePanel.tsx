@@ -27,7 +27,7 @@ export function BattlePanel() {
   const list = (title: string, hint: string, rows: { i: number; chance: number }[]) => (
     <section>
       <h3 className="eyebrow mb-1">{title}</h3>
-      <p className="text-[11px] mb-1.5" style={{ color: "var(--muted)" }}>
+      <p className="text-xs mb-1.5" style={{ color: "var(--muted)" }}>
         {hint}
       </p>
       {rows.length === 0 ? (
@@ -59,7 +59,7 @@ export function BattlePanel() {
       {list("Seats you could lose", "Your own seats, shakiest first.", lists.risk)}
       <section>
         <h3 className="eyebrow mb-1">Where rivals fight back</h3>
-        <p className="text-[11px] mb-1.5" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mb-1.5" style={{ color: "var(--muted)" }}>
           Hammer one rival seat and its holder digs in, spending there and countering your canvassers. Pick your fights, or win the argument nationally.
         </p>
         {Object.keys(game.battlegrounds ?? {}).length === 0 ? (

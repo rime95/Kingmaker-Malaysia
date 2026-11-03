@@ -9,6 +9,7 @@ import { ACHIEVEMENTS } from "@/game/systems/goals";
 import { useGame } from "@/store/gameStore";
 import { cshort, SEATS, STATE_BY_ID } from "@/game/world";
 import { fmtRM } from "./common";
+import { TermText } from "./Term";
 
 export function Career() {
   const game = useGame((s) => s.game)!;
@@ -42,7 +43,7 @@ export function Career() {
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold tabular-nums">{c.points}</div>
-              <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+              <div className="text-xs" style={{ color: "var(--muted)" }}>
                 career points
               </div>
             </div>
@@ -58,8 +59,10 @@ export function Career() {
                   <span className="w-5 text-center" aria-hidden>
                     {done ? "✓" : here ? "●" : "○"}
                   </span>
-                  <span className={here ? "font-semibold" : undefined}>{name}</span>
-                  <span className="ml-auto text-[11px]" style={{ color: "var(--muted)" }}>
+                  <span className={here ? "font-semibold" : undefined}>
+                    <TermText text={name} />
+                  </span>
+                  <span className="ml-auto text-xs" style={{ color: "var(--muted)" }}>
                     {i === MP
                       ? "win your home seat at a GE"
                       : i === 3 || i === 4
@@ -80,7 +83,7 @@ export function Career() {
                 {youArePm(game) && c.rung >= PRESIDENT ? "★" : "○"}
               </span>
               Prime Minister
-              <span className="ml-auto text-[11px]">win the coalition talks after a GE</span>
+              <span className="ml-auto text-xs">win the coalition talks after a GE</span>
             </li>
           </ol>
 
@@ -213,7 +216,7 @@ function Big({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md p-2" style={{ background: "var(--surface-2)" }}>
       <div className="font-bold tabular-nums">{value}</div>
-      <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+      <div className="text-xs" style={{ color: "var(--muted)" }}>
         {label}
       </div>
     </div>

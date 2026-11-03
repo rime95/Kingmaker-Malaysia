@@ -12,6 +12,7 @@ import { CoalitionTalks } from "./CoalitionTalks";
 import { useT } from "./i18n";
 import { audio, sfx } from "./audio";
 import { CoalitionFlag, JalurGemilang, PartyFlag } from "./flags";
+import { Term } from "./Term";
 import { SoundControls } from "./SoundControls";
 
 /** Milliseconds per seat call at 1× (222 seats ≈ 40 seconds). */
@@ -213,7 +214,7 @@ function Count({ onDone }: { onDone: () => void }) {
             </>
           )}
           {done && !big && (
-            <button className="btn" onClick={onDone}>
+            <button className="btn btn-ready" onClick={onDone}>
               {t("toTalks")}
             </button>
           )}
@@ -226,17 +227,17 @@ function Count({ onDone }: { onDone: () => void }) {
 
         <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr] flex-1">
           <div className="panel p-2 relative overflow-hidden">
-            <MalaysiaMap className="relative h-[54vh] min-h-[320px]" clip fills={nightFills} markers={stars} showDuns="never" ariaLabel="Seats declared so far" />
+            <MalaysiaMap className="relative w-full aspect-[20/9] max-h-[62vh] min-h-[240px]" clip fills={nightFills} markers={stars} showDuns="never" ariaLabel="Seats declared so far" />
             {moment && <LowerThird m={moment} />}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] px-1 pt-1" style={{ color: "var(--ink-2)" }}>
               <span className="inline-flex items-center gap-1.5">
-                <span className="legend-mark legend-hold" /> You hold <b className="tabular-nums">{held}</b>
+                <span className="legend-mark legend-hold" /> <Term word="Kekal" /> · you hold <b className="tabular-nums">{held}</b>
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="legend-mark legend-gain">★</span> Rampas · gained <b className="tabular-nums">{gains}</b>
+                <span className="legend-mark legend-gain">★</span> <Term word="Rampas" /> · gained <b className="tabular-nums">{gains}</b>
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="legend-mark legend-lost" /> Terlepas · lost <b className="tabular-nums">{losses}</b>
+                <span className="legend-mark legend-lost" /> <Term word="Terlepas" /> · lost <b className="tabular-nums">{losses}</b>
               </span>
               <span style={{ color: "var(--muted)" }}>Grey: still counting. Dashed: changed hands.</span>
             </div>
@@ -265,8 +266,8 @@ function Count({ onDone }: { onDone: () => void }) {
           big={big}
           counts={counts}
           onGo={() => {
+            // The finished count stays on screen; the header button takes you to the talks.
             setBig(null);
-            if (done) onDone();
           }}
           done={done}
         />
@@ -545,9 +546,9 @@ function Declarations({ order, prev, player }: { order: Call[]; prev: CoalitionI
                 className="ml-auto text-[10px] font-bold rounded px-1.5 py-0.5 whitespace-nowrap"
                 style={
                   mark === "gain"
-                    ? { background: "#ffcc00", color: "#1a1300" }
+                    ? { background: "var(--gold)", color: "var(--gold-ink)" }
                     : mark === "lost"
-                      ? { background: "#d9363e", color: "#fff" }
+                      ? { background: "var(--loss)", color: "#fff" }
                       : mark === "hold"
                         ? { background: "#fff", color: "#111" }
                         : { background: "var(--surface-2)", color: "#fff" }
@@ -618,7 +619,7 @@ function BigMoment({ big, counts, onGo, done }: { big: Big; counts: Record<Coali
           </div>
         )}
         <button className="btn mt-5" onClick={onGo} autoFocus>
-          {done ? "Continue" : "Keep counting"}
+          {done ? "See the final count" : "Keep counting"}
         </button>
       </div>
     </div>

@@ -114,7 +114,7 @@ export function PeoplePanel() {
       {view === "list" && branch.length > 0 && (
         <section>
           <h3 className="eyebrow mb-1.5">Rising branch chiefs</h3>
-          <p className="text-[11px] mb-1.5" style={{ color: "var(--muted)" }}>
+          <p className="text-xs mb-1.5" style={{ color: "var(--muted)" }}>
             Tomorrow&apos;s leaders. When anyone above leaves, everyone moves up one rank and a new branch chief joins here.
           </p>
           <PeopleList people={branch} open={open} onOpen={setOpen} />
@@ -136,7 +136,7 @@ function OrgChart({ roster, open, onOpen }: { roster: Person[]; open: number | n
     <section className="flex flex-col items-center gap-2">
       {tiers.map((t) => (
         <div key={t.rank} className="w-full">
-          <div className="text-[10px] text-center mb-1" style={{ color: "var(--muted)" }}>
+          <div className="text-xs text-center mb-1" style={{ color: "var(--muted)" }}>
             {t.rank === 6 ? "Party Chairman" : t.rank === 3 ? "Vice Presidents" : t.rank === 2 ? "Supreme Council" : RANKS[t.rank]}
           </div>
           <div className="flex flex-wrap justify-center gap-1.5">
@@ -149,8 +149,8 @@ function OrgChart({ roster, open, onOpen }: { roster: Person[]; open: number | n
               >
                 <Initials name={p.name} color={partyColor(game, p.party)} />
                 <span className="min-w-0">
-                  <span className="block text-[11px] font-semibold truncate">{p.name}</span>
-                  <span className="block text-[10px] truncate" style={{ color: "var(--muted)" }}>
+                  <span className="block text-xs font-semibold truncate">{p.name}</span>
+                  <span className="block text-xs truncate" style={{ color: "var(--muted)" }}>
                     {p.id === game.youId ? "you" : `♥ ${Math.round(p.loyalty)} · ${p.seat !== null ? SEATS[p.seat].name : "no seat"}`}
                   </span>
                 </span>
@@ -162,7 +162,7 @@ function OrgChart({ roster, open, onOpen }: { roster: Person[]; open: number | n
       ))}
       {mps.length > 0 && (
         <div className="w-full">
-          <div className="text-[10px] text-center mb-1" style={{ color: "var(--muted)" }}>
+          <div className="text-xs text-center mb-1" style={{ color: "var(--muted)" }}>
             MPs and division chiefs ({mps.length})
           </div>
           <div className="flex flex-wrap justify-center gap-1">
@@ -215,7 +215,7 @@ function PersonRow({ p, open, onToggle }: { p: Person; open: boolean; onToggle: 
             {p.name}
             {you && <span style={{ color: "var(--accent)" }}> · you</span>}
           </span>
-          <span className="block text-[11px] truncate" style={{ color: "var(--muted)" }}>
+          <span className="block text-xs truncate" style={{ color: "var(--muted)" }}>
             {posts.length ? PORTFOLIOS.find((x) => x.id === posts[0])!.name + " · " : ""}
             {p.seat !== null ? SEATS[p.seat].name : "No seat"} · {ageOf(p, game.week)}
           </span>
@@ -235,7 +235,7 @@ function Initials({ name, color }: { name: string; color: string }) {
     .map((w) => w[0])
     .join("");
   return (
-    <span className="flex-none w-8 h-8 rounded-full grid place-items-center text-[11px] font-bold text-white" style={{ background: color }}>
+    <span className="flex-none w-8 h-8 rounded-full grid place-items-center text-xs font-bold text-white" style={{ background: color }}>
       {letters}
     </span>
   );
@@ -244,7 +244,7 @@ function Initials({ name, color }: { name: string; color: string }) {
 function LoyaltyDot({ v }: { v: number }) {
   const tone = v >= 60 ? "var(--good)" : v >= 30 ? "var(--ink-2)" : "var(--bad)";
   return (
-    <span className="text-[11px] tabular-nums flex-none" style={{ color: tone }} title="Loyalty to you">
+    <span className="text-xs tabular-nums flex-none" style={{ color: tone }} title="Loyalty to you">
       ♥ {Math.round(v)}
     </span>
   );
@@ -305,7 +305,7 @@ function PersonCard({ p }: { p: Person }) {
         </div>
       )}
       {!you && (
-        <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+        <div className="text-xs" style={{ color: "var(--muted)" }}>
           Favour: {f.text}. {favWhy ?? `Costs ${PEOPLE.favourLoyalty} loyalty.`}
         </div>
       )}
@@ -343,7 +343,7 @@ export function Cabinet({ open, onOpen }: { open: number | null; onOpen: (id: nu
     <section>
       <div className="flex items-baseline justify-between mb-1.5">
         <h3 className="eyebrow">Cabinet</h3>
-        <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+        <span className="text-xs" style={{ color: "var(--muted)" }}>
           {canAppoint ? "Yours to reshuffle" : `${cshort(game.parliament.pm)} government`}
         </span>
       </div>

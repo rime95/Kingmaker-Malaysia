@@ -134,7 +134,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
 }
 
 function Menu({ onSaves }: { onSaves: () => void }) {
-  const { skipMonth, skipToEvent, simulate, quit, lang, setLang, testTools, setTestTools, test, setRecordOpen } = useGame();
+  const { skipMonth, skipToEvent, simulate, quit, testTools, setTestTools, test, setRecordOpen, retire } = useGame();
   const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -182,8 +182,8 @@ function Menu({ onSaves }: { onSaves: () => void }) {
           <div className="h-px my-1" style={{ background: "var(--line)" }} />
           {item(testTools ? "Hide test tools" : "Show test tools", () => setTestTools(!testTools), "Play-test shortcuts that bend the rules.")}
           {item("Your record & achievements", () => setRecordOpen(true))}
+          {item("Retire and see your legacy", () => confirm("Retire now? Your protégé takes over after you see your legacy.") && retire(), "Step down: see what you leave behind, then your protégé leads.")}
           {item(t("saves"), onSaves)}
-          {item(lang === "en" ? "Bahasa Malaysia" : "English", () => setLang(lang === "en" ? "ms" : "en"))}
           {item(t("newGame"), () => confirm("Start a new game? Save this one first if you want to keep it.") && quit())}
         </div>
       )}

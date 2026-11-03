@@ -189,6 +189,7 @@ function countVotes(s: GameState, lines: ReportLine[]): GameState {
       const winner = race.rivals[0]?.id;
       if (winner != null) state = promoteTo(state, winner, PRESIDENT_RANK, lines);
       lines.push({ text: `${race.rivals[0]?.name} wins the party vote (${votes[0]} to ${you}). You drop back to Vice President.`, tone: "bad" });
+      state = { ...state, ending: state.ending ?? { reason: "ousted", week: s.week } };
     }
   } else if (won) {
     c = promote(c, s.week, `${c.name} wins the party vote: now ${race.post}.`);

@@ -28,11 +28,11 @@ export function PartyPanel() {
           <Meter label="Media reach" value={me.reach} note="Boosts national campaigns" />
           <Meter label="National buzz" value={me.nationalBuzz} note="Fades about 6% a week" />
           <div className="inset p-2.5">
-            <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+            <div className="text-xs" style={{ color: "var(--muted)" }}>
               Members
             </div>
             <div className="font-semibold tabular-nums">{fmt(me.members)}</div>
-            <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+            <div className="text-xs" style={{ color: "var(--muted)" }}>
               {fmtRM(me.members * 0.1)} dues a week
             </div>
           </div>
@@ -57,7 +57,7 @@ function Meter({ label, value, max = 100, note, warn }: { label: string; value: 
   return (
     <div className="inset p-2.5">
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+        <span className="text-xs" style={{ color: "var(--muted)" }}>
           {label}
         </span>
         <span className="font-semibold tabular-nums text-sm" style={{ color: warn ? "var(--bad)" : "var(--ink)" }}>
@@ -68,7 +68,7 @@ function Meter({ label, value, max = 100, note, warn }: { label: string; value: 
       <div className="h-1 rounded-full mt-1.5" style={{ background: "var(--surface-2)" }}>
         <div className="h-full rounded-full" style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: warn ? "var(--bad)" : "var(--ink-2)" }} />
       </div>
-      <div className="text-[10.5px] mt-1 leading-snug" style={{ color: "var(--muted)" }}>
+      <div className="text-xs mt-1 leading-snug" style={{ color: "var(--muted)" }}>
         {note}
       </div>
     </div>

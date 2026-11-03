@@ -20,7 +20,7 @@ export function NameCoalition({ onClose }: { onClose?: () => void }) {
 
   // Rendered on <body>: panels use backdrop blur, which would trap a fixed overlay inside them.
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgb(5 7 14 / 0.65)" }} onClick={close}>
+    <div className="modal-backdrop" onClick={close}>
       <div className="panel pop-in w-full max-w-md p-5 flex flex-col gap-4" role="dialog" aria-label="Name your coalition" onClick={(e) => e.stopPropagation()}>
         <div>
           <div className="eyebrow">{game.namePending ? "You won" : "Your coalition"}</div>

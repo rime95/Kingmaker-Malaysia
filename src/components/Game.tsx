@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { COALITIONS } from "@/game/world";
 import { useGame } from "@/store/gameStore";
 import { NewGame } from "./NewGame";
 import { Toast } from "./Toast";
 import { ElectionNight } from "./ElectionNight";
 import { NewTerm } from "./NewTerm";
+import { Legacy } from "./Legacy";
+import { activeOverlay, blocking } from "./overlays";
 import { SaveSlots } from "./SaveSlots";
 import { MainMap } from "./shell/MainMap";
 import { TopBar } from "./shell/TopBar";
@@ -40,14 +42,19 @@ export function Game() {
  * Phones: navigation moves to the bottom, panels and the seat card become sheets.
  */
 function Main() {
-  const { panel, selected, analysisOpen } = useGame();
+  const { panel, selected, analysisOpen, recordOpen } = useGame();
   const game = useGame((s) => s.game)!;
   const [savesOpen, setSavesOpen] = useState(false);
+  const overlay = activeOverlay(game, { savesOpen, recordOpen, analysisOpen });
+  const overlayRef = useRef(overlay);
+  useEffect(() => {
+    overlayRef.current = overlay;
+  }, [overlay]);
   // Keyboard: N or Space for the next turn, 1–6 for the sections (not while typing or a dialog is open).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
-      if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|SELECT|TEXTAREA/.test(el.tagName) || document.querySelector("[role=dialog]")) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|SELECT|TEXTAREA/.test(el.tagName) || blocking(overlayRef.current) || document.querySelector("[role=dialog]")) return;
       const st = useGame.getState();
       if (e.key === "n" || e.key === "N" || (e.key === " " && el.tagName !== "BUTTON")) {
         e.preventDefault();
@@ -109,8 +116,8 @@ function Main() {
         <NewsTicker />
       </div>
 
-      {savesOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto" style={{ background: "rgb(5 7 14 / 0.6)" }} onClick={() => setSavesOpen(false)}>
+      {overlay === "saves" && (
+        <div className="modal-backdrop modal-top" onClick={() => setSavesOpen(false)}>
           <div className="w-full max-w-xl mt-16" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Saved games">
             <SaveSlots onDone={() => setSavesOpen(false)} />
             <button className="btn btn-ghost mt-2" onClick={() => setSavesOpen(false)}>
@@ -119,13 +126,14 @@ function Main() {
           </div>
         </div>
       )}
-      <AlertModal />
-      <RecordModal />
-      {!game.night && <ElectionAnalysisModal />}
-      {!game.night && <PartyRaceCount />}
-      {game.newTerm && !game.night && !game.formation && !analysisOpen && <NewTerm />}
-      {game.namePending && !game.newTerm && !game.night && !game.formation && <NameCoalition />}
-      <ElectionNight />
+      {overlay === "alert" && <AlertModal />}
+      {overlay === "record" && <RecordModal />}
+      {overlay === "analysis" && <ElectionAnalysisModal />}
+      {overlay === "race" && <PartyRaceCount />}
+      {overlay === "newterm" && <NewTerm />}
+      {overlay === "naming" && <NameCoalition />}
+      {overlay === "legacy" && <Legacy />}
+      {overlay === "night" && <ElectionNight />}
       <Toast />
     </div>
   );

@@ -29,14 +29,14 @@ export function Policy() {
               <div className="font-semibold tabular-nums" style={{ color: vote.passes ? "var(--ink)" : "var(--bad)" }}>
                 {vote.passes ? "✓" : "✕"} {vote.yes} – {vote.no}
               </div>
-              <div className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+              <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>
                 {vote.rebels ? `${vote.rebels} government MPs likely to rebel. ` : ""}Bills need {MAJORITY}.
               </div>
             </>
           ) : (
             <>
               <div className="font-semibold">Opposition</div>
-              <div className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+              <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>
                 You can&apos;t pass laws, only pledge them. Pledges get {Math.round(PLEDGE_WEIGHT * 100)}% of the effect.
               </div>
             </>
@@ -75,7 +75,7 @@ function PolicyRow({ policy }: { policy: PolicyDef }) {
     <div className="card rounded-lg border p-3" style={{ borderColor: "var(--line)" }}>
       <div className="flex items-baseline justify-between gap-2 mb-2">
         <span className="font-semibold text-sm">{policy.name}</span>
-        <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+        <span className="text-xs" style={{ color: "var(--muted)" }}>
           {policy.area}
         </span>
       </div>
@@ -104,7 +104,7 @@ function PolicyRow({ policy }: { policy: PolicyDef }) {
                   {o.label}
                 </span>
                 {!active && previews[i] !== 0 && (
-                  <span className="text-[11px] tabular-nums" style={{ color: previews[i] > 0 ? "var(--good)" : "var(--bad)" }}>
+                  <span className="text-xs tabular-nums" style={{ color: previews[i] > 0 ? "var(--good)" : "var(--bad)" }}>
                     {previews[i] > 0 ? "▲ +" : "▼ −"}
                     {Math.abs(previews[i])} seat{Math.abs(previews[i]) === 1 ? "" : "s"}
                   </span>
@@ -114,12 +114,12 @@ function PolicyRow({ policy }: { policy: PolicyDef }) {
                 {o.blurb}
               </div>
               {(Object.keys(o.voters).length > 0 || extras.length > 0) && (
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--muted)" }}>
+                <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
                   {[describeSeg(o.voters, (gov ? 1 : PLEDGE_WEIGHT) * POLICY_SCALE), ...extras].filter(Boolean).join(" · ")}
                 </div>
               )}
               {!active && blocked && (
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--muted)" }}>
+                <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
                   {blocked}
                 </div>
               )}
@@ -166,7 +166,7 @@ function BudgetPanel() {
           <div key={l.id} className="flex items-center gap-2 rounded-md border p-2" style={{ borderColor: "var(--line)" }}>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium">{l.label}</div>
-              <div className="text-[11px] truncate" style={{ color: "var(--muted)" }} title={l.blurb}>
+              <div className="text-xs truncate" style={{ color: "var(--muted)" }} title={l.blurb}>
                 {describeSeg(l.voters, weight)} per point
               </div>
             </div>
@@ -216,7 +216,7 @@ function Gauge({ label, value, note, rest }: { label: string; value: number; not
         </span>
         <span className="font-semibold tabular-nums">
           {Math.round(value)}{" "}
-          <span className="text-[11px]" style={{ color: diff >= 0 ? "var(--good)" : "var(--bad)" }}>
+          <span className="text-xs" style={{ color: diff >= 0 ? "var(--good)" : "var(--bad)" }}>
             {diff >= 0 ? "▲" : "▼"} {Math.abs(Math.round(diff))} vs normal
           </span>
         </span>
@@ -225,7 +225,7 @@ function Gauge({ label, value, note, rest }: { label: string; value: number; not
         <div className="h-full rounded-full" style={{ width: `${value}%`, background: "var(--ink-2)" }} />
         <div className="absolute -top-1 -bottom-1 w-[2px]" style={{ left: `${rest}%`, background: "var(--ink)" }} />
       </div>
-      <div className="text-[11px] mt-1.5" style={{ color: "var(--muted)" }}>
+      <div className="text-xs mt-1.5" style={{ color: "var(--muted)" }}>
         {note}
       </div>
     </div>

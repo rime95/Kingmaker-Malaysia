@@ -5,6 +5,7 @@ import { useGame } from "@/store/gameStore";
 import { seatCounts } from "@/game/state";
 import { cname, cshort, MAJORITY, TOTAL_SEATS, type CoalitionId } from "@/game/world";
 import { CHART_ORDER, coalColor } from "./common";
+import { CoalitionFlag } from "./flags";
 
 /** Stacked seat bars (holders now, the latest national poll, the last war-room simulation) with the 112 majority line. */
 export function SeatBars() {
@@ -19,7 +20,7 @@ export function SeatBars() {
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs" style={{ color: "var(--ink-2)" }}>
         {CHART_ORDER.map((c) => (
           <span key={c} className="inline-flex items-center gap-1.5">
-            <span className="swatch" style={{ background: coalColor(c) }} />
+            <CoalitionFlag game={game} c={c} size={10} />
             {cshort(c)}
           </span>
         ))}

@@ -6,7 +6,7 @@ import { ageOf, mpOf, postOf } from "@/game/systems/people";
 import { resultView } from "@/game/systems/results";
 import { useGame } from "@/store/gameStore";
 import { cname, SEATS, STATE_BY_ID } from "@/game/world";
-import { coalColor } from "./common";
+import { CoalitionFlag } from "./flags";
 
 export const VOTE_COLOR: Record<Vote, string> = { aye: "#2fb36d", no: "#e0474c", abstain: "#e8a23a", absent: "#5d6476" };
 export const VOTE_LABEL: Record<Vote, string> = { aye: "Aye", no: "No", abstain: "Abstained", absent: "Absent" };
@@ -24,7 +24,7 @@ export function SeatHolderCard({ i, x, y, vote }: { i: number; x: number; y: num
     <div className="tooltip" style={{ left, top: y + 14, width: 256 }}>
       <div className="font-semibold">{mp?.name ?? last.candidates[0].name}</div>
       <div className="flex items-center gap-1.5">
-        <span className="swatch" style={{ background: coalColor(game.holders[i]), width: 8, height: 8 }} />
+        <CoalitionFlag game={game} c={game.holders[i]} size={10} />
         {game.holderParties[i]} · {cname(game.holders[i])}
         {mp?.id === game.youId ? " · you" : ""}
       </div>

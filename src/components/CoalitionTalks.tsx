@@ -7,6 +7,7 @@ import { useGame } from "@/store/gameStore";
 import { coalitionLeader } from "@/game/systems/coalitions";
 import { cname, COALITIONS, cshort, MAJORITY, type CoalitionId } from "@/game/world";
 import { coalColor } from "./common";
+import { CoalitionFlag } from "./flags";
 
 const OFFER_LABEL: Record<OfferKind, string> = { dpm: "Offer DPM", ministries: "+ Ministries", ma63: "Promise MA63" };
 
@@ -89,7 +90,7 @@ export function CoalitionTalks() {
                 const lean = wx >= wy ? x : y;
                 return (
                   <div key={c} className="card rounded-lg border p-3 flex flex-wrap items-center gap-3" style={{ borderColor: "var(--line)" }}>
-                    <span className="swatch" style={{ background: coalColor(c) }} />
+                    <CoalitionFlag game={game} c={c} size={10} />
                     <span className="font-semibold">{cname(c)}</span>
                     <span className="text-sm tabular-nums" style={{ color: "var(--ink-2)" }}>
                       {f.seats[c]} seats
@@ -145,7 +146,7 @@ export function CoalitionTalks() {
             <li key={i}>{l}</li>
           ))}
         </ul>
-        <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
           Coalitions: {COALITIONS.filter((c) => f.seats[c]).map((c) => `${cshort(c)} ${f.seats[c]}`).join(" · ")}
         </p>
       </section>

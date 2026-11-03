@@ -38,7 +38,7 @@ export function NationPanel() {
       <section>
         <div className="flex items-baseline justify-between mb-2">
           <h3 className="eyebrow">The numbers</h3>
-          <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+          <span className="text-xs" style={{ color: "var(--muted)" }}>
             {cshort(game.parliament.pm)} government · {govSeats(game)} seats · OPR {n.opr.toFixed(2)}% · RM {n.ringgit.toFixed(2)}/USD
           </span>
         </div>
@@ -47,7 +47,7 @@ export function NationPanel() {
             <Tile key={k} k={k} />
           ))}
         </div>
-        <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
           {gov
             ? "In government you own these numbers: approval above 50 adds to your swing everywhere. Below 32, partners start walking out."
             : "In opposition you gain when these go wrong. Attack a number that is genuinely bad (worse still if they promised to fix it); attacking a good one falls flat."}
@@ -74,7 +74,7 @@ export function NationPanel() {
             </button>
             <ActionCard id="roadshow" target={{ kind: "none" }} compact />
           </div>
-          <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
+          <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
             Fuel subsidies, cash aid, the minimum wage and sales tax are set under Policy &amp; Budget; ministers are under Cabinet.
           </p>
         </section>
@@ -102,7 +102,7 @@ function AgendaCard() {
     <section className="inset p-3">
       <div className="flex items-baseline justify-between mb-1.5">
         <h3 className="eyebrow">{mine ? "Your promises this term" : `The ${cshort(a.by)} government's promises`}</h3>
-        <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+        <span className="text-xs" style={{ color: "var(--muted)" }}>
           {a.items.filter((it) => itemMet(game, it)).length} of {a.items.length} kept
         </span>
       </div>
@@ -123,7 +123,7 @@ function AgendaCard() {
           );
         })}
       </ul>
-      <p className="text-[11px] mt-1.5" style={{ color: "var(--muted)" }}>
+      <p className="text-xs mt-1.5" style={{ color: "var(--muted)" }}>
         {mine ? `Each promise kept adds ${AGENDA.monthlyApproval} approval a month.` : `Attacks on a broken promise land ${AGENDA.brokenBonus}× harder.`}
       </p>
     </section>
@@ -146,7 +146,7 @@ function Tile({ k }: { k: Kpi }) {
   const why = opp ? critiqueBlocked(game, k) : null;
   return (
     <div className="inset p-2.5 flex flex-col" title={`${info.label}: ${info.fmt(n[k])}`}>
-      <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+      <div className="text-xs" style={{ color: "var(--muted)" }}>
         {info.label}
       </div>
       <div className="flex items-baseline justify-between gap-1">
@@ -154,14 +154,14 @@ function Tile({ k }: { k: Kpi }) {
           {info.fmt(n[k])}
         </span>
         {!flat && (
-          <span className="text-[11px] tabular-nums" style={{ color: better ? "var(--good)" : "var(--bad)" }}>
+          <span className="text-xs tabular-nums" style={{ color: better ? "var(--good)" : "var(--bad)" }}>
             {diff > 0 ? "▲" : "▼"}
           </span>
         )}
       </div>
       <Spark values={hist.slice(-26)} />
       {opp && (
-        <button className="chip !py-0.5 !px-2 text-[11px] mt-1 justify-center" disabled={!!why} title={why ?? `1 AP · RM 50k. How bad it is: ${Math.round(bad * 100)}%${brokenPromise(game, k) ? " · a broken promise" : ""}`} onClick={() => deep({ kind: "critique", kpi: k })}>
+        <button className="chip !py-0.5 !px-2 text-xs mt-1 justify-center" disabled={!!why} title={why ?? `1 AP · RM 50k. How bad it is: ${Math.round(bad * 100)}%${brokenPromise(game, k) ? " · a broken promise" : ""}`} onClick={() => deep({ kind: "critique", kpi: k })}>
           Attack · {bad < 0.12 ? "weak" : bad < 0.45 ? "fair" : "strong"}
         </button>
       )}
@@ -215,7 +215,7 @@ function AccountCard() {
       <div className="mt-2">
         <div className="text-xs font-semibold mb-1">Court challenges</div>
         {bills.length === 0 ? (
-          <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+          <p className="text-xs" style={{ color: "var(--muted)" }}>
             No recent government law to challenge.
           </p>
         ) : (
@@ -223,7 +223,7 @@ function AccountCard() {
             {bills.slice(0, 4).map((m) => (
               <li key={m.id} className="flex items-center gap-2 text-xs">
                 <span className="flex-1 truncate">{m.title}</span>
-                <button className="chip !py-0.5 text-[11px]" onClick={() => deep({ kind: "court", motion: m.id })}>
+                <button className="chip !py-0.5 text-xs" onClick={() => deep({ kind: "court", motion: m.id })}>
                   Challenge · {OPP.court.ap} AP · RM 500k
                 </button>
               </li>
@@ -231,7 +231,7 @@ function AccountCard() {
           </ul>
         )}
       </div>
-      <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
+      <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
         A no-confidence motion passes about {Math.round(noConfidenceChance(game) * 100)}% of the time today. The government has {govSeats(game)} seats ({MAJORITY} for a majority).
       </p>
     </section>
@@ -331,7 +331,7 @@ function RecordCard() {
         <>
           <div className="flex items-baseline justify-between mb-1">
             <h3 className="eyebrow">{mine ? "Your record so far" : `The ${cshort(game.agenda!.by)} government's record`}</h3>
-            <span className="text-[11px] font-semibold" style={{ color: card.grade > 0.05 ? "var(--good)" : card.grade < -0.25 ? "var(--bad)" : "var(--ink-2)" }}>
+            <span className="text-xs font-semibold" style={{ color: card.grade > 0.05 ? "var(--good)" : card.grade < -0.25 ? "var(--bad)" : "var(--ink-2)" }}>
               {card.verdict}
             </span>
           </div>
@@ -346,7 +346,7 @@ function RecordCard() {
                 </span>
               ))}
           </p>
-          <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+          <p className="text-xs" style={{ color: "var(--muted)" }}>
             When the campaign starts, this record goes before the voters: a good one lifts the government&apos;s Execution and Principle, a bad one sinks them.
           </p>
         </>
@@ -379,7 +379,7 @@ function RecordCard() {
               );
             })}
           </ul>
-          <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+          <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
             Policies take months to work through: numbers drift toward their new level, faster with a capable minister.
           </p>
         </div>
@@ -412,7 +412,7 @@ function LegacyCard() {
           );
         })}
       </ul>
-      <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+      <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
         Counted while you are Prime Minister.
       </p>
     </section>

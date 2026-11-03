@@ -15,6 +15,7 @@ import { resultView } from "@/game/systems/results";
 import { byId, mpOf } from "@/game/systems/people";
 import { MalaysiaMap, type MapMarker } from "../map/MalaysiaMap";
 import { coalColor, lensFill } from "../map/lenses";
+import { CoalitionFlag } from "../flags";
 
 /** The full-screen map behind everything: coloured by the current lens, with bubbles and rival pulses. */
 export function MainMap() {
@@ -107,7 +108,7 @@ function SeatTip({ i, x, y, reads }: { i: number; x: number; y: number; reads: S
       </div>
       <div style={{ color: "var(--muted)" }}>{STATE_BY_ID[seat.state].name}</div>
       <div className="mt-1 flex items-center gap-1.5">
-        <span className="swatch" style={{ background: coalColor(game.holders[i]) }} />
+        <CoalitionFlag game={game} c={game.holders[i]} size={10} />
         {mpOf(game, i)?.name ?? last.candidates[0].name} · {game.holderParties[i]} ({cshort(game.holders[i])})
       </div>
       <div style={{ color: "var(--ink-2)" }}>
@@ -116,7 +117,7 @@ function SeatTip({ i, x, y, reads }: { i: number; x: number; y: number; reads: S
       <div className="mt-1.5 flex flex-wrap gap-x-2.5" style={{ color: "var(--ink-2)" }}>
         {shares.map(([c, v]) => (
           <span key={c} className="inline-flex items-center gap-1">
-            <span className="swatch" style={{ background: coalColor(c), width: 7, height: 7 }} />
+            <CoalitionFlag game={game} c={c} size={10} />
             {cshort(c)} {pct(v)}
           </span>
         ))}
@@ -167,7 +168,7 @@ function DunTip({ i, x, y }: { i: number; x: number; y: number }) {
         {STATE_BY_ID[d.state].name} · in {SEATS[d.parent].name}
       </div>
       <div className="mt-1 flex items-center gap-1.5">
-        <span className="swatch" style={{ background: coalColor(game.dunHolders[i]) }} />
+        <CoalitionFlag game={game} c={game.dunHolders[i]} size={10} />
         {cshort(game.dunHolders[i])}
       </div>
     </div>

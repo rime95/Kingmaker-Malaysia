@@ -96,7 +96,7 @@ export function PartyRaceCount() {
   const max = Math.max(1, total);
   const rows = [{ name: `${game.career.name} (you)`, n: you, you: true }, ...race.rivals.map((x, k) => ({ name: x.name, n: rivals[k], you: false }))];
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgb(5 7 14 / 0.72)" }}>
+    <div className="modal-backdrop">
       <div className="panel pop-in w-full max-w-lg p-5 flex flex-col gap-4" role="dialog" aria-label="Party election count">
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>

@@ -19,7 +19,7 @@ export function TeamPanel() {
           <h3 className="eyebrow">
             Your team · {game.team.length} of {slots}
           </h3>
-          <span className="text-[11px]" style={{ color: "var(--ink-2)" }}>
+          <span className="text-xs" style={{ color: "var(--ink-2)" }}>
             {fmtRM(teamSalaries(game))} a week
           </span>
         </div>
@@ -37,7 +37,7 @@ export function TeamPanel() {
                 <input type="checkbox" className="mt-0.5" checked={!!x.auto} onChange={(e) => delegate(x.id, e.target.checked)} />
                 <span>
                   <span className="font-semibold">Delegate</span>: {DELEGATE_TEXT[x.role](x.skill)}
-                  <span className="block text-[11px]" style={{ color: "var(--muted)" }}>
+                  <span className="block text-xs" style={{ color: "var(--muted)" }}>
                     {x.auto ? "On. Paid from the war chest; stops if it drops below " + fmtRM(DELEGATE.reserve) + "." : "Off: you do this yourself."}
                   </span>
                 </span>
@@ -53,7 +53,7 @@ export function TeamPanel() {
             </li>
           ))}
         </ul>
-        <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
           Staff grow more skilled the longer they stay (and ask for more). Below {TEAM.poachBelow} loyalty rivals try to poach them; a bitter press secretary or strategist may
           leak. {nextRung > 0 ? `As ${RUNGS[nextRung]} you can employ ${TEAM.slots[nextRung]}.` : ""}
         </p>
@@ -69,7 +69,7 @@ export function TeamPanel() {
               <li key={x.id} className="inset p-3 flex flex-col gap-2">
                 <StaffHead x={x} />
                 {taken && (
-                  <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+                  <div className="text-xs" style={{ color: "var(--muted)" }}>
                     You already have a {ROLES[x.role].name.toLowerCase()}: only the better one counts.
                   </div>
                 )}
@@ -77,7 +77,7 @@ export function TeamPanel() {
                   Hire · {fmtRM(x.salary * TEAM.signingWeeks)} signing fee
                 </button>
                 {why && (
-                  <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+                  <div className="text-xs" style={{ color: "var(--muted)" }}>
                     {why}
                   </div>
                 )}
@@ -89,7 +89,7 @@ export function TeamPanel() {
           <button className="chip text-xs" disabled={game.me.funds < TEAM.headhuntCost} onClick={headhunt}>
             Hire a headhunter · {fmtRM(TEAM.headhuntCost)}
           </button>
-          <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+          <span className="text-xs" style={{ color: "var(--muted)" }}>
             A fresh shortlist now. Otherwise new candidates every four weeks.
           </span>
         </div>
@@ -113,14 +113,14 @@ function StaffHead({ x }: { x: Staff }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2">
           <span className="font-semibold text-sm truncate">{x.name}</span>
-          <span className="text-[11px] tabular-nums whitespace-nowrap" style={{ color: "var(--ink-2)" }}>
+          <span className="text-xs tabular-nums whitespace-nowrap" style={{ color: "var(--ink-2)" }}>
             {fmtRM(x.salary)}/wk
           </span>
         </div>
         <div className="text-xs" style={{ color: "var(--ink-2)" }}>
           {role.name} · <span aria-label={`skill ${x.skill} of 5`}>{"★".repeat(x.skill)}{"☆".repeat(5 - x.skill)}</span>
         </div>
-        <div className="text-[11px]" style={{ color: "var(--good)" }}>
+        <div className="text-xs" style={{ color: "var(--good)" }}>
           {role.effect(x.skill)}
         </div>
       </div>
@@ -131,7 +131,7 @@ function StaffHead({ x }: { x: Staff }) {
 function Loyalty({ v }: { v: number }) {
   const warn = v < TEAM.poachBelow;
   return (
-    <div className="flex items-center gap-2 text-[11px]">
+    <div className="flex items-center gap-2 text-xs">
       <span style={{ color: "var(--muted)" }}>Loyalty</span>
       <div className="flex-1 h-1 rounded-full" style={{ background: "var(--surface-2)" }}>
         <div className="h-full rounded-full" style={{ width: `${v}%`, background: warn ? "var(--bad)" : "var(--ink-2)" }} />

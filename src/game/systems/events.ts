@@ -15,7 +15,7 @@ import { hash01 } from "../rng";
 import { isGovernment, voterInputs, weekDate, type CardInstance, type GameState, type ReportLine } from "../state";
 import { contestingIn, cshort, PARTIES, SEATS, STATE_BY_ID, type CoalitionId } from "../world";
 import { MULTIRACIAL } from "./policies";
-import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, addPoints, contestChance, factionSize, promote, succession } from "./career";
+import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, addPoints, contestChance, factionSize, promote } from "./career";
 import { addSeg, describeSeg, type SegEffects } from "./segments";
 import { CAMPAIGN_CARDS, COUNCIL_CARD, MINISTER_SCANDAL_CARD, scandalMinister } from "./moreCards";
 import { CHAIRMAN_COUNSEL_CARD, CHAIRMAN_RIFT_CARD } from "./chairman";
@@ -676,13 +676,14 @@ function applyCareerEffect(s: GameState, e: Effect, lines: ReportLine[]): GameSt
       lines.push({ text: "You survive the leadership challenge. The party closes ranks.", tone: "good" });
     } else {
       c = { ...c, rung: PRESIDENT - 1, challenge: false, log: [{ week: s.week, text: `${c.name} is ousted as party president.` }, ...c.log].slice(0, 30) };
+      s = { ...s, ending: s.ending ?? { reason: "ousted", week: s.week } };
       lines.push({ text: "You lose the leadership challenge and drop back to Vice President. Win it back at a future AGM.", tone: "bad" });
     }
   }
   if (e.careerStepAside) {
-    const old = c.name;
-    c = succession(c, s.seed, s.week);
-    lines.push({ text: `${old} steps aside. ${c.name} becomes party president.`, tone: "info" });
+    // Your legacy first; your protégé takes over when you leave that screen.
+    s = { ...s, ending: s.ending ?? { reason: "chose", week: s.week } };
+    lines.push({ text: `${c.name} steps aside for ${c.protege}.`, tone: "info" });
   }
   return c === s.career ? s : { ...s, career: c };
 }
@@ -711,6 +712,34 @@ function festivalOn(date: Date): (typeof FESTIVALS)[number] | undefined {
   return undefined;
 }
 
+/**
+ * Never more than three decisions waiting: lower number = more urgent. A new card that is more urgent than the least
+ * urgent waiting card pushes it out (it lapses quietly); otherwise the new card waits for another week.
+ */
+export const CARD_PRIORITY: Record<string, number> = {
+  crisis: 0,
+  nominations: 1,
+  partnerWalkout: 1,
+  chairmanRift: 1,
+  mpJump: 1,
+  deputyRestless: 1,
+  agm: 2,
+  partyRace: 2,
+  council: 2,
+  appointment: 2,
+  seatTalks: 2,
+  divisionDemand: 2,
+  celebrity: 2,
+};
+const priorityOf = (kind: string) => CARD_PRIORITY[kind] ?? 3;
+
+/** The cards with room made for a new one, or null if it has to wait. */
+export function makeRoom(cards: CardInstance[], kind: string): CardInstance[] | null {
+  if (cards.length < CARDS.maxPending) return cards;
+  const worst = [...cards].sort((a, b) => priorityOf(b.kind) - priorityOf(a.kind) || b.week - a.week)[0];
+  return priorityOf(worst.kind) > priorityOf(kind) ? cards.filter((c) => c !== worst) : null;
+}
+
 /** Called once per week (inside advanceWeek): expire old cards, then add festival and random cards. */
 export function cardsWeek(s: GameState): { state: GameState; lines: ReportLine[] } {
   let state = s;
@@ -724,9 +753,10 @@ export function cardsWeek(s: GameState): { state: GameState; lines: ReportLine[]
   }
   const nextId = () => Math.max(0, ...state.cards.map((c) => c.id), s.week * 10) + 1;
   const add = (kind: string, seat?: number, person?: number) => {
+    const room = makeRoom(state.cards, kind);
+    if (!room) return;
     const card: CardInstance = { id: nextId(), kind, week: s.week, deadline: s.week + CARDS.answerWeeks, seat, person };
-    state = { ...state, cards: [...state.cards, card], cardLast: { ...state.cardLast, [kind]: s.week } };
-    lines.push({ text: `Needs you: ${CARD_BY_KIND[kind].title}.`, tone: "info" });
+    state = { ...state, cards: [...room, card], cardLast: { ...state.cardLast, [kind]: s.week } };
   };
 
   const date = weekDate(s.week);

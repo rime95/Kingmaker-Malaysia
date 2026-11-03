@@ -10,6 +10,7 @@ import { useGame } from "@/store/gameStore";
 import { cshort, STATE_BY_ID, type CoalitionId } from "@/game/world";
 import { CHART_ORDER, coalColor, pct } from "./common";
 import { hemicycle } from "./Dewan";
+import { CoalitionFlag } from "./flags";
 
 function useDunProjections(): DunProjection[] {
   const game = useGame((s) => s.game);
@@ -113,14 +114,14 @@ function StateCard({ id, proj, active, onPick }: { id: string; proj: DunProjecti
     >
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-semibold text-sm">{STATE_BY_ID[id].name}</span>
-        <span className="text-[11px] inline-flex items-center gap-1">
-          <span className="swatch" style={{ background: coalColor(rule.ruler) }} />
+        <span className="text-xs inline-flex items-center gap-1">
+          <CoalitionFlag game={game} c={rule.ruler} size={10} />
           {cshort(rule.ruler)}
           {rule.ruler === game.player ? " (you)" : ""}
         </span>
       </div>
       <SeatStrip seats={rule.seats} total={rule.total} />
-      <div className="text-[11px] flex flex-wrap justify-between gap-x-2" style={{ color: "var(--muted)" }}>
+      <div className="text-xs flex flex-wrap justify-between gap-x-2" style={{ color: "var(--muted)" }}>
         <span>
           {a.status === "campaign" ? `Polling ${weekLabel(a.pollWeek!)}` : weeksLeft <= 26 ? `Term ends in ${weeksLeft} wks` : `Term ends ${weekLabel(a.deadlineWeek)}`}
           {a.syncGE && a.status === "sitting" ? " · with GE" : ""}
@@ -235,7 +236,7 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
           <span className="text-sm">Campaigning: polling day {weekLabel(a.pollWeek!)}. Rivals are pouring effort into this state.</span>
         )}
       </div>
-      <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+      <p className="text-xs" style={{ color: "var(--muted)" }}>
         Governing a state pays RM {(PRN.stateIncomePerSeat / 1000).toFixed(0)}k per assembly seat a week and builds service in its parliamentary seats. State
         seats are generated inside each parliamentary seat; real names come later.
       </p>

@@ -13,6 +13,8 @@ import {
   delegateStaff,
   nominateCandidate,
   chairmanStumps,
+  retire,
+  leaveLegacy,
   draftPost,
   suggestCabinet,
   swearInCabinet,
@@ -137,6 +139,8 @@ interface Store {
   meet: (id: number) => void;
   nominate: (seat: number, person: number | "newface" | "local") => void;
   chairmanStump: (seat: number) => void;
+  retire: () => void;
+  leaveLegacy: () => void;
   draftPost: (post: PortfolioId, id: number | null) => void;
   suggestCabinet: () => void;
   swearIn: () => void;
@@ -439,6 +443,14 @@ export const useGame = create<Store>()(
         swearIn: () => {
           const g = get().game;
           if (g) result(swearInCabinet(g));
+        },
+        retire: () => {
+          const g = get().game;
+          if (g) result(retire(g));
+        },
+        leaveLegacy: () => {
+          const g = get().game;
+          if (g) result(leaveLegacy(g));
         },
         chairmanStump: (seat) => {
           const g = get().game;

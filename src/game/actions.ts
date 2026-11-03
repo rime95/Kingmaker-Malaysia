@@ -4,6 +4,7 @@
 import { ECONOMY, TURN_WEEKS } from "./config";
 import { chairmanCampaign } from "./systems/chairman";
 import { confirmCabinet, openNewTerm, resetDraft, setDraft } from "./systems/newterm";
+import { continueAfterEnding, retireNow } from "./systems/legacy";
 import { autoPick } from "./systems/nominations";
 import { standsAside } from "./systems/pacts";
 import { TALKS, claimSeat, concedeSeat, type TalkSeat } from "./systems/seattalks";
@@ -995,6 +996,8 @@ export function swearInCabinet(s: GameState): ActionResult {
   const r = confirmCabinet(s);
   return { ok: true, state: r.state, message: r.lines.map((l) => l.text).join(" ") };
 }
+export const retire = (s: GameState): ActionResult => teamResult(retireNow(s));
+export const leaveLegacy = (s: GameState): ActionResult => ({ ok: true, state: continueAfterEnding(s), message: s.ending?.reason === "ousted" ? "You fight on from the ranks." : `${s.career.protege} takes over.` });
 export const autoNominate = (s: GameState): ActionResult => teamResult(autoPick(s));
 export const claimTalkSeat = (s: GameState, r: TalkSeat): ActionResult => teamResult(claimSeat(s, r));
 export const concedeTalkSeat = (s: GameState, r: TalkSeat): ActionResult => teamResult(concedeSeat(s, r));

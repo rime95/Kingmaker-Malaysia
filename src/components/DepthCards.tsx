@@ -20,7 +20,7 @@ export function MessageCard() {
       <div className="flex items-baseline justify-between mb-1">
         <h3 className="eyebrow">Your message</h3>
         {cur && (
-          <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+          <span className="text-xs" style={{ color: "var(--muted)" }}>
             Discipline {Math.round(d * 100)}%
           </span>
         )}
@@ -54,7 +54,7 @@ export function MessageCard() {
         ))}
       </div>
       {cur && (
-        <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
           Changing costs {MESSAGE.switchCapital} capital and resets discipline.
         </p>
       )}
@@ -88,7 +88,7 @@ export function WingsCard() {
     <section>
       <div className="flex items-baseline justify-between mb-2">
         <h3 className="eyebrow">Party wings</h3>
-        <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+        <span className="text-xs" style={{ color: "var(--muted)" }}>
           Supreme Council meets in {next === COUNCIL_EVERY ? 0 : next} week{next === 1 ? "" : "s"}
         </span>
       </div>
@@ -112,7 +112,7 @@ export function GrowCoalitionCard() {
   return (
     <section>
       <h3 className="eyebrow mb-1">Grow your coalition</h3>
-      <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+      <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
         Invite a party to join you, MPs and all. Unhappy partners of other coalitions listen most; a coalition&apos;s lead party brings its whole coalition. {RECRUIT.ap} AP,{" "}
         {RECRUIT.capital} capital, and {fmtRM(RECRUIT.perMp)} for each MP they bring.
       </p>
@@ -126,7 +126,7 @@ export function GrowCoalitionCard() {
                 <b>{r.party}</b> <span style={{ color: "var(--muted)" }}>· {r.mps} MPs · {lead ? `merges all of ${cshort(r.from)}` : `from ${cshort(r.from)}`}</span>
               </span>
               <span style={{ color: odds === "likely" ? "var(--good)" : odds === "maybe" ? "var(--accent)" : "var(--muted)" }}>{odds}</span>
-              <button className="chip !py-0.5 text-[11px]" disabled={!!r.why} title={r.why ?? undefined} onClick={() => deep({ kind: "recruit", party: r.party })}>
+              <button className="chip !py-0.5 text-xs" disabled={!!r.why} title={r.why ?? undefined} onClick={() => deep({ kind: "recruit", party: r.party })}>
                 Invite
               </button>
             </li>

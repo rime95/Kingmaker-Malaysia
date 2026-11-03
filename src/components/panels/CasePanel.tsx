@@ -49,7 +49,7 @@ export function CasePanel() {
     <div className="flex flex-col gap-5">
       <section>
         <h3 className="eyebrow mb-1">What voters think</h3>
-        <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
           Voters pick the party they believe has the best plans, means what it says, gets things done and could run the country. Urban and young voters weigh
           principle most; rural and B40 voters weigh delivery. Your ground work carries your case into each seat.
         </p>
@@ -80,7 +80,7 @@ export function CasePanel() {
             </div>
           ))}
         </div>
-        <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
           Only change since the start moves votes (+/− shown). Your manifesto is your stance on each policy:{" "}
           <button className="underline" onClick={() => showPanel("policy")}>
             edit it in Policy
@@ -108,7 +108,7 @@ export function CasePanel() {
 
       <section>
         <h3 className="eyebrow mb-1">Go after a rival</h3>
-        <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
           {MOVES.expose.blurb} {MOVES.expose.ap} AP, {fmtRM(MOVES.expose.cost)}, {MOVES.expose.capital} capital. They will hit back.
         </p>
         <div className="flex flex-wrap gap-1.5 mb-2">
@@ -139,7 +139,7 @@ export function CasePanel() {
 
       <section>
         <h3 className="eyebrow mb-1">Leaders&apos; debate</h3>
-        <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
           Once a campaign, against {cshort(debateRival(game))}. Pick your line: what wins depends on where you lead and where they&apos;re weak. A loss hurts.
         </p>
         <div className="grid gap-1.5 @md:grid-cols-3">

@@ -5,6 +5,7 @@ import { useGame } from "@/store/gameStore";
 import { SEATS } from "@/game/world";
 import { fmtRM } from "../common";
 import { Icon } from "./icons";
+import { TermText } from "../Term";
 
 const TONE = { good: "var(--good)", bad: "var(--bad)", info: "var(--ink-2)" } as const;
 
@@ -46,7 +47,9 @@ export function ReportBody({ report, limit }: { report: WeekReport; limit?: numb
             <span aria-hidden style={{ color: TONE[l.tone ?? "info"] }}>
               {l.tone === "good" ? "▲" : l.tone === "bad" ? "▼" : "•"}
             </span>
-            <span>{l.text}</span>
+            <span>
+              <TermText text={l.text} />
+            </span>
           </li>
         ))}
         {limit && all.length > limit && (

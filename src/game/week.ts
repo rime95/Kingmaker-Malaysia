@@ -15,6 +15,7 @@ import { coalitionsWeek, syncNames } from "./systems/coalitions";
 import { leaderOfParty, peopleMonth, syncYou } from "./systems/people";
 import { chairmanWeek } from "./systems/chairman";
 import { confirmCabinet } from "./systems/newterm";
+import { continueAfterEnding } from "./systems/legacy";
 import { celebritySeat, divisionDemand } from "./systems/nomcards";
 import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
 import { CONTEST_POINTS } from "./systems/career";
@@ -25,7 +26,7 @@ import { nominationsWeek } from "./systems/nominations";
 import { naturalSupport } from "./voter";
 import { ROLES, pollError, teamDonations, teamRaidMult, teamSalaries, teamUpkeepMult, teamWeek } from "./systems/team";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
-import { cardsWeek } from "./systems/events";
+import { CARD_BY_KIND, cardsWeek, makeRoom } from "./systems/events";
 import { rivalsWeek } from "./systems/rivals";
 import { decaySeg } from "./systems/segments";
 import { fmtRM } from "./money";
@@ -69,7 +70,9 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
 export function advanceWeek(input: GameState): GameState {
   // Unfinished government talks resolve before time moves on.
   syncNames(input);
-  const formed = input.formation ? autoResolveFormation(input) : input;
+  // A legacy screen still up when time moves on: the dynasty carries on.
+  const carried = input.ending ? continueAfterEnding(input) : input;
+  const formed = carried.formation ? autoResolveFormation(carried) : carried;
   // A cabinet still on the drawing board when time moves on is sworn in as drafted.
   const resolved = formed.newTerm ? confirmCabinet(formed).state : formed;
   const before = projectAllFor(resolved);
@@ -289,8 +292,9 @@ export function advanceWeek(input: GameState): GameState {
   const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis", nominations: "name your candidates", council: "the Supreme Council meets", chairmanCounsel: "the chairman has advice", chairmanRift: "the chairman breaks ranks", divisionDemand: "a division chief wants the ticket", celebrity: "a famous face wants to stand" };
   const addCard = (kind: string, party?: string, person?: number, seat?: number) => {
     const id = Math.max(0, ...next.cards.map((c) => c.id), next.week * 10) + 1;
-    next = { ...next, cards: [...next.cards, { id, kind, week: next.week, deadline: next.week + 2, party, person, seat }], cardLast: { ...next.cardLast, [kind]: next.week } };
-    lines.push({ text: `Needs you: ${CARD_NEWS[kind]}.`, tone: "info" });
+    const room = makeRoom(next.cards, kind);
+    if (!room) return;
+    next = { ...next, cards: [...room, { id, kind, week: next.week, deadline: next.week + 2, party, person, seat }], cardLast: { ...next.cardLast, [kind]: next.week } };
   };
   if (coal.warn && next.cards.length < 4) addCard("partnerWalkout", coal.warn);
   if (next.week % COUNCIL_EVERY === 3 && next.career.rung >= 6 && !next.cards.some((c) => c.kind === "council")) addCard("council");
@@ -376,6 +380,10 @@ export function advanceWeek(input: GameState): GameState {
   // Polls: a national poll every four weeks, branch reports where your machinery is strong
   const after = projectAllFor(next);
   next = { ...next, polls: pollsWeek(next.polls, after, next.seed, next.week, next.player, next.me.machinery, pollError(next), next.entries) };
+
+  // One line for the decisions waiting on you, not one per card.
+  const fresh = next.cards.filter((c) => c.week === next.week);
+  if (fresh.length) lines.push({ text: `Needs you: ${fresh.length === 1 ? "a decision" : `${fresh.length} decisions`} (${fresh.map((c) => CARD_NEWS[c.kind] ?? CARD_BY_KIND[c.kind]?.title.toLowerCase() ?? c.kind).join("; ")}).`, tone: "info" });
 
   // Report (seat counts are what the latest national poll says, not the hidden truth)
   const seatsBefore = s.polls.national[0]?.seats[s.player] ?? 0;

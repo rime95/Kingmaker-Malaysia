@@ -30,7 +30,7 @@ export function NewTerm() {
       <div className="mx-auto max-w-[1100px] px-4 py-6 flex flex-col gap-4">
         <header className="panel p-5 text-center flex flex-col items-center gap-2 relative overflow-hidden">
           <JalurGemilang height={34} wave />
-          <div className="text-[11px] font-bold tracking-[0.3em] tv-gold">ISTANA NEGARA · ANGKAT SUMPAH</div>
+          <div className="text-xs font-bold tracking-[0.3em] tv-gold">ISTANA NEGARA · ANGKAT SUMPAH</div>
           <h2 className="text-2xl md:text-3xl font-black">{game.career.name}, Prime Minister of Malaysia</h2>
           <p className="text-sm max-w-xl" style={{ color: "var(--ink-2)" }}>
             You have taken the oath before the Agong. Now name your cabinet: every post is yours to fill. Give partners a fair share of the posts or they will
@@ -88,7 +88,7 @@ export function NewTerm() {
           <aside className="flex flex-col gap-3 lg:sticky lg:top-4">
             <section className="panel p-3 flex flex-col gap-2">
               <h3 className="eyebrow">Fair shares</h3>
-              <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+              <p className="text-xs" style={{ color: "var(--muted)" }}>
                 Posts each party holds against what its seats earn. Below the line, they feel shortchanged.
               </p>
               {parties.map((party) => {

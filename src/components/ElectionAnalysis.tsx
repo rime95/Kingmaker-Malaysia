@@ -22,7 +22,7 @@ export function ElectionAnalysisModal() {
   }, [open, set]);
   if (!open || !a) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto" style={{ background: "rgb(5 7 14 / 0.65)" }} onClick={() => set(false)}>
+    <div className="modal-backdrop modal-top" onClick={() => set(false)}>
       <div className="panel w-full max-w-5xl my-8 p-5 @container" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Election analysis">
         <AnalysisBody a={a} onDone={() => set(false)} />
       </div>
@@ -91,7 +91,7 @@ export function AnalysisBody({ a, onDone }: { a: Analysis; onDone?: () => void }
       <div className="grid gap-4 @2xl:grid-cols-2">
         <section>
           <h3 className="eyebrow mb-1">Who voted for you (estimate)</h3>
-          <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+          <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
             Your share among each group, from where they live. Faded bar: last time.
           </p>
           <div className="flex flex-col gap-1.5">
@@ -142,11 +142,11 @@ export function AnalysisBody({ a, onDone }: { a: Analysis; onDone?: () => void }
 function Tile({ label, value, delta, good }: { label: string; value: string; delta: string; good: boolean }) {
   return (
     <div className="inset p-2.5">
-      <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+      <div className="text-xs" style={{ color: "var(--muted)" }}>
         {label}
       </div>
       <div className="text-lg font-bold tabular-nums leading-tight">{value}</div>
-      <div className="text-[11px]" style={{ color: good ? "var(--good)" : "var(--bad)" }}>
+      <div className="text-xs" style={{ color: good ? "var(--good)" : "var(--bad)" }}>
         {delta}
       </div>
     </div>
@@ -157,7 +157,7 @@ function SeatList({ title, hint, notes, go }: { title: string; hint: string; not
   return (
     <section>
       <h3 className="eyebrow">{title}</h3>
-      <p className="text-[11px] mb-1.5" style={{ color: "var(--muted)" }}>
+      <p className="text-xs mb-1.5" style={{ color: "var(--muted)" }}>
         {hint}
       </p>
       {notes.length === 0 ? (

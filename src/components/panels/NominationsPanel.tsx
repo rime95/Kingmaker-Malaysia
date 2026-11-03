@@ -91,7 +91,7 @@ function SeatTalks() {
           </div>
         ))}
       </div>
-      <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+      <p className="text-xs" style={{ color: "var(--muted)" }}>
         Each side keeps the seats it holds; open seats are shared by vote. Claim a seat and goodwill falls (more where their claim is strong, a lot where they hold it).
         Concede one and it rises. Below {TALKS.floor} they refuse. {blocked ?? "Talks lock on nomination day."}
       </p>
@@ -134,7 +134,7 @@ function CandidateCard({ p, seat, picked, onPick, you }: { p: Person; seat: numb
   const v = candidateStrength(game, seat, p);
   return (
     <div className="inset px-2.5 py-2 text-xs flex gap-2 items-start" style={{ outline: picked ? "2px solid var(--accent)" : undefined }}>
-      <span className="party-avatar !w-8 !h-8 !text-[10px]" style={{ background: "var(--surface-2)" }} aria-hidden>
+      <span className="party-avatar !w-8 !h-8 !text-xs" style={{ background: "var(--surface-2)" }} aria-hidden>
         {initials(p.name)}
       </span>
       <div className="min-w-0 flex-1">
@@ -164,7 +164,7 @@ function CandidateCard({ p, seat, picked, onPick, you }: { p: Person; seat: numb
           {Math.abs(v * 100).toFixed(0)}
         </span>
         {onPick && !picked && (
-          <button className="chip !py-0.5 text-[11px]" onClick={onPick}>
+          <button className="chip !py-0.5 text-xs" onClick={onPick}>
             Pick
           </button>
         )}
@@ -222,7 +222,7 @@ function Candidates() {
       {president && n.open && (
         <section>
           <h3 className="eyebrow mb-1.5">Stand somewhere new</h3>
-          <p className="text-[11px] mb-1.5" style={{ color: "var(--muted)" }}>
+          <p className="text-xs mb-1.5" style={{ color: "var(--muted)" }}>
             Open branches before nomination day to put up candidates where your coalition never stood. Under 12.5% of the vote loses the RM 10k deposit.
           </p>
           <ActionCard id="launchState" target={{ kind: "state", state: SEATS[home].state }} compact />
@@ -264,7 +264,7 @@ function Candidates() {
                     </span>
                   </button>
                   {president && n.open && (
-                    <button className="chip !py-0.5 text-[11px]" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : i)}>
+                    <button className="chip !py-0.5 text-xs" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : i)}>
                       {expanded ? "Close" : "Shortlist"}
                     </button>
                   )}
@@ -276,17 +276,17 @@ function Candidates() {
                       <CandidateCard key={p.id} p={p} seat={i} onPick={() => nominate(i, p.id)} you={p.id === game.youId} />
                     ))}
                     <div className="flex flex-wrap gap-1">
-                      <button className="chip text-[11px]" onClick={() => nominate(i, "newface")}>
+                      <button className="chip text-xs" onClick={() => nominate(i, "newface")}>
                         + A new face (young local)
                       </button>
-                      <button className="chip text-[11px]" onClick={() => nominate(i, "local")}>
+                      <button className="chip text-xs" onClick={() => nominate(i, "local")}>
                         + Poach a local figure (RM 500k)
                       </button>
                       {more.length > 0 && (
                         <select
                           value=""
                           onChange={(e) => e.target.value && nominate(i, Number(e.target.value))}
-                          className="rounded-md px-1.5 py-1 text-[11px]"
+                          className="rounded-md px-1.5 py-1 text-xs"
                           style={{ background: "var(--surface-2)", color: "var(--ink)", border: "1px solid var(--line)" }}
                         >
                           <option value="">Everyone else ({more.length})…</option>
@@ -304,7 +304,7 @@ function Candidates() {
             );
           })}
         </ul>
-        <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
           The number on each card is their personal vote here. Traits play differently seat to seat: an ustaz in rural Malay seats, a technocrat in the cities, anak
           tempatan at home. Drop a sitting MP and they may run as an independent.
         </p>

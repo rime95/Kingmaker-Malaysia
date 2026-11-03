@@ -5,6 +5,7 @@ import { ACTION_BY_ID, actionBlocked, actionCost, previewAction, type Target } f
 import { hasOrder } from "@/game/systems/orders";
 import { useGame } from "@/store/gameStore";
 import { fmtRM } from "./common";
+import { TermText } from "./Term";
 
 /** Groups whose moves can be standing orders (repeated every turn). */
 const REPEATABLE = ["local", "national", "finance"];
@@ -40,12 +41,12 @@ export function ActionCard({ id, target, compact = false, dense = false }: { id:
           style={{ borderColor: standing ? "var(--accent)" : "var(--line)", background: "var(--surface-2)", opacity: blocked ? 0.55 : 1 }}
         >
           <span className="flex-1 min-w-0">
-            <span className="block font-semibold text-[13px] truncate">{def.name}</span>
-            <span className="block text-[10.5px] truncate" style={{ color: blocked ? "var(--muted)" : "var(--ink-2)" }}>
+            <span className="block font-semibold text-[13px] truncate"><TermText text={def.name} /></span>
+            <span className="block text-xs truncate" style={{ color: blocked ? "var(--muted)" : "var(--ink-2)" }}>
               {blocked ?? estimate ?? def.blurb}
             </span>
           </span>
-          <span className="text-[10.5px] tabular-nums whitespace-nowrap text-right" style={{ color: "var(--ink-2)" }}>
+          <span className="text-xs tabular-nums whitespace-nowrap text-right" style={{ color: "var(--ink-2)" }}>
             {def.ap} AP
             <br />
             {cost ? fmtRM(cost) : ""}
@@ -79,23 +80,23 @@ export function ActionCard({ id, target, compact = false, dense = false }: { id:
         }}
       >
         <div className="flex items-baseline justify-between gap-2">
-          <span className="font-semibold text-sm">{def.name}</span>
-          <span className="text-[11px] tabular-nums whitespace-nowrap" style={{ color: "var(--ink-2)" }}>
+          <span className="font-semibold text-sm"><TermText text={def.name} /></span>
+          <span className="text-xs tabular-nums whitespace-nowrap" style={{ color: "var(--ink-2)" }}>
             {def.ap} AP{cost ? ` · ${fmtRM(cost)}` : ""}
           </span>
         </div>
         {!compact && (
           <div className="text-xs mt-0.5" style={{ color: "var(--ink-2)" }}>
-            {def.blurb}
+            <TermText text={def.blurb} />
           </div>
         )}
-        <div className="text-[11px] mt-1 font-medium pr-16" style={{ color: blocked ? "var(--muted)" : "var(--ink)" }}>
+        <div className="text-xs mt-1 font-medium pr-16" style={{ color: blocked ? "var(--muted)" : "var(--ink)" }}>
           {blocked ?? estimate ?? " "}
         </div>
       </button>
       {REPEATABLE.includes(def.group) && (
         <button
-          className="absolute bottom-1.5 right-1.5 rounded-md px-1.5 text-[11px] leading-5"
+          className="absolute bottom-1.5 right-1.5 rounded-md px-1.5 text-xs leading-5"
           onClick={() => order(id, target)}
           title={standing ? "Standing order: runs at the start of every turn. Click to cancel." : "Repeat this every turn (standing order)"}
           aria-pressed={standing}

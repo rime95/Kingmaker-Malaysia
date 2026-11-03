@@ -62,7 +62,7 @@ function Ministers() {
           );
         })}
       </ul>
-      <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
+      <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
         Competence above 60 helps, below it hurts; an empty ministry hurts most. A strong cabinet also raises your Execution with voters.
       </p>
     </section>
@@ -91,7 +91,7 @@ function ShadowCabinet() {
             <li key={post} className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)_44px] items-center gap-2 text-xs">
               <span className="truncate" style={{ color: "var(--muted)" }} title={kpis.join(", ")}>
                 Shadow {PORTFOLIOS.find((x) => x.id === post)!.name}
-                {kpis.length ? <span className="block text-[10px]">{kpis.join(", ")}</span> : null}
+                {kpis.length ? <span className="block text-xs">{kpis.join(", ")}</span> : null}
               </span>
               <select
                 value={p?.id ?? ""}

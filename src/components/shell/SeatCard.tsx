@@ -19,6 +19,7 @@ import { SeatIssues, WhyBreakdown } from "./SeatBits";
 import { chancePct, fmt, fmtRM, pct, useReads } from "../common";
 import { coalColor } from "../map/lenses";
 import { Icon } from "./icons";
+import { CoalitionFlag } from "../flags";
 
 const SEAT_ACTIONS = ["ground", "ceramah", "walkabout", "issue", "service", "machinery", "handout"];
 
@@ -51,12 +52,12 @@ export function SeatCard({ embedded = false }: { embedded?: boolean }) {
     <div className={embedded ? "flex flex-col -mx-5 -my-4" : "panel pop-in flex flex-col max-h-full w-full md:w-[340px]"} aria-label={`${seat.name} seat`}>
       <div className="flex items-start gap-2 px-4 pt-3.5 pb-3" style={{ borderBottom: "1px solid var(--line)" }}>
         <div className="flex-1 min-w-0">
-          <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+          <div className="text-xs" style={{ color: "var(--muted)" }}>
             {seat.code} · {STATE_BY_ID[seat.state].name}
           </div>
           <div className="text-lg font-bold leading-tight truncate">{seat.name}</div>
           <div className="flex items-center gap-1.5 text-xs mt-1" style={{ color: "var(--ink-2)" }}>
-            <span className="swatch" style={{ background: coalColor(holder) }} />
+            <CoalitionFlag game={game} c={holder} size={10} />
             <span className="truncate">
               {mpOf(game, i)?.name ?? last.candidates[0].name} · {game.holderParties[i]} ({cshort(holder)})
             </span>
@@ -100,7 +101,7 @@ export function SeatCard({ embedded = false }: { embedded?: boolean }) {
           <section>
             <div className="mb-1.5">
               <h3 className="eyebrow">Your moves here</h3>
-              <span className="text-[11px] block" style={{ color: "var(--ink-2)" }}>
+              <span className="text-xs block" style={{ color: "var(--ink-2)" }}>
                 {fortressLevel(game.me.service[i])} · service {Math.round(game.me.service[i])} · machinery {Math.round(game.me.machinery[i])} · buzz {Math.round(game.me.buzz[i])}
               </span>
             </div>
@@ -137,7 +138,7 @@ export function SeatCard({ embedded = false }: { embedded?: boolean }) {
             <h3 className="eyebrow mb-1.5">Rivals working this seat</h3>
             {rivals.map((x) => (
               <div key={x.c} className="flex items-center gap-2 text-xs py-0.5">
-                <span className="swatch" style={{ background: coalColor(x.c) }} />
+                <CoalitionFlag game={game} c={x.c} size={10} />
                 {cshort(x.c)}
                 {x.hostile && <span style={{ color: "var(--bad)" }}>▲ hostile</span>}
                 <span className="ml-auto tabular-nums" style={{ color: "var(--ink-2)" }}>
@@ -162,15 +163,15 @@ export function SeatCard({ embedded = false }: { embedded?: boolean }) {
                 <span className="tabular-nums text-right">{pct(seat.demo.ethnic[b])}</span>
               </div>
             ))}
-            <div className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+            <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>
               Urban {pct(seat.demo.urbanity)} · aged 18–29 {pct(seat.demo.youth)} · B40 {pct(seat.demo.b40)} (estimates)
             </div>
             {duns.length > 0 && (
-              <div className="text-[11px] mt-1" style={{ color: "var(--ink-2)" }}>
+              <div className="text-xs mt-1" style={{ color: "var(--ink-2)" }}>
                 State seats:{" "}
                 {duns.map((d) => (
                   <span key={d.index} className="inline-flex items-center gap-1 mr-2">
-                    <span className="swatch" style={{ background: coalColor(game.dunHolders[d.index]), width: 8, height: 8 }} />
+                    <CoalitionFlag game={game} c={game.dunHolders[d.index]} size={10} />
                     {d.code} {d.name}
                   </span>
                 ))}
@@ -188,7 +189,7 @@ function LatestResult({ r }: { r: ResultView }) {
     <section>
       <div className="flex items-baseline justify-between mb-1.5">
         <h3 className="eyebrow">Latest result · {r.label}</h3>
-        <span className="text-[11px]" style={{ color: "var(--ink-2)" }}>
+        <span className="text-xs" style={{ color: "var(--ink-2)" }}>
           {r.week === null ? "19 Nov 2022" : weekLabel(r.week)}
         </span>
       </div>
@@ -207,11 +208,11 @@ function LatestResult({ r }: { r: ResultView }) {
         </div>
       ))}
       {r.candidates.length > 4 && (
-        <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+        <div className="text-xs" style={{ color: "var(--muted)" }}>
           +{r.candidates.length - 4} more candidate{r.candidates.length - 4 === 1 ? "" : "s"}
         </div>
       )}
-      <div className="text-[11px] mt-1" style={{ color: "var(--ink-2)" }}>
+      <div className="text-xs mt-1" style={{ color: "var(--ink-2)" }}>
         Majority {fmt(r.majority)} · turnout {pct(r.turnout)} · {fmt(r.electors)} voters
       </div>
     </section>
@@ -234,7 +235,7 @@ function Chances({ read, seat }: { read: SeatRead; seat: number }) {
     <section>
       <div className="flex items-baseline justify-between mb-1.5">
         <h3 className="eyebrow">Your chances here</h3>
-        <span className="text-[11px] font-semibold" style={{ color: tone }}>
+        <span className="text-xs font-semibold" style={{ color: tone }}>
           {CHANCE_LABEL[band]}
         </span>
       </div>
@@ -247,16 +248,16 @@ function Chances({ read, seat }: { read: SeatRead; seat: number }) {
             <div className="h-full rounded-full" style={{ width: `${chance * 100}%`, background: tone }} />
             <div className="absolute -top-0.5 -bottom-0.5 w-px" style={{ left: "50%", background: "var(--ink-2)" }} />
           </div>
-          <div className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+          <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>
             {SOURCE_TEXT[read.source]}
             {read.pollster ? ` (${read.pollster})` : ""} · {age === 0 ? "this week" : `${age} wk${age === 1 ? "" : "s"} old`} · ±{Math.round(effectiveMoe(read, game.week) * 100)}%
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap gap-x-3 text-[11px] mt-1.5" style={{ color: "var(--ink-2)" }}>
+      <div className="flex flex-wrap gap-x-3 text-xs mt-1.5" style={{ color: "var(--ink-2)" }}>
         {shares.map(([c, v]) => (
           <span key={c} className="inline-flex items-center gap-1">
-            <span className="swatch" style={{ background: coalColor(c), width: 8, height: 8 }} />
+            <CoalitionFlag game={game} c={c} size={10} />
             {cshort(c)} {pct(v)}
           </span>
         ))}
@@ -266,7 +267,7 @@ function Chances({ read, seat }: { read: SeatRead; seat: number }) {
         {polledThisWeek ? "Polled this week" : `Commission a poll · ${fmtRM(POLLS.seatCost)}`}
       </button>
       {read.source === "estimate" && (
-        <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
           Build machinery to {POLLS.branchMachinery}+ here and your branch reports every week for free.
         </p>
       )}
@@ -290,7 +291,7 @@ function Candidates({ seat }: { seat: number }) {
       <h3 className="eyebrow mb-1.5">{game.nominations?.open ? "Likely candidates" : "Candidates"}</h3>
       {list.map((x) => (
         <div key={x.c} className="flex items-center gap-1.5 text-xs py-0.5">
-          <span className="swatch" style={{ background: coalColor(x.c), width: 8, height: 8 }} />
+          <CoalitionFlag game={game} c={x.c} size={10} />
           <span className="truncate">
             {x.name}
             {x.you ? " (you)" : ""} <span style={{ color: "var(--muted)" }}>{x.party} · {cshort(x.c)}</span>

@@ -13,6 +13,7 @@ import { initCoalitions, initPartySat, type Coalitions } from "./systems/coaliti
 import { initPeople, makeChairman, syncYou, type Person } from "./systems/people";
 import { restoreChairman } from "./systems/chairman";
 import type { NewTerm } from "./systems/newterm";
+import type { Ending } from "./systems/legacy";
 import type { PortfolioId } from "./data/people";
 import type { PartyRace } from "./systems/partyrace";
 import { initTeam, pollError, type Staff } from "./systems/team";
@@ -42,7 +43,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -242,6 +243,8 @@ export interface GameState {
   policyLog: PolicyEntry[];
   /** After an election you win as PM: the cabinet you are drawing up. */
   newTerm: NewTerm | null;
+  /** Your leader's road has ended: the legacy screen is up. */
+  ending: Ending | null;
 }
 
 export interface NewGameOptions {
@@ -349,6 +352,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     battlegrounds: {},
     policyLog: [],
     newTerm: null,
+    ending: null,
   };
   if (!contestingIn(SEATS[state.career.homeSeat]).includes(player)) state.entries = { [state.career.homeSeat]: [player] };
   Object.assign(state, initPeople(state));
@@ -465,6 +469,7 @@ export function migrateGame(g: GameState): GameState {
   // Saves from before the Party Chairman: a leader you replaced comes back as your chairman.
   if ((g.version ?? 0) < 16) Object.assign(migrated, restoreChairman(migrated));
   migrated.newTerm = g.newTerm ?? null;
+  migrated.ending = g.ending ?? null;
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));
   if (!migrated.objectives.length) migrated.objectives = newObjectives(migrated);
   return migrated;

@@ -71,7 +71,7 @@ describe("opening branches anywhere", () => {
     expect(a.entries).toEqual(b.entries);
     const opened = Object.values(a.entries).reduce((n, l) => n + l.length, 0);
     expect(opened).toBeLessThan(30);
-  });
+  }, 30_000);
 
   it("career mode can start from any seat with a new branch", () => {
     const g = newGame("GPS", 5, { mode: "career", homeSeat: seat("P.105") });

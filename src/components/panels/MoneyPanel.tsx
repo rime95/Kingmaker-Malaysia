@@ -83,7 +83,7 @@ function Bursa() {
       )}
       <section>
         <h3 className="eyebrow mb-1.5">Bursa Malaysia</h3>
-        <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
           Prices follow growth, the OPR, crises, projects and your own policies. Buying a sector right before your government moves it is insider trading.
         </p>
         <ul className="flex flex-col gap-1">
@@ -271,7 +271,7 @@ function Property() {
             );
           })}
         </ul>
-        <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
           Prices in {STATE_BY_ID[state].name} move with the economy and rise while your government builds projects there (and jump when they open). Mortgages cost the OPR + 2%; paying off in the first 3 years costs 2%.
         </p>
       </section>
@@ -295,7 +295,7 @@ function Wealth() {
   return (
     <div className="flex flex-col gap-4">
       <section className="inset p-3">
-        <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+        <div className="text-xs" style={{ color: "var(--muted)" }}>
           Your net worth
         </div>
         <div className="text-2xl font-bold tabular-nums">{fmtRM(worth)}</div>
@@ -346,7 +346,7 @@ function Wealth() {
             Donate
           </button>
         </div>
-        <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
           Goes into the war chest. Every {fmtRM(WEALTH.donationPerPoint)} earns a career point (up to 3 at a time).
         </p>
       </section>

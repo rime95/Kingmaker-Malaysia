@@ -109,7 +109,7 @@ export function AlertModal() {
 
 function Shell({ tag, sub, children }: { tag: string; sub?: string; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgb(5 7 14 / 0.6)" }} role="dialog" aria-label={tag}>
+    <div className="modal-backdrop" role="dialog" aria-label={tag}>
       <div className="panel pop-in w-full max-w-md p-6 flex flex-col gap-4">
         <div className="flex justify-center items-center gap-2">
           <span className="eyebrow rounded-full px-3 py-1" style={{ background: "rgb(242 85 90 / 0.12)", color: "var(--bad)", border: "1px solid rgb(242 85 90 / 0.3)" }}>

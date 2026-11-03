@@ -87,7 +87,7 @@ export function CampaignPanel() {
             ))}
           </div>
           {ACTIONS.some((a) => a.group === "role" && a.target === "state" && a.rungs?.includes(game.career.rung)) && (
-            <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+            <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
               Ministry projects go to the state picked under By state below.
             </p>
           )}

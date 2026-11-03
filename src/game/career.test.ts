@@ -63,6 +63,9 @@ describe("career", () => {
     let g = newGame("PH", 3);
     g = { ...g, career: { ...g.career, age: g.career.retireAge } };
     const heir = g.career.protege;
+    // The week they retire, the game pauses on their legacy; the next week the protégé leads.
+    g = advanceWeek(g);
+    expect(g.ending?.reason).toBe("retired");
     g = advanceWeek(g);
     expect(g.career.generation).toBe(2);
     expect(g.career.name).toBe(heir);

@@ -106,7 +106,7 @@ function NextVote({ m }: { m: Motion }) {
         <p className="text-sm mt-1" style={{ color: "var(--ink-2)" }}>
           {def.blurb}
         </p>
-        <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
           Voters: {segs.map(([k, v]) => `${SEGMENT_LABEL[k]} ${v > 0 ? "▲" : "▼"}`).join(" · ")}
           {def.approval ? ` · government approval ${def.approval > 0 ? "+" : ""}${def.approval} if it passes` : ""}
         </p>
@@ -125,7 +125,7 @@ function NextVote({ m }: { m: Motion }) {
           <div style={{ width: `${(projected.noes / 222) * 100}%`, background: VOTE_COLOR.no }} />
           <div className="absolute -top-0.5 -bottom-0.5 w-0.5" style={{ left: `${(need / 222) * 100}%`, background: "var(--ink)" }} />
         </div>
-        <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
+        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
           Projection if the vote were now (whips hold most MPs; leanings and low trust break some away). Needs {need}.
         </p>
       </div>

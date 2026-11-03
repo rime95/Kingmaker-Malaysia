@@ -1,8 +1,7 @@
 "use client";
 
-// Bahasa Malaysia / English for the main navigation, controls and Election Night. Detailed game text is English.
-
-import { useGame } from "@/store/gameStore";
+// The game reads in English, with Malay political terms kept as they are used in Malaysia (ceramah, rampas, Agong).
+// GLOSSARY gives each term one spelling and a short English gloss, shown as a tooltip wherever <Term> wraps it.
 
 const STRINGS = {
   overview: { en: "Overview", ms: "Ringkasan" },
@@ -47,6 +46,24 @@ const STRINGS = {
 export type StringKey = keyof typeof STRINGS;
 
 export function useT(): (key: StringKey) => string {
-  const lang = useGame((s) => s.lang);
-  return (key) => STRINGS[key][lang];
+  return (key) => STRINGS[key].en;
 }
+
+/** Malay terms the game keeps, with what they mean. */
+export const GLOSSARY: Record<string, string> = {
+  Ceramah: "A political rally or talk, often at night",
+  Rampas: "Seized: a seat taken from another party",
+  Kekal: "Held: the party keeps the seat",
+  Terlepas: "Lost: the seat slipped away",
+  Agong: "The Yang di-Pertuan Agong, Malaysia's king, who appoints the Prime Minister",
+  "Dewan Rakyat": "The lower house of Parliament: 222 seats, 112 for a majority",
+  PRU: "Pilihan Raya Umum: a general election",
+  PRN: "Pilihan Raya Negeri: a state election",
+  "Wakil Rakyat": "An elected representative (MP or state assemblyman)",
+  "Ketua Bahagian": "Division chief: runs the party in one parliamentary seat",
+  "Ketua Cawangan": "Branch chief: the party's grassroots leader in a village or neighbourhood",
+  "Menteri Besar": "Chief minister of a state with a ruler",
+  Istana: "The palace",
+  rakyat: "The people",
+  Pengerusi: "Chairman",
+};

@@ -26,7 +26,7 @@ export function PactsCard() {
   return (
     <section>
       <h3 className="eyebrow mb-1">Seat pacts</h3>
-      <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+      <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
         Stop splitting the vote. Each side keeps the seats it holds and the rest are shared by vote; most of the withdrawn side&apos;s voters follow the deal.
         Then claim or concede seats in Seat talks (Nominations tab), and campaign for each other in the agreed seats. They sign if it wins them seats. Runs
         until the next general election. {PACT.ap} AP, {fmtRM(PACT.cost)} for the talks.
