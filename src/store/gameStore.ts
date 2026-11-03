@@ -17,6 +17,7 @@ import {
   leaveLegacy,
   draftPost,
   appointPartyPost,
+  poachRivalMp,
   sendMission,
   inviteStateParty,
   closeStateTalks,
@@ -152,6 +153,7 @@ interface Store {
   leaveLegacy: () => void;
   draftPost: (post: PortfolioId, id: number | null) => void;
   appointPartyPost: (key: string, id: number) => void;
+  poach: (id: number) => void;
   sendMission: (id: number) => void;
   inviteStateParty: (c: CoalitionId, posts: number) => void;
   closeStateTalks: () => void;
@@ -446,6 +448,10 @@ export const useGame = create<Store>()(
         autoNominate: () => {
           const g = get().game;
           if (g) result(autoNominate(g));
+        },
+        poach: (id) => {
+          const g = get().game;
+          if (g) result(poachRivalMp(g, id));
         },
         appointPartyPost: (key, id) => {
           const g = get().game;

@@ -17,6 +17,7 @@ import { chairmanWeek } from "./systems/chairman";
 import { confirmCabinet } from "./systems/newterm";
 import { continueAfterEnding } from "./systems/legacy";
 import { postsWeek, treasurerIncome, wingDemand } from "./systems/posts";
+import { courtedBy, hoppingLaw } from "./systems/laws";
 import { afterStatePolls, resolveStatePending, stateGovWeek } from "./systems/stategov";
 import { celebritySeat, divisionDemand } from "./systems/nomcards";
 import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
@@ -302,7 +303,7 @@ export function advanceWeek(input: GameState): GameState {
   const coal = coalitionsWeek(next);
   next = coal.state;
   lines.push(...coal.lines);
-  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis", nominations: "name your candidates", council: "the Supreme Council meets", chairmanCounsel: "the chairman has advice", chairmanRift: "the chairman breaks ranks", lieutenantRift: "a lieutenant turns", wingDemand: "a wing chief wants more", mbRebel: "your MB goes rogue", divisionDemand: "a division chief wants the ticket", celebrity: "a famous face wants to stand" };
+  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis", nominations: "name your candidates", council: "the Supreme Council meets", chairmanCounsel: "the chairman has advice", chairmanRift: "the chairman breaks ranks", frog: "a rival is courting your MP", lieutenantRift: "a lieutenant turns", wingDemand: "a wing chief wants more", mbRebel: "your MB goes rogue", divisionDemand: "a division chief wants the ticket", celebrity: "a famous face wants to stand" };
   const addCard = (kind: string, party?: string, person?: number, seat?: number, state?: string) => {
     const id = Math.max(0, ...next.cards.map((c) => c.id), next.week * 10) + 1;
     const room = makeRoom(next.cards, kind);
@@ -347,9 +348,12 @@ export function advanceWeek(input: GameState): GameState {
     const mine = next.coalitions[next.player].members;
     const you = next.people.find((p) => p.id === next.youId);
     const deputy = next.people.find((p) => p.party === lead && p.rank === 4);
-    const jumper = next.people.find((p) => p.seat !== null && p.id !== next.youId && mine.includes(p.party) && next.holders[p.seat] === next.player && p.loyalty < 18 && !p.retired);
+    // How readily MPs jump depends on the anti-hopping law: with none, rivals court them openly.
+    const law = hoppingLaw(next);
+    const jumper = next.people.find((p) => p.seat !== null && p.id !== next.youId && mine.includes(p.party) && next.holders[p.seat] === next.player && p.loyalty < (law === "none" ? 30 : 18) && !p.retired);
     if (you?.rank === 5 && deputy && deputy.loyalty < 30 && deputy.ambition > 55 && (next.cardLast.deputyRestless ?? -99) < next.week - 26) addCard("deputyRestless", undefined, deputy.id);
-    else if (jumper && hash01("jump", next.seed, next.week) < 0.35 && (next.cardLast.mpJump ?? -99) < next.week - 12) addCard("mpJump", undefined, jumper.id, jumper.seat!);
+    else if (jumper && law === "none" && hash01("frog", next.seed, next.week) < 0.45 && (next.cardLast.frog ?? -99) < next.week - 8) addCard("frog", courtedBy(next, jumper), jumper.id, jumper.seat!);
+    else if (jumper && law !== "none" && hash01("jump", next.seed, next.week) < (law === "strict" ? 0.175 : 0.35) && (next.cardLast.mpJump ?? -99) < next.week - 12) addCard("mpJump", undefined, jumper.id, jumper.seat!);
   }
 
   // Party elections: the race opens in mid-May; rivals campaign; the vote is at the AGM

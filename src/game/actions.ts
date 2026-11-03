@@ -6,17 +6,18 @@ import { chairmanCampaign } from "./systems/chairman";
 import { confirmCabinet, openNewTerm, resetDraft, setDraft } from "./systems/newterm";
 import { continueAfterEnding, retireNow } from "./systems/legacy";
 import { appointPost, sendOnMission } from "./systems/posts";
+import { hoppingLaw, midTermDefections, poachMp } from "./systems/laws";
 import { confirmStateTerm, exerciseStatePower, finishTalks, inviteToState, openStateTerm, setStateDraft, type StatePower } from "./systems/stategov";
 import { autoPick } from "./systems/nominations";
 import { standsAside } from "./systems/pacts";
 import { TALKS, claimSeat, concedeSeat, type TalkSeat } from "./systems/seattalks";
 import { POLLS, commissionedRead } from "./systems/polls";
 import { BUDGET, BUDGET_LINES, budgetEnvelope } from "./systems/budget";
-import { resolveCard } from "./systems/events";
+import { holdByElection, resolveCard } from "./systems/events";
 import { MULTIRACIAL, PLEDGE_WEIGHT, POLICY_BY_ID, POLICY_COST, UNFUNDED_INTEGRITY_PER_FISCAL } from "./systems/policies";
 import { addSeg, type SegEffects } from "./systems/segments";
 import { fmtRM } from "./money";
-import { isGovernment, projectAllFor, simulateElection, weekDate, weekLabel, type GameState, type Player } from "./state";
+import { isGovernment, projectAllFor, simulateElection, weekDate, weekLabel, type GameState, type Player, type ReportLine } from "./state";
 import { ASSEMBLY_STATES, dissolveAssembly, dissolveParliament, stateRule, stateRulers } from "./systems/assemblies";
 import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, deciding, endRound, winTier, type Offer } from "./systems/formation";
 import { CAREER as CAREER_LOYALTY, RUNGS, addPoints, isPresident } from "./systems/career";
@@ -33,7 +34,7 @@ import { prepMotion, tableMotion, type PrepMove } from "./systems/dewan";
 import { courtChallenge, critique, publishProbe, setShadow, startProbe, streetRally, type Kpi } from "./systems/agenda";
 import { setTheme } from "./systems/message";
 import { fundWing, sackMember, showCause, type Wings } from "./systems/partyorg";
-import { startFormation } from "./systems/formation";
+import { startFormation, type Formation } from "./systems/formation";
 import { bump, caseMove, onPledgeChange, type CaseMove } from "./systems/scorecard";
 import { logPolicy } from "./systems/governing";
 import { seatCounts } from "./state";
@@ -343,10 +344,19 @@ function noConfidence(s: GameState): GameState {
   return state;
 }
 
-/** The government falls between elections: talks resolve at once and the Agong appoints whoever commands the House. */
-export function changeGovernmentMidTerm(s: GameState): GameState {
+/**
+ * The government falls between elections. As a party leader you get the talks screen and decide for yourself (back a
+ * side, or stay on the crossbench); otherwise the talks resolve at once without signing you up to anything.
+ */
+export function changeGovernmentMidTerm(input: GameState): GameState {
+  // With no anti-hopping law, the side most likely to form the government lures a few MPs across first.
+  const lines: ReportLine[] = [];
+  const first = startFormation(input, seatCounts(input.holders), seatCounts(input.holders)[input.player]);
+  let s = midTermDefections(input, first.candidates[0], lines);
+  if (lines.length) s = { ...s, report: s.report ? { ...s.report, lines: [...s.report.lines, ...lines] } : s.report };
   const counts = seatCounts(s.holders);
-  const f = startFormation(s, counts, counts[s.player]);
+  const f: Formation = { ...startFormation(s, counts, counts[s.player]), midTerm: true };
+  if (isPresident(s.career)) return { ...s, formation: f };
   return autoResolveFormation({ ...s, formation: f }, true);
 }
 
@@ -949,8 +959,15 @@ export function deepMove(s: GameState, op: DeepOp): ActionResult {
       return wrap(fundWing(s, op.wing));
     case "showCause":
       return wrap(showCause(s, op.id));
-    case "sack":
-      return wrap(sackMember(s, op.id));
+    case "sack": {
+      // Under a tightened anti-hopping law a sacked MP loses the seat: a by-election follows.
+      const seat = s.people.find((p) => p.id === op.id)?.seat ?? null;
+      const r = sackMember(s, op.id);
+      if ("error" in r || seat === null || hoppingLaw(s) !== "strict") return wrap(r);
+      const lines: ReportLine[] = [];
+      const state = holdByElection(r.state, seat, lines);
+      return wrap({ state, message: `${r.message} Under the tightened law the seat falls vacant. ${lines.at(-1)?.text ?? ""}` });
+    }
     case "mou":
       return wrap(toggleMou(s));
     case "recruit": {
@@ -1002,6 +1019,7 @@ export const retire = (s: GameState): ActionResult => teamResult(retireNow(s));
 export const leaveLegacy = (s: GameState): ActionResult => ({ ok: true, state: continueAfterEnding(s), message: s.ending?.reason === "ousted" ? "You fight on from the ranks." : `${s.career.protege} takes over.` });
 export const autoNominate = (s: GameState): ActionResult => teamResult(autoPick(s));
 // Lieutenants, generals and state governments
+export const poachRivalMp = (s: GameState, id: number): ActionResult => teamResult(poachMp(s, id));
 export const appointPartyPost = (s: GameState, key: string, id: number): ActionResult => teamResult(appointPost(s, key, id));
 export const sendMission = (s: GameState, id: number): ActionResult => teamResult(sendOnMission(s, id));
 export const inviteStateParty = (s: GameState, c: CoalitionId, posts: number): ActionResult => teamResult(inviteToState(s, c, posts));
@@ -1466,7 +1484,7 @@ export function backForPm(s: GameState, leader: CoalitionId, askDpm: boolean): A
 }
 
 /** Finish the talks (any remaining rounds play out) and let the Agong decide. */
-export function goToAgong(s: GameState, midTerm = false): ActionResult {
+export function goToAgong(s: GameState, midTerm = !!s.formation?.midTerm): ActionResult {
   let f = s.formation;
   if (!f) return { ok: false, error: "No talks are under way." };
   // Below the presidency, your party leadership picks the side for you.
@@ -1523,17 +1541,13 @@ export function goToAgong(s: GameState, midTerm = false): ActionResult {
   return { ok: true, state: careerAfterFormation(state, f, o), message };
 }
 
-/** If time moves on with talks unfinished, they resolve without you: as kingmaker you back your natural partner. */
-export function autoResolveFormation(s: GameState, midTerm = false): GameState {
-  let state = s;
-  const f = s.formation;
-  if (!f) return s;
-  if (f.role === "kingmaker" && !f.committed[s.player]) {
-    const [x, y] = f.candidates;
-    const pick = (AFFINITY[s.player][x] ?? 0) >= (AFFINITY[s.player][y] ?? 0) ? x : y;
-    state = { ...state, formation: backCandidate(f, s.player, pick, false) };
-  }
-  const r = goToAgong(state, midTerm);
+/**
+ * If time moves on with talks unfinished, they resolve without you. A party leader who signed for nobody stays on the
+ * crossbench (joining a government is always your own choice); below the presidency the party picks a side for you.
+ */
+export function autoResolveFormation(s: GameState, midTerm = !!s.formation?.midTerm): GameState {
+  if (!s.formation) return s;
+  const r = goToAgong(s, midTerm);
   return r.ok ? r.state : s;
 }
 

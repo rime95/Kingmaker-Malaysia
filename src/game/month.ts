@@ -43,7 +43,7 @@ export function advanceWeeks(s: GameState, n: number, stopAtNight = false): Game
     }
     reports.push(state.report!);
     if (stopAtNight && state.night && state.night.week === state.week) break;
-    if (stopAtNight && (state.stateNight || state.stateTalks || state.stateTerms?.length)) break;
+    if (stopAtNight && (state.stateNight || state.stateTalks || state.stateTerms?.length || state.formation?.midTerm)) break;
   }
   if (reports.length === 1) return state;
   const last = reports.at(-1)!;

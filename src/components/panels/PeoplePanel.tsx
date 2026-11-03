@@ -11,6 +11,7 @@ import { fmtRM } from "../common";
 import { DISCIPLINE } from "@/game/systems/partyorg";
 import { PartyFlag } from "../flags";
 import { postName, postOfPerson } from "@/game/systems/posts";
+import { LAWS, hoppingLaw, poachBlocked, poachChance } from "@/game/systems/laws";
 import { mbTitle } from "@/game/systems/stategov";
 
 /** Who's who: the cabinet, then any party's leadership from the President down to the branch chiefs. */
@@ -254,7 +255,7 @@ function LoyaltyDot({ v }: { v: number }) {
 
 function PersonCard({ p }: { p: Person }) {
   const game = useGame((s) => s.game)!;
-  const { meet, favour, deep } = useGame();
+  const { meet, favour, deep, poach } = useGame();
   const own = p.party === game.coalitions[game.player].members[0];
   const you = p.id === game.youId;
   const meetWhy = meetBlocked(game, p.id);
@@ -289,6 +290,18 @@ function PersonCard({ p }: { p: Person }) {
           </button>
         </div>
       )}
+      {!you && !own && p.seat !== null && hoppingLaw(game) === "none" && (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            className="chip !py-1 text-xs"
+            disabled={!!poachBlocked(game, p.id)}
+            title={poachBlocked(game, p.id) ?? `RM ${LAWS.poach.cost / 1e6}M and ${LAWS.poach.capital} capital: ${Math.round(poachChance(p) * 100)}% chance they cross, seat and all`}
+            onClick={() => poach(p.id)}
+          >
+            Woo them across the floor
+          </button>
+        </div>
+      )}
       {!you && own && (
         <div className="flex flex-wrap gap-1.5">
           <button
@@ -303,7 +316,7 @@ function PersonCard({ p }: { p: Person }) {
               className="chip !py-1 text-xs"
               style={{ color: "var(--bad)" }}
               onClick={() =>
-                confirm(`Sack ${p.name} from the party? ${p.seat !== null ? "Their seat goes with them as an independent." : ""}`) &&
+                confirm(`Sack ${p.name} from the party? ${p.seat !== null ? (hoppingLaw(game) === "strict" ? "Under the tightened anti-hopping law their seat falls vacant: a by-election follows." : "Their seat goes with them as an independent.") : ""}`) &&
                 deep({ kind: "sack", id: p.id })
               }
             >

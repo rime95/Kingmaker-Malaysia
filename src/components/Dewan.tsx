@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { lastDivision, nextMotion, type Vote } from "@/game/systems/dewan";
+import { HOPPING_TEXT, hoppingLaw } from "@/game/systems/laws";
 import { useGame } from "@/store/gameStore";
 import { MAJORITY, SEATS, TOTAL_SEATS, type CoalitionId } from "@/game/world";
 import { CHART_ORDER, coalColor } from "./common";
@@ -87,8 +88,12 @@ export function Dewan() {
   const color = (i: number) => (votes ? VOTE_COLOR[votes[i]] : coalColor(game.holders[i]));
   const upcoming = nextMotion(game);
 
+  const law = hoppingLaw(game);
   return (
     <div className="flex flex-col gap-3">
+      <p className="text-xs" style={{ color: "var(--ink-2)" }}>
+        <b>Anti-hopping law (Art. 49A): {HOPPING_TEXT[law].name}.</b> {HOPPING_TEXT[law].rules} Changing it is a constitutional amendment: 148 votes.
+      </p>
       {upcoming ? (
         <button className="inset p-3 text-left text-sm" style={{ outline: "1px solid var(--accent)" }} onClick={() => showPanel("orderpaper")}>
           <span className="eyebrow" style={{ color: "var(--accent)" }}>

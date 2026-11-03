@@ -12,9 +12,10 @@
 import { hash01 } from "../rng";
 import type { CardDef } from "./events";
 import type { GameState, ReportLine } from "../state";
-import { COALITIONS, SEATS, STATES, candidateParty, contestingIn } from "../world";
+import { COALITIONS, FT, SEATS, STATES, candidateParty, contestingIn, regionOf } from "../world";
 import { seatCandidate } from "./coalitions";
-import { HIERARCHY_PARTIES, type Person } from "./people";
+import { HIERARCHY_PARTIES, guessHome, homeOf, type Person } from "./people";
+import { blocOfName } from "./names";
 
 export const NATIONAL_POSTS = ["sg", "treasurer", "info", "director", "youth", "wanita", "puteri"] as const;
 export type NationalPost = (typeof NATIONAL_POSTS)[number];
@@ -55,9 +56,9 @@ export const POSTS = {
 
 export type Posts = Record<string, Partial<Record<string, number>>>;
 
-/** Kuala Lumpur, Putrajaya and Labuan share one chief: the Federal Territories. */
-export const FT = ["KUL", "PJY", "LBN"];
-export const regionOf = (stateId: string) => (FT.includes(stateId) ? "WP" : stateId);
+// Kuala Lumpur, Putrajaya and Labuan share one chief: the Federal Territories (world.ts regionOf).
+export { FT, regionOf } from "../world";
+export { homeOf } from "./people";
 export const REGIONS = [...STATES.filter((s) => !FT.includes(s.id)).map((s) => s.id), "WP"];
 export const regionName = (r: string) => (r === "WP" ? "Federal Territories" : (STATES.find((s) => s.id === r)?.name ?? r));
 export const chiefKey = (region: string) => `chief:${region}`;
@@ -72,14 +73,6 @@ const PARTY_REGIONS: Record<string, string[]> = (() => {
     }
   return Object.fromEntries(Object.entries(out).map(([p, set]) => [p, REGIONS.filter((r) => set.has(r))]));
 })();
-
-/** Where a person is from: their seat's state, or (for members without a seat) somewhere their party stands. */
-export function homeOf(p: Person): string {
-  if (p.home) return p.home;
-  if (p.seat !== null) return regionOf(SEATS[p.seat].state);
-  const list = PARTY_REGIONS[p.party]?.length ? PARTY_REGIONS[p.party] : REGIONS;
-  return list[Math.floor(hash01("home", p.id) * list.length)];
-}
 
 const yourPartyOf = (s: Pick<GameState, "coalitions" | "player">) => s.coalitions[s.player].members[0];
 
@@ -109,7 +102,8 @@ export function postPool(s: Pick<GameState, "people" | "youId">, party: string):
 }
 
 function fitFor(p: Person, key: string): number {
-  const local = key.startsWith("chief:") ? (homeOf(p) === key.slice(6) ? 25 : 0) : 0;
+  // A state chief should be from the state: an outsider only when the party has nobody local.
+  const local = key.startsWith("chief:") ? (homeOf(p) === key.slice(6) ? 60 : 0) : 0;
   return p.competence + p.influence * 0.5 + p.rank * 3 + local;
 }
 
@@ -343,6 +337,34 @@ export function postsWeek(s: GameState): { state: GameState; lines: ReportLine[]
     if (r && hash01("rift", state.seed, state.week) < 0.35) rift = r.id;
   }
   return { state, lines, rift };
+}
+
+/**
+ * Saves from before home states: everyone gets the home they always should have had, and state chiefs are chosen
+ * again, locals first. Your own chiefs stay where they are from the state (or where the party has nobody local).
+ */
+export function migrateHomes(s: GameState): GameState {
+  // Generated people took seats wherever they were needed: a Sabah or Sarawak name says more about where they are from.
+  const people = s.people.map((p) => {
+    if (p.home) return p;
+    const borneo = !p.real && ["sabah", "sarawak"].includes(blocOfName(p.name));
+    return { ...p, home: borneo ? guessHome(p) : homeOf(p) };
+  });
+  const yours = yourPartyOf(s);
+  const byId = new Map(people.map((p) => [p.id, p]));
+  const posts: Posts = {};
+  for (const [party, list] of Object.entries(s.posts ?? {})) {
+    const hasLocal = (r: string) => people.some((p) => p.party === party && !p.retired && !p.chairman && p.id !== s.youId && p.home === r);
+    posts[party] = Object.fromEntries(
+      Object.entries(list).filter(([k, id]) => {
+        if (!k.startsWith("chief:")) return true;
+        if (party !== yours) return false;
+        const r = k.slice(6);
+        return byId.get(id!)?.home === r || !hasLocal(r);
+      }),
+    );
+  }
+  return autoPosts({ ...s, people, posts });
 }
 
 /** Take someone off their post. */

@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { DIFFICULTY, DIFFICULTY_ROWS, SCENARIOS, type Difficulty, type ScenarioId } from "@/game/config";
 import { TIER_TEXT } from "@/game/systems/formation";
+import { HOPPING_TEXT } from "@/game/systems/laws";
 import { useGame } from "@/store/gameStore";
 import { metaSnapshot, underdogUnlocked, type Meta } from "@/store/meta";
 import { cname, COALITION_INFO, SEATS, type CoalitionId } from "@/game/world";
@@ -24,6 +25,7 @@ export function NewGame() {
   const [pick, setPick] = useState<CoalitionId | null>(null);
   const [scenario, setScenario] = useState<ScenarioId>("present");
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
+  const [hopping, setHopping] = useState<"2022" | "none">("2022");
   const [name, setName] = useState("");
   const named = name.trim().length >= 2;
 
@@ -102,7 +104,7 @@ export function NewGame() {
               autoFocus
               placeholder={`e.g. ${COALITION_INFO[pick].leader}`}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && named && start(pick, { mode: "leader", scenario, difficulty, name })}
+              onKeyDown={(e) => e.key === "Enter" && named && start(pick, { mode: "leader", scenario, difficulty, name, hopping })}
             />
             <span className="text-xs" style={{ color: "var(--muted)" }}>
               You lead {cname(pick)} as its new president. {COALITION_INFO[pick].leader} stays on as Party Chairman: you rule the party together.
@@ -121,6 +123,17 @@ export function NewGame() {
           </Choice>
           <p className="text-xs -mt-2" style={{ color: "var(--muted)" }}>
             {SCENARIOS[scenario].text}
+          </p>
+          <Choice label="Anti-hopping law">
+            <button className="chip" aria-pressed={hopping === "2022"} onClick={() => setHopping("2022")}>
+              In force (real, 2022)
+            </button>
+            <button className="chip" aria-pressed={hopping === "none"} onClick={() => setHopping("none")}>
+              Not yet enacted
+            </button>
+          </Choice>
+          <p className="text-xs -mt-2" style={{ color: "var(--muted)" }}>
+            {HOPPING_TEXT[hopping].rules} Parliament can change it with a two-thirds majority (148 MPs).
           </p>
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium">Difficulty</span>
@@ -148,7 +161,7 @@ export function NewGame() {
               {DIFFICULTY[difficulty].text}
             </p>
           </div>
-          <button className="btn self-start" disabled={!named} title={named ? undefined : "Name your character first."} onClick={() => start(pick, { mode: "leader", scenario, difficulty, name })}>
+          <button className="btn self-start" disabled={!named} title={named ? undefined : "Name your character first."} onClick={() => start(pick, { mode: "leader", scenario, difficulty, name, hopping })}>
             {named ? "Start" : "Name your character to start"}
           </button>
         </section>

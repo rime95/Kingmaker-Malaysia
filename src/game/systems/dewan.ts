@@ -9,6 +9,7 @@ import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
 import { addSeg, type SegEffects } from "./segments";
 import { cshort, type CoalitionId } from "../world";
+import { hoppingLaw, lawPassed } from "./laws";
 
 export type MotionKind = "bill" | "constitutional" | "royal" | "oppMotion";
 export type Vote = "aye" | "no" | "abstain" | "absent";
@@ -107,7 +108,8 @@ export const MOTIONS: MotionDef[] = [
   { id: "windfall", kind: "bill", title: (y) => N(y, "Windfall Profit Levy Bill"), blurb: "A levy on oil and palm oil windfalls, shared with the producing states.", seg: { sabah: 0.03, sarawak: 0.03, rural: 0.01 }, approval: 1, when: (s) => (s.nation.crisis?.kind === "boom" ? 8 : 0), lean: { GPS: 0.5 } },
   { id: "fiscal", kind: "bill", title: (y) => N(y, "Public Finance and Fiscal Responsibility Bill"), blurb: "A legal ceiling on debt and deficits. Markets like it; it ties the government's hands.", seg: { urban: 0.02, chinese: 0.02, b40: -0.01 }, approval: 0.5, when: (s) => (s.nation.debt > 64 ? 3 : 0.7), lean: { PN: 0.2, MUDA: 0.4, BERSAMA: 0.4 } },
   { id: "subsidy", kind: "bill", title: (y) => N(y, "Supplies Control (Targeted Subsidy) Bill"), blurb: "Ends blanket fuel subsidies for targeted cash aid. Saves billions; angers the middle and the rural driver.", seg: { b40: 0.02, rural: -0.04, malay: -0.02, urban: 0.01 }, approval: -2, when: (s) => (s.nation.debt > 60 ? 2 : 0.8), lean: { PN: -0.6, BN: -0.3 } },
-  { id: "hopping", kind: "constitutional", title: (y) => N(y, "Constitution (Amendment) Bill: Anti-Party Hopping"), blurb: "Tightens the anti-hopping law so MPs who switch sides lose their seats. Broad support, but every party has MPs it might want to poach.", seg: { all: 0.02, urban: 0.02 }, approval: 2, lean: { PH: 0.5, MUDA: 0.8, BERSAMA: 0.8, PN: 0.2, BN: 0.2, GPS: 0.3, GRS: 0.2, WARISAN: 0.4 } },
+  { id: "hopping", kind: "constitutional", title: (y) => N(y, "Constitution (Amendment) Bill: Anti-Party Hopping"), blurb: "Restores or tightens Article 49A: MPs who switch sides lose their seats (tightened: sacked MPs too). Broad support, but every party has MPs it might want to poach.", seg: { all: 0.02, urban: 0.02 }, approval: 2, lean: { PH: 0.5, MUDA: 0.8, BERSAMA: 0.8, PN: 0.2, BN: 0.2, GPS: 0.3, GRS: 0.2, WARISAN: 0.4 }, when: (s) => (hoppingLaw(s) === "strict" ? 0 : hoppingLaw(s) === "none" ? 1.5 : 0.6) },
+  { id: "hoppingRepeal", kind: "constitutional", title: (y) => N(y, "Constitution (Amendment) Bill: Repeal of Article 49A"), blurb: "Scraps the anti-hopping law: MPs could cross the floor and keep their seats again. Voters remember the Sheraton Move and hate it.", seg: { all: -0.02, urban: -0.02, youth: -0.02 }, approval: -2, lean: { PH: -0.6, MUDA: -1, BERSAMA: -1, PN: -0.1, BN: 0, GPS: -0.2, GRS: 0, WARISAN: -0.3 }, when: (s) => (hoppingLaw(s) === "none" ? 0 : 0.15) },
   { id: "ma63", kind: "constitutional", title: (y) => N(y, "Constitution (Amendment) Bill: Malaysia Agreement 1963 Rights"), blurb: "Restores Sabah and Sarawak as equal partners: a third of seats, more revenue. Huge in Borneo; the peninsula is wary.", seg: { sabah: 0.08, sarawak: 0.08, malay: -0.01 }, approval: 1.5, lean: { GPS: 1, GRS: 1, WARISAN: 1, PH: 0.3, BN: 0.1, PN: -0.2 } },
   { id: "ruu355", kind: "bill", title: (y) => N(y, "Syariah Courts (Criminal Jurisdiction) (Amendment) Bill"), blurb: "Raises the sentencing caps of the Syariah courts (RUU355). PAS's cause for decades; non-Muslim voters are alarmed.", seg: { malay: 0.04, rural: 0.02, chinese: -0.06, indian: -0.05, sabah: -0.03, sarawak: -0.03 }, approval: -0.5, lean: { PN: 1, BN: 0.4, PH: -0.5, MUDA: -0.8, BERSAMA: -0.8, GPS: -0.6, GRS: -0.3, WARISAN: -0.6 } },
   { id: "sedition", kind: "bill", title: (y) => N(y, "Sedition (Repeal) Bill"), blurb: "Scraps the colonial-era Sedition Act. Reformers cheer; conservatives warn about race and religion.", seg: { urban: 0.03, chinese: 0.03, youth: 0.02, malay: -0.03 }, approval: 0, lean: { MUDA: 1, BERSAMA: 1, PH: 0.3, PN: -0.8, BN: -0.5 } },
@@ -269,7 +271,8 @@ export function resolveMotion(s: GameState, m: Motion): { state: GameState; line
     me = { ...me, nationalBuzz: clamp(me.nationalBuzz + (pop < 0 ? 4 : -2)) };
   }
   const dewan = { ...s.dewan, motions: s.dewan.motions.map((x) => (x.id === m.id ? done : x)) };
-  return { state: { ...s, me, nation, dewan }, lines };
+  const after: GameState = { ...s, me, nation, dewan };
+  return { state: r.passed ? lawPassed(after, m.def, lines) : after, lines };
 }
 
 /** Each week: open or adjourn meetings, and hold the vote that falls due. */

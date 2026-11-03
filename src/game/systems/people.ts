@@ -8,13 +8,13 @@
 // - The government's cabinet is drawn from its parties' senior MPs, in proportion to each party's seats.
 // Real people start with neutral, game-only numbers; scandal cards never name them (see events.ts). All numbers TEMPORARY.
 
-import { PORTFOLIOS, ROSTERS, START_CABINET, type PortfolioId, type RosterEntry } from "../data/people";
+import { PORTFOLIOS, ROSTERS, ROSTER_HOME, START_CABINET, type PortfolioId, type RosterEntry } from "../data/people";
 import { weekDate } from "../bases";
 import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
 import { GE15_RESULTS } from "../data/ge15";
-import { PARTIES, SEATS, type CoalitionId } from "../world";
-import { makeName, recruitBloc } from "./names";
+import { PARTIES, SEATS, regionOf, type CoalitionId } from "../world";
+import { blocOfName, makeName, recruitBloc } from "./names";
 
 export const RANKS = ["Branch chief", "Division chief", "Supreme Council", "Vice President", "Deputy President", "President"] as const;
 export const PRESIDENT_RANK = 5;
@@ -97,13 +97,29 @@ export function makeChairman(p: Person, week: number): Person {
   return { ...p, rank: 3, chairman: true, since: week, loyalty: Math.max(p.loyalty, 80), influence: Math.max(p.influence, 85), retired: false };
 }
 
-function newPerson(id: number, name: string, party: string, rank: number, seed: number, week: number, born: number, real: boolean, s: Pick<GameState, "player" | "coalitions">, seat: number | null = null): Person {
+/** Where someone is from: set when they enter the game, and kept for life (losing a seat doesn't move them). */
+export function homeOf(p: Pick<Person, "home" | "seat" | "name" | "party" | "id">): string {
+  return p.home ?? (p.seat !== null ? regionOf(SEATS[p.seat].state) : guessHome(p));
+}
+
+/** A home for someone saved without one: the real record, else a party seat where people with their kind of name live. */
+export function guessHome(p: Pick<Person, "name" | "party" | "id">): string {
+  if (ROSTER_HOME[p.name]) return ROSTER_HOME[p.name];
+  const bloc = blocOfName(p.name);
+  const fits = (st: string) => (bloc === "sabah" ? st === "SBH" || st === "LBN" : bloc === "sarawak" ? st === "SWK" : st !== "SBH" && st !== "SWK" && st !== "LBN");
+  const own = SEATS.filter((x) => x.ge15Party === p.party && fits(x.state));
+  const any = own.length ? own : SEATS.filter((x) => fits(x.state));
+  return regionOf(any[Math.floor(hash01("guesshome", p.id) * any.length)].state);
+}
+
+function newPerson(id: number, name: string, party: string, rank: number, seed: number, week: number, born: number, real: boolean, s: Pick<GameState, "player" | "coalitions">, seat: number | null = null, home?: string): Person {
   return {
     id,
     name,
     party,
     rank,
     seat,
+    home: home ?? (seat !== null ? regionOf(SEATS[seat].state) : undefined),
     born,
     retireAge: 72 + Math.floor(r(seed, "ret", id) * 14),
     retired: false,
@@ -116,13 +132,16 @@ function newPerson(id: number, name: string, party: string, rank: number, seed: 
   };
 }
 
-/** A new branch chief: young, unknown, from a community the party recruits in. */
-export function recruitPerson(id: number, party: string, seed: number, week: number, s: Pick<GameState, "player" | "coalitions">): Person {
+/**
+ * A new branch chief: young, unknown, from a community the party recruits in. `at`: recruit from this seat (a local
+ * candidate); otherwise from somewhere the party is strong. Their home state is the seat they come from.
+ */
+export function recruitPerson(id: number, party: string, seed: number, week: number, s: Pick<GameState, "player" | "coalitions">, at?: number): Person {
   const seats = SEATS.filter((x) => x.ge15Party === party);
-  const home = seats.length ? seats[Math.floor(r(seed, "home", id) * seats.length)] : SEATS[Math.floor(r(seed, "home2", id) * SEATS.length)];
+  const home = at !== undefined ? SEATS[at] : seats.length ? seats[Math.floor(r(seed, "home", id) * seats.length)] : SEATS[Math.floor(r(seed, "home2", id) * SEATS.length)];
   const bloc = recruitBloc(party, home.demo.ethnic, seed, id);
   const name = makeName(bloc, seed, id, party);
-  return newPerson(id, name, party, 0, seed, week, yearOf(week) - 28 - Math.floor(r(seed, "age", id) * 12), false, s);
+  return newPerson(id, name, party, 0, seed, week, yearOf(week) - 28 - Math.floor(r(seed, "age", id) * 12), false, s, null, regionOf(home.state));
 }
 
 export interface PeopleState {
@@ -156,7 +175,7 @@ export function initPeople(s: Pick<GameState, "seed" | "week" | "player" | "coal
       Object.assign(mp, { name, party, rank, born, influence: START_INFLUENCE[rank] + Math.round((r(seed, "linf", name) - 0.5) * 8) });
       return;
     }
-    const p = newPerson(next++, name, party, rank, seed, s.week, born, true, s);
+    const p = newPerson(next++, name, party, rank, seed, s.week, born, true, s, null, ROSTER_HOME[name] ?? guessHome({ name, party, id: next }));
     people.push(p);
   };
   for (const [party, roster] of Object.entries(ROSTERS)) {
@@ -269,12 +288,20 @@ function replaceMp(m: Mutable, party: string, seat: number, seed: number, week: 
       pick.rank = 1;
       fill(m, party, 0, seed, week, s, lines);
     } else {
-      pick = recruitPerson(m.nextPersonId++, party, seed, week, s);
+      pick = recruitPerson(m.nextPersonId++, party, seed, week, s, seat);
       pick.rank = 1;
       m.people.push(pick);
     }
   }
   pick.seat = seat;
+}
+
+/** Every seat with no MP gets one from the party that holds it (old saves where someone left a seat empty). */
+export function fillVacantSeats(s: GameState): GameState {
+  const m: Mutable = { people: s.people.map((p) => ({ ...p })), nextPersonId: s.nextPersonId, cabinet: { ...s.cabinet }, youId: s.youId };
+  const held = new Set(m.people.map((p) => p.seat).filter((x) => x !== null));
+  for (const seat of SEATS) if (!held.has(seat.index) && HIERARCHY_PARTIES.includes(s.holderParties[seat.index])) replaceMp(m, s.holderParties[seat.index], seat.index, s.seed, s.week, s, []);
+  return { ...s, ...m };
 }
 
 /** Someone takes a higher post directly (e.g. wins a party election); their old post is filled from below. */
@@ -374,13 +401,13 @@ export function seatWinners(s: GameState, winners: { seat: number; party: string
     const free = m.people.filter((p) => p.party === w.party && p.seat === null && !p.retired && p.rank >= 1 && p.rank <= 3 && p.id !== m.youId).sort((a, b) => b.influence - a.influence);
     let cand = free.find((p) => hash01("cand", s.seed, s.week, w.seat, p.id) < 0.5) ?? free[0];
     if (!cand) {
-      cand = m.people.filter((p) => p.party === w.party && p.rank === 0).sort((a, b) => b.influence - a.influence)[0];
+      cand = m.people.filter((p) => p.party === w.party && p.rank === 0 && p.id !== m.youId).sort((a, b) => b.influence - a.influence)[0];
       if (cand) {
         cand.rank = 1;
         cand.since = s.week;
         fill(m, w.party, 0, s.seed, s.week, s, lines);
       } else {
-        cand = recruitPerson(m.nextPersonId++, w.party, s.seed, s.week, s);
+        cand = recruitPerson(m.nextPersonId++, w.party, s.seed, s.week, s, w.seat);
         cand.rank = 1;
         m.people.push(cand);
       }
@@ -388,6 +415,8 @@ export function seatWinners(s: GameState, winners: { seat: number; party: string
     cand.seat = w.seat;
     cand.influence = Math.min(100, cand.influence + 6);
   }
+  // One MP, one seat: anyone who moved left their old seat empty; its winning party fills it.
+  for (const w of winners) if (!m.people.some((p) => p.seat === w.seat) && HIERARCHY_PARTIES.includes(w.party)) replaceMp(m, w.party, w.seat, s.seed, s.week, s, lines);
   // Retired MPs whose seats were contested leave politics.
   const contested = new Set(winners.map((w) => w.seat));
   m.people = m.people.filter((p) => !(p.retired && (p.seat === null || contested.has(p.seat))));
@@ -558,7 +587,7 @@ export function syncYou(s: GameState, lines: ReportLine[] = []): GameState {
   let m: Mutable = { people: s.people.map((p) => ({ ...p })), nextPersonId: s.nextPersonId, cabinet: { ...s.cabinet }, youId: s.youId };
   let you = m.people.find((p) => p.id === m.youId);
   if (!you) {
-    you = newPerson(m.nextPersonId++, c.name, lead, RANK_FOR_RUNG[c.rung], s.seed, s.week, yearOf(s.week) - c.age, false, s);
+    you = newPerson(m.nextPersonId++, c.name, lead, RANK_FOR_RUNG[c.rung], s.seed, s.week, yearOf(s.week) - c.age, false, s, null, regionOf(SEATS[c.homeSeat].state));
     you.loyalty = 100;
     m.people.push(you);
     m.youId = you.id;
@@ -598,7 +627,10 @@ export function syncYou(s: GameState, lines: ReportLine[] = []): GameState {
   if (holdsHome && you.seat !== home) {
     const other = m.people.find((p) => p.seat === home && p.id !== you!.id);
     if (other) other.seat = null;
+    // You can only sit for one seat: any other seat you held goes to a colleague.
+    const left = you.seat;
     you.seat = home;
+    if (left !== null) replaceMp(m, s.holderParties[left], left, s.seed, s.week, s, lines);
   } else if (!holdsHome && you.seat === home) you.seat = null;
   m = { ...m, people: m.people };
   state = { ...state, ...m };

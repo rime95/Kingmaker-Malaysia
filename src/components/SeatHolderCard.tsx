@@ -22,14 +22,15 @@ export function SeatHolderCard({ i, x, y, vote }: { i: number; x: number; y: num
   const left = typeof window !== "undefined" && x + 270 > window.innerWidth ? x - 270 : x + 14;
   return (
     <div className="tooltip" style={{ left, top: y + 14, width: 256 }}>
-      <div className="font-semibold">{mp?.name ?? last.candidates[0].name}</div>
+      <div className="font-semibold">{mp ? mp.name : `Vacant (last won by ${last.candidates[0].name})`}</div>
       <div className="flex items-center gap-1.5">
         <CoalitionFlag game={game} c={game.holders[i]} size={10} />
         {game.holderParties[i]} · {cname(game.holders[i])}
         {mp?.id === game.youId ? " · you" : ""}
       </div>
       <div style={{ color: "var(--muted)" }}>
-        MP for {seat.code} {seat.name}, {STATE_BY_ID[seat.state].name}
+        {mp ? "MP for " : ""}
+        {seat.code} {seat.name}, {STATE_BY_ID[seat.state].name}
       </div>
       {mp && (
         <div style={{ color: "var(--muted)" }}>

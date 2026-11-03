@@ -39,6 +39,16 @@ export function makeName(bloc: Bloc, ...key: (string | number)[]): string {
   }
 }
 
+/** The community a name reads as (for people saved before home states were stored). */
+export function blocOfName(name: string): Bloc {
+  const w = name.split(/s+/);
+  if (w.includes("anak") || SARAWAK_FATHER.includes(w.at(-1)!)) return "sarawak";
+  if (SABAH_SURNAME.includes(w.at(-1)!)) return "sabah";
+  if (CHINESE_SURNAME.includes(w[0]) && w.length <= 4) return "chinese";
+  if (INDIAN_GIVEN.includes(w[0]) || INDIAN_FATHER.includes(w.at(-1)!)) return "indian";
+  return "malay";
+}
+
 /** Which community a party's recruits usually come from in a seat. */
 export function recruitBloc(party: string, seatEthnic: Record<Bloc, number>, ...key: (string | number)[]): Bloc {
   const fixed: Record<string, Bloc> = { MCA: "chinese", MIC: "indian", GERAKAN: "chinese", SUPP: "chinese", PAS: "malay", UMNO: "malay", BERSATU: "malay", PBB: "sarawak", PRS: "sarawak", UPKO: "sabah", PBRS: "sabah", KDM: "sabah" };

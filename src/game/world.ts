@@ -131,6 +131,10 @@ export const STATES: StateInfo[] = [
 
 export const STATE_BY_ID: Record<string, StateInfo> = Object.fromEntries(STATES.map((s) => [s.id, s]));
 
+/** Kuala Lumpur, Putrajaya and Labuan count as one home region (and one party chief): the Federal Territories. */
+export const FT = ["KUL", "PJY", "LBN"];
+export const regionOf = (stateId: string) => (FT.includes(stateId) ? "WP" : stateId);
+
 export const BLOCS = ["malay", "chinese", "indian", "sabah", "sarawak", "other"] as const;
 export type Bloc = (typeof BLOCS)[number];
 export const BLOC_LABEL: Record<Bloc, string> = {

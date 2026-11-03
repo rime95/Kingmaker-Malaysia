@@ -138,7 +138,7 @@ export function stateGovPool(s: GameState, id: string, coalitions: CoalitionId[]
     .sort((a, b) => fit(b, id) - fit(a, id));
 }
 
-const fit = (p: Person, id: string) => p.competence + p.influence * 0.4 + (homeOf(p) === regionOf(id) ? 30 : 0);
+const fit = (p: Person, id: string) => p.competence + p.influence * 0.4 + (homeOf(p) === regionOf(id) ? 60 : 0);
 
 /** The MB the party would choose: its state chief, else its best local figure. */
 function partyMb(s: GameState, id: string, party: string, pool: Person[]): number | null {

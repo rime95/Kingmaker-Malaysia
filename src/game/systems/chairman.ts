@@ -8,11 +8,11 @@
 
 import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
-import { SEATS, contestingIn } from "../world";
+import { SEATS, contestingIn, regionOf } from "../world";
 import { standsAside } from "./pacts";
 import type { CardDef } from "./events";
-import { ROSTERS } from "../data/people";
-import { makeChairman, recruitPerson, type Person } from "./people";
+import { ROSTERS, ROSTER_HOME } from "../data/people";
+import { homeOf, makeChairman, recruitPerson, type Person } from "./people";
 
 export const CHAIRMAN = {
   /** Buzz from their weekly ceramah (×1.4 in their home state), before saturation. */
@@ -35,7 +35,11 @@ export function chairmanOf(s: Pick<GameState, "people" | "coalitions" | "player"
   return s.people.find((p) => p.chairman && p.party === lead);
 }
 
-const homeStateOf = (p: Person) => (p.seat !== null ? SEATS[p.seat].state : null);
+/** The chairman's home state (the Federal Territories count as Kuala Lumpur). */
+const homeStateOf = (p: Person) => {
+  const h = homeOf(p);
+  return h === "WP" ? "KUL" : h;
+};
 
 export function chairmanCampaignBlocked(s: GameState, seat: number): string | null {
   const ch = chairmanOf(s);
@@ -175,7 +179,9 @@ export function restoreChairman(s: GameState): GameState {
   const real = ROSTERS[lead]?.president;
   if (!real || real[0] === s.career.name || s.people.some((p) => p.name === real[0])) return s;
   const p = recruitPerson(s.nextPersonId, lead, s.seed, s.week, s);
-  const ch = makeChairman({ ...p, name: real[0], born: real[2], real: true, retireAge: Math.max(p.retireAge, 2026 - real[2] + 6) }, s.week);
+  const seat = real[1] ? SEATS.findIndex((x) => x.code === real[1]) : -1;
+  const home = ROSTER_HOME[real[0]] ?? (seat >= 0 ? regionOf(SEATS[seat].state) : p.home);
+  const ch = makeChairman({ ...p, name: real[0], born: real[2], real: true, home, retireAge: Math.max(p.retireAge, 2026 - real[2] + 6) }, s.week);
   return { ...s, people: [...s.people, ch], nextPersonId: s.nextPersonId + 1 };
 }
 

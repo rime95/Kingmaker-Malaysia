@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { answerCard, applyAction, changeGovernmentMidTerm, govSeats, launchStimulus, noConfidenceChance, setCivilPay, startProject } from "./actions";
+import { answerCard, applyAction, changeGovernmentMidTerm, goToAgong, govSeats, launchStimulus, noConfidenceChance, setCivilPay, startProject } from "./actions";
 import { advanceMonth } from "./month";
 import { newGame, playerNationalEffect, type GameState } from "./state";
 import { NATION, PROJECT_BY_ID, economyScore, ministerEffect, nationWeek } from "./systems/nation";
@@ -125,7 +125,13 @@ describe("crises and the fall of governments", () => {
     // Strip the government of its partners: PH alone is far from 112.
     const thin: GameState = { ...g, government: ["PH"], nation: { ...g.nation, approval: 30 } };
     expect(noConfidenceChance(thin)).toBeGreaterThan(noConfidenceChance(g));
-    const fallen = changeGovernmentMidTerm(thin);
+    // As a party leader you get the talks: nothing changes until you (or time) decide.
+    const talks = changeGovernmentMidTerm(thin);
+    expect(talks.formation?.midTerm).toBe(true);
+    expect(talks.government).toEqual(["PH"]);
+    const r = goToAgong(talks);
+    if (!r.ok) throw new Error(r.error);
+    const fallen = r.state;
     expect(fallen.formation).toBeNull();
     expect(fallen.tiers).toHaveLength(0);
     expect(fallen.government.length).toBeGreaterThan(1);

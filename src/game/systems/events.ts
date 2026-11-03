@@ -22,6 +22,7 @@ import { CHAIRMAN_COUNSEL_CARD, CHAIRMAN_RIFT_CARD } from "./chairman";
 import { CELEBRITY_CARD, DIVISION_DEMAND_CARD } from "./nomcards";
 import { LIEUTENANT_RIFT_CARD, WING_DEMAND_CARD } from "./posts";
 import { MB_REBEL_CARD } from "./stategov";
+import { FROG_CARD } from "./laws";
 
 export interface Effect {
   funds?: number;
@@ -520,6 +521,7 @@ export const CARD_BY_KIND: Record<string, CardDef> = Object.fromEntries([
   [LIEUTENANT_RIFT_CARD.kind, LIEUTENANT_RIFT_CARD],
   [WING_DEMAND_CARD.kind, WING_DEMAND_CARD],
   [MB_REBEL_CARD.kind, MB_REBEL_CARD],
+  [FROG_CARD.kind, FROG_CARD],
   ...FESTIVALS.map((f) => [
     f.kind,
     {
@@ -625,8 +627,21 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
     state.partySat = partySat;
   }
 
-  if (e.byElection && card?.seat !== undefined) {
-    const i = card.seat;
+  if (e.byElection && card?.seat !== undefined) state = holdByElection(state, card.seat, lines);
+  state = applyCareerEffect(state, e, lines);
+  if (e.then) {
+    const r = e.then(state, card);
+    state = r.state;
+    lines.push(...(r.lines ?? []));
+  }
+  return { state, lines };
+}
+
+/** A by-election in one seat, now: the winner takes the seat, and you gain or lose standing. */
+export function holdByElection(input: GameState, i: number, lines: ReportLine[]): GameState {
+  let state = input;
+  const s = input;
+  {
     const before = state.holders[i];
     const { result, rngState } = runSeatElection(voterInputs(state), i, state.rng, (seat, c) => seatCandidate(state, seat, c));
     const holders = [...state.holders];
@@ -649,13 +664,7 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
       tone: won ? "good" : result.winner !== before && before === s.player ? "bad" : "info",
     });
   }
-  state = applyCareerEffect(state, e, lines);
-  if (e.then) {
-    const r = e.then(state, card);
-    state = r.state;
-    lines.push(...(r.lines ?? []));
-  }
-  return { state, lines };
+  return state;
 }
 
 /** AGM outcomes: contests are decided with hash01, so no game-RNG draws. */
@@ -730,6 +739,7 @@ export const CARD_PRIORITY: Record<string, number> = {
   deputyRestless: 1,
   lieutenantRift: 1,
   mbRebel: 1,
+  frog: 1,
   wingDemand: 2,
   agm: 2,
   partyRace: 2,

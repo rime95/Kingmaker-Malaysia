@@ -10,12 +10,13 @@ import { newObjectives, type Objective } from "./systems/goals";
 import { newBubbles, type Bubble } from "./systems/bubbles";
 import { initPolls, type Polls } from "./systems/polls";
 import { initCoalitions, initPartySat, type Coalitions } from "./systems/coalitions";
-import { initPeople, makeChairman, syncYou, type Person } from "./systems/people";
+import { fillVacantSeats, initPeople, makeChairman, syncYou, type Person } from "./systems/people";
 import { restoreChairman } from "./systems/chairman";
 import type { NewTerm } from "./systems/newterm";
 import type { Ending } from "./systems/legacy";
-import { autoPosts, postSeatEffects, pullTable, type Posts } from "./systems/posts";
+import { autoPosts, migrateHomes, postSeatEffects, pullTable, type Posts } from "./systems/posts";
 import { syncStateGov, type StateGov, type StateNight, type StateTalks, type StateTerm } from "./systems/stategov";
+import type { Laws } from "./systems/laws";
 import type { PortfolioId } from "./data/people";
 import type { PartyRace } from "./systems/partyrace";
 import { initTeam, pollError, type Staff } from "./systems/team";
@@ -45,7 +46,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 19;
+export const SAVE_VERSION = 20;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -261,6 +262,8 @@ export interface GameState {
   stateTalks: StateTalks | null;
   /** State results night to show. */
   stateNight: StateNight | null;
+  /** Laws Parliament can change (the anti-hopping law). */
+  laws: Laws;
 }
 
 export interface NewGameOptions {
@@ -269,6 +272,8 @@ export interface NewGameOptions {
   mode?: "career" | "leader";
   name?: string;
   homeSeat?: number;
+  /** Start with the anti-hopping law in force (as in 2026) or under the old rules (before October 2022). */
+  hopping?: "2022" | "none";
 }
 
 export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opts: NewGameOptions = {}): GameState {
@@ -375,6 +380,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     stateTerms: [],
     stateTalks: null,
     stateNight: null,
+    laws: { hopping: opts.hopping ?? "2022" },
   };
   if (!contestingIn(SEATS[state.career.homeSeat]).includes(player)) state.entries = { [state.career.homeSeat]: [player] };
   Object.assign(state, initPeople(state));
@@ -500,6 +506,12 @@ export function migrateGame(g: GameState): GameState {
   migrated.stateTerms = g.stateTerms ?? [];
   migrated.stateTalks = g.stateTalks ?? null;
   migrated.stateNight = g.stateNight ?? null;
+  migrated.laws = g.laws ?? { hopping: "2022" };
+  // Saves from before home states and one-MP-one-seat: homes for everyone, local chiefs, no empty seats.
+  if ((g.version ?? 0) < 20 && migrated.people.length) {
+    Object.assign(migrated, fillVacantSeats(migrateHomes(migrated)));
+    migrated.postBase = pullTable(migrated);
+  }
   migrated.postBase = g.postBase ?? {};
   if (!g.posts || !g.stateGov) {
     Object.assign(migrated, syncStateGov(autoPosts(migrated)));

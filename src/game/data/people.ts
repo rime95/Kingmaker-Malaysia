@@ -5,6 +5,32 @@
 /** [name, GE15 seat code (null if not an MP), year of birth] */
 export type RosterEntry = [name: string, seat: string | null, born: number];
 
+/**
+ * Home states of the real figures above who have no seat (everyone with a seat is from their seat's state). Region
+ * ids as world.ts regionOf ("WP" for the Federal Territories).
+ */
+export const ROSTER_HOME: Record<string, string> = {
+  "Nurul Izzah Anwar": "PNG",
+  "Aminuddin Harun": "NSN",
+  "Saifuddin Nasution Ismail": "KDH",
+  "Mujahid Yusof Rawa": "PRK",
+  "Wan Rosdy Wan Ismail": "PHG",
+  "Mah Hang Soon": "PRK",
+  "S. A. Vigneswaran": "SGR",
+  "Ahmad Faizal Azumu": "PRK",
+  "Ahmad Samsuri Mokhtar": "TRG",
+  "Dominic Lau Hoe Chai": "PNG",
+  "Abang Johari Openg": "SWK",
+  "Douglas Uggah Embas": "SWK",
+  "Awang Tengah Ali Hasan": "SWK",
+  "Sim Kui Hian": "SWK",
+  "Joseph Salang Gandum": "SWK",
+  "Hajiji Noor": "SBH",
+  "Darell Leiking": "SBH",
+  "Amira Aisya Abdul Aziz": "JHR",
+  "Peter Anthony": "SBH",
+};
+
 export interface PartyRoster {
   president: RosterEntry;
   deputy?: RosterEntry;

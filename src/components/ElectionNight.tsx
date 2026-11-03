@@ -29,6 +29,20 @@ export function ElectionNight() {
   const game = useGame((s) => s.game);
   const endNight = useGame((s) => s.endNight);
   const [stage, setStage] = useState<"count" | "talks">("count");
+  // The government fell between elections: straight to the talks.
+  if (game?.formation?.midTerm && !game.night)
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto tv" role="dialog" aria-modal="true" aria-label="The government has fallen">
+        <div className="mx-auto max-w-[1100px] px-4 pt-5 text-center">
+          <div className="text-xs font-bold tracking-[0.3em] tv-gold">ISTANA NEGARA</div>
+          <h2 className="text-2xl font-black">The government has fallen</h2>
+          <p className="text-sm" style={{ color: "var(--ink-2)" }}>
+            It no longer commands the House. The Agong calls the party leaders: back a side for Prime Minister, or stay on the crossbench.
+          </p>
+        </div>
+        <CoalitionTalks />
+      </div>
+    );
   if (!game?.night || !game.lastElection) return null;
   if (!game.formation) {
     return <Verdict onClose={endNight} />;

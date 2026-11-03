@@ -74,6 +74,8 @@ export interface Formation {
   pactWith?: CoalitionId[];
   /** Common ground with you beyond ideology (shared pledges, past cooperation), by coalition. */
   common?: Partial<Record<CoalitionId, number>>;
+  /** The government fell between elections (no new cabinet screen, no result tier). */
+  midTerm?: boolean;
 }
 
 export const COMMON = {
