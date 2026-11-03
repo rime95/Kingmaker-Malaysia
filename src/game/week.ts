@@ -14,6 +14,7 @@ import { pollsWeek } from "./systems/polls";
 import { coalitionsWeek, syncNames } from "./systems/coalitions";
 import { leaderOfParty, peopleMonth, syncYou } from "./systems/people";
 import { chairmanWeek } from "./systems/chairman";
+import { confirmCabinet } from "./systems/newterm";
 import { celebritySeat, divisionDemand } from "./systems/nomcards";
 import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
 import { CONTEST_POINTS } from "./systems/career";
@@ -68,7 +69,9 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
 export function advanceWeek(input: GameState): GameState {
   // Unfinished government talks resolve before time moves on.
   syncNames(input);
-  const resolved = input.formation ? autoResolveFormation(input) : input;
+  const formed = input.formation ? autoResolveFormation(input) : input;
+  // A cabinet still on the drawing board when time moves on is sworn in as drafted.
+  const resolved = formed.newTerm ? confirmCabinet(formed).state : formed;
   const before = projectAllFor(resolved);
   // Staff you delegated to do their routine work first.
   const delegated = delegateWeek(resolved, before);

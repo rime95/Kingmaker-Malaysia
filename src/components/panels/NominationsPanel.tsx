@@ -148,7 +148,7 @@ function CandidateCard({ p, seat, picked, onPick, you }: { p: Person; seat: numb
         <div className="flex flex-wrap gap-1 mt-1">
           {p.seat === seat && <span className="trait-chip">★ Sitting MP</span>}
           {p.chairman && <span className="trait-chip">Party Chairman</span>}
-          {prof.traits.map((t) => (
+          {!you && prof.traits.map((t) => (
             <span key={t} className={`trait-chip ${TRAITS[t].risk ? "trait-risk" : ""}`} title={TRAITS[t].blurb}>
               {TRAITS[t].name}
             </span>

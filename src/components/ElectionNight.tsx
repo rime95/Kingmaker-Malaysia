@@ -51,6 +51,12 @@ type Call = { seatIndex: number; winner: CoalitionId; winnerParty: string; major
 type Moment = { key: number; kind: "gain" | "loss" | "upset"; seat: number; winner: CoalitionId; from: CoalitionId; majority: number };
 type Big = { kind: "majority" | "twothirds" | "hung"; c?: CoalitionId };
 
+/** Your result in a seat: held, gained (rampas) or lost; nothing if it was never yours. */
+function markOf(winner: CoalitionId, before: CoalitionId, player: CoalitionId): "hold" | "gain" | "lost" | undefined {
+  if (winner === player) return before === player ? "hold" : "gain";
+  return before === player ? "lost" : undefined;
+}
+
 function Count({ onDone }: { onDone: () => void }) {
   const game = useGame((s) => s.game)!;
   const result = game.lastElection!;
@@ -155,8 +161,12 @@ function Count({ onDone }: { onDone: () => void }) {
   const revealed = new Set(called.map((r) => r.seatIndex));
   const nightFills = SEATS.map((_, i) => {
     const r = revealed.has(i) ? result.seats[i] : null;
-    return r ? { fill: coalColor(r.winner), flipped: prev[i] !== r.winner } : { fill: "var(--land)" };
+    if (!r) return { fill: "var(--land)" };
+    return { fill: coalColor(r.winner), flipped: prev[i] !== r.winner, mark: markOf(r.winner, prev[i], player) };
   });
+  // A gold star on every seat you took from someone else.
+  const stars = called.filter((r) => r.winner === player && prev[r.seatIndex] !== player).map((r) => ({ key: `star${r.seatIndex}`, seat: r.seatIndex, kind: "star" as const, icon: "★" }));
+  const held = called.filter((r) => r.winner === player && prev[r.seatIndex] === player).length;
   const gains = called.filter((r) => r.winner === player && prev[r.seatIndex] !== player).length;
   const losses = called.filter((r) => r.winner !== player && prev[r.seatIndex] === player).length;
   const votes = result.seats.reduce((s, r) => s + Object.values(r.votes).reduce((a, b) => a + (b ?? 0), 0), 0);
@@ -216,10 +226,19 @@ function Count({ onDone }: { onDone: () => void }) {
 
         <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr] flex-1">
           <div className="panel p-2 relative overflow-hidden">
-            <MalaysiaMap className="relative h-[54vh] min-h-[320px]" clip fills={nightFills} showDuns="never" ariaLabel="Seats declared so far" />
+            <MalaysiaMap className="relative h-[54vh] min-h-[320px]" clip fills={nightFills} markers={stars} showDuns="never" ariaLabel="Seats declared so far" />
             {moment && <LowerThird m={moment} />}
-            <div className="text-[11px] px-1" style={{ color: "var(--muted)" }}>
-              Grey: still counting. Dashed outline: the seat changed hands.
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] px-1 pt-1" style={{ color: "var(--ink-2)" }}>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="legend-mark legend-hold" /> You hold <b className="tabular-nums">{held}</b>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="legend-mark legend-gain">★</span> Rampas · gained <b className="tabular-nums">{gains}</b>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="legend-mark legend-lost" /> Terlepas · lost <b className="tabular-nums">{losses}</b>
+              </span>
+              <span style={{ color: "var(--muted)" }}>Grey: still counting. Dashed: changed hands.</span>
             </div>
           </div>
           <div className="flex flex-col gap-3">
@@ -238,7 +257,7 @@ function Count({ onDone }: { onDone: () => void }) {
         </div>
       </div>
 
-      <Crawl order={called} prev={prev} />
+      <Crawl order={called} prev={prev} player={player} />
 
       {intro > 0 && <PollsClose n={intro} />}
       {big && (
@@ -497,17 +516,26 @@ function Declarations({ order, prev, player }: { order: Call[]; prev: CoalitionI
         const seat = SEATS[r.seatIndex];
         const flip = prev[r.seatIndex] !== r.winner;
         const upset = flip && seat.ge15Majority > 8000;
-        const tag = upset
-          ? "UPSET"
-          : flip
-            ? `GAIN from ${cshort(prev[r.seatIndex])}`
-            : r.majority < 300
-              ? "RECOUNT"
-              : r.majority < 1500
-                ? "Too close to call"
-                : "";
+        // Your seats get their own tags: rampas (gained), kekal (held), terlepas (lost).
+        const mark = markOf(r.winner, prev[r.seatIndex], player);
+        const tag =
+          mark === "gain"
+            ? `★ RAMPAS from ${cshort(prev[r.seatIndex])}`
+            : mark === "lost"
+              ? `TERLEPAS to ${cshort(r.winner)}`
+              : mark === "hold"
+                ? "KEKAL"
+                : upset
+                  ? "UPSET"
+                  : flip
+                    ? `GAIN from ${cshort(prev[r.seatIndex])}`
+                    : r.majority < 300
+                      ? "RECOUNT"
+                      : r.majority < 1500
+                        ? "Too close to call"
+                        : "";
         return (
-          <div key={r.seatIndex} className="tv-row flex items-center gap-2 text-sm">
+          <div key={r.seatIndex} className={`tv-row flex items-center gap-2 text-sm ${mark ? `tv-row-${mark}` : ""}`}>
             <PartyFlag id={r.winnerParty} size={11} />
             <span className="truncate">
               <b>{seat.name}</b> · {r.winnerParty} ({cshort(r.winner)}) {flip ? "wins" : "holds"} by {fmt(r.majority)}
@@ -515,7 +543,15 @@ function Declarations({ order, prev, player }: { order: Call[]; prev: CoalitionI
             {tag && (
               <span
                 className="ml-auto text-[10px] font-bold rounded px-1.5 py-0.5 whitespace-nowrap"
-                style={{ background: r.winner === player || prev[r.seatIndex] === player ? coalColor(r.winner) : "var(--surface-2)", color: "#fff" }}
+                style={
+                  mark === "gain"
+                    ? { background: "#ffcc00", color: "#1a1300" }
+                    : mark === "lost"
+                      ? { background: "#d9363e", color: "#fff" }
+                      : mark === "hold"
+                        ? { background: "#fff", color: "#111" }
+                        : { background: "var(--surface-2)", color: "#fff" }
+                }
               >
                 {tag}
               </span>
@@ -528,18 +564,26 @@ function Declarations({ order, prev, player }: { order: Call[]; prev: CoalitionI
 }
 
 /** The crawl along the bottom of the screen. */
-function Crawl({ order, prev }: { order: Call[]; prev: CoalitionId[] }) {
+function Crawl({ order, prev, player }: { order: Call[]; prev: CoalitionId[]; player: CoalitionId }) {
   const items = order.slice(-14).reverse();
   if (!items.length) return null;
-  const text = items
-    .map((r) => `${SEATS[r.seatIndex].name}: ${cshort(r.winner)} ${prev[r.seatIndex] !== r.winner ? "GAIN" : "hold"} (${fmt(r.majority)})`)
-    .join("   •   ");
+  // Your seats stand out in the ticker too: gold for rampas, white for kekal, red for terlepas.
+  const line = () =>
+    items.map((r, n) => {
+      const mark = markOf(r.winner, prev[r.seatIndex], player);
+      const what = mark === "gain" ? "★ RAMPAS" : mark === "lost" ? "TERLEPAS" : mark === "hold" ? "KEKAL" : prev[r.seatIndex] !== r.winner ? "GAIN" : "hold";
+      return (
+        <span key={n} className={mark ? `tv-crawl-${mark}` : undefined}>
+          {SEATS[r.seatIndex].name}: {cshort(r.winner)} {what} ({fmt(r.majority)}){n < items.length - 1 ? "   •   " : ""}
+        </span>
+      );
+    });
   return (
     <div className="tv-crawl" aria-hidden>
       <span className="tv-crawl-tag">TERKINI</span>
       <div className="tv-crawl-track">
-        <span>{text}</span>
-        <span>{text}</span>
+        <span>{line()}</span>
+        <span>{line()}</span>
       </div>
     </div>
   );

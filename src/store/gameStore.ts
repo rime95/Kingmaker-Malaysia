@@ -13,6 +13,9 @@ import {
   delegateStaff,
   nominateCandidate,
   chairmanStumps,
+  draftPost,
+  suggestCabinet,
+  swearInCabinet,
   autoNominate,
   claimTalkSeat,
   concedeTalkSeat,
@@ -134,6 +137,9 @@ interface Store {
   meet: (id: number) => void;
   nominate: (seat: number, person: number | "newface" | "local") => void;
   chairmanStump: (seat: number) => void;
+  draftPost: (post: PortfolioId, id: number | null) => void;
+  suggestCabinet: () => void;
+  swearIn: () => void;
   autoNominate: () => void;
   talkSeat: (row: TalkSeat, claim: boolean) => void;
   pact: (c: CoalitionId, on: boolean) => void;
@@ -418,6 +424,21 @@ export const useGame = create<Store>()(
         autoNominate: () => {
           const g = get().game;
           if (g) result(autoNominate(g));
+        },
+        draftPost: (post, id) => {
+          const g = get().game;
+          if (!g) return;
+          const r = draftPost(g, post, id);
+          if (r.ok) set({ game: r.state });
+          else result(r);
+        },
+        suggestCabinet: () => {
+          const g = get().game;
+          if (g) result(suggestCabinet(g));
+        },
+        swearIn: () => {
+          const g = get().game;
+          if (g) result(swearInCabinet(g));
         },
         chairmanStump: (seat) => {
           const g = get().game;

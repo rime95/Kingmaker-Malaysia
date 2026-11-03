@@ -16,7 +16,7 @@ import type { SeatFill } from "./lenses";
 export interface MapMarker {
   key: string;
   seat: number;
-  kind: "bubble" | "pulse";
+  kind: "bubble" | "pulse" | "star";
   icon: string;
   label?: string;
   color?: string;
@@ -156,6 +156,16 @@ function MapView({ geo, fills, dunFills, showDuns = "auto", selected, selectedDu
     <div className={className ?? "relative"} style={clip ? { overflow: "hidden" } : undefined}>
       <svg ref={svgRef} viewBox={`0 0 ${MAP_W} ${MAP_H}`} preserveAspectRatio="xMidYMid meet" className="w-full h-full block touch-none select-none" style={{ overflow: clip ? "hidden" : "visible" }} role="img" aria-label={ariaLabel ?? "Map of Malaysia's parliamentary seats"}>
         <defs>
+          <pattern id="lost-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="2" height="5" fill="#ff4d4f" opacity="0.55" />
+          </pattern>
+          <filter id="gain-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
           <filter id="seat-glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="2" result="b" />
             <feMerge>
@@ -172,7 +182,12 @@ function MapView({ geo, fills, dunFills, showDuns = "auto", selected, selectedDu
           <path d={geo.stateBorders} className="map-state-halo" />
           <path d={geo.stateBorders} className="map-state-line" />
           {outline && <path d={outline.seats.map((i) => geo.seats[i]?.d ?? "").join(" ")} className="map-mine" style={{ stroke: outline.color, color: outline.color }} />}
-          {fills.map((f, i) => (f.flipped && geo.seats[i].d ? <path key={i} d={geo.seats[i].d} className="map-flip" /> : null))}
+          {fills.map((f, i) => (f.flipped && !f.mark && geo.seats[i].d ? <path key={i} d={geo.seats[i].d} className="map-flip" /> : null))}
+          {fills.map((f, i) =>
+            f.mark && geo.seats[i].d ? (
+              <path key={`m${i}`} d={geo.seats[i].d} className={`map-mark-${f.mark}`} filter={f.mark === "gain" ? "url(#gain-glow)" : undefined} />
+            ) : null,
+          )}
           {selected != null && geo.seats[selected]?.d && <path d={geo.seats[selected].d} className="map-selected" filter="url(#seat-glow)" />}
           {selectedDun != null && geo.duns[selectedDun]?.d && <path d={geo.duns[selectedDun].d} className="map-selected" />}
 
@@ -199,6 +214,12 @@ function MapView({ geo, fills, dunFills, showDuns = "auto", selected, selectedDu
             if (!s?.d) return null;
             return (
               <g key={m.key} transform={`translate(${s.cx},${s.cy}) scale(${1 / (k * pxPerUnit)})`} className={m.kind === "bubble" ? "map-bubble" : "map-pulse"} onClick={(e) => (e.stopPropagation(), m.onClick?.())}>
+                {m.kind === "star" ? (
+                  <text y={5} textAnchor="middle" className="map-star">
+                    ★
+                  </text>
+                ) : (
+                  <>
                 {m.kind === "pulse" && <circle r={14} className="map-pulse-ring" style={{ stroke: m.color }} />}
                 {m.kind === "bubble" && <circle r={17} className="map-bubble-ring" />}
                 <circle r={m.kind === "bubble" ? 13 : 6} style={{ fill: m.color ?? "var(--accent)" }} />
@@ -209,6 +230,8 @@ function MapView({ geo, fills, dunFills, showDuns = "auto", selected, selectedDu
                   <text y={-22} textAnchor="middle" className="map-bubble-label">
                     {m.label}
                   </text>
+                )}
+                  </>
                 )}
               </g>
             );

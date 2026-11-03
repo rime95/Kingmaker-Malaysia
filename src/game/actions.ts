@@ -3,6 +3,7 @@
 
 import { ECONOMY, TURN_WEEKS } from "./config";
 import { chairmanCampaign } from "./systems/chairman";
+import { confirmCabinet, openNewTerm, resetDraft, setDraft } from "./systems/newterm";
 import { autoPick } from "./systems/nominations";
 import { standsAside } from "./systems/pacts";
 import { TALKS, claimSeat, concedeSeat, type TalkSeat } from "./systems/seattalks";
@@ -36,7 +37,7 @@ import { seatCounts } from "./state";
 import { hash01 } from "./rng";
 import { careerAfterFormation } from "./progress";
 import { aiRebrand } from "./systems/coalitions";
-import { PEOPLE, byId, favourBlocked, favourOf, formCabinet, meetPerson, mpOf, syncYou } from "./systems/people";
+import { PEOPLE, byId, favourBlocked, favourOf, formCabinet, meetPerson, mpOf, syncYou, youArePm } from "./systems/people";
 import { PORTFOLIOS, type PortfolioId } from "./data/people";
 import { BUBBLE_INFO, applyBubble } from "./systems/bubbles";
 import { ASSETS, MAX_LEVEL, assetIncome, newAsset, saleValue, upgradeCost, type AssetType, type CeoKind } from "./systems/business";
@@ -987,6 +988,13 @@ export function breakPact(s: GameState, c: CoalitionId): ActionResult {
 
 /** Name a candidate (you, as party president, while nominations are open). */
 export const chairmanStumps = (s: GameState, seat: number): ActionResult => teamResult(chairmanCampaign(s, seat));
+export const draftPost = (s: GameState, post: PortfolioId, id: number | null): ActionResult => (s.newTerm ? { ok: true, state: setDraft(s, post, id), message: "" } : { ok: false, error: "No cabinet is being formed." });
+export const suggestCabinet = (s: GameState): ActionResult => ({ ok: true, state: resetDraft(s), message: "The suggested line-up is back on the table." });
+export function swearInCabinet(s: GameState): ActionResult {
+  if (!s.newTerm) return { ok: false, error: "No cabinet is being formed." };
+  const r = confirmCabinet(s);
+  return { ok: true, state: r.state, message: r.lines.map((l) => l.text).join(" ") };
+}
 export const autoNominate = (s: GameState): ActionResult => teamResult(autoPick(s));
 export const claimTalkSeat = (s: GameState, r: TalkSeat): ActionResult => teamResult(claimSeat(s, r));
 export const concedeTalkSeat = (s: GameState, r: TalkSeat): ActionResult => teamResult(concedeSeat(s, r));
@@ -1287,7 +1295,7 @@ export function askFavour(s: GameState, id: number): ActionResult {
 }
 
 export function appointBlocked(s: GameState, post: PortfolioId, id: number | null): string | null {
-  if (s.parliament.pm !== s.player || !isPresident(s.career)) return "Only you as Prime Minister can appoint ministers.";
+  if (!youArePm(s) || !isPresident(s.career)) return "Only you as Prime Minister can appoint ministers.";
   if (post === "pm") return "You are the Prime Minister.";
   if (id === null) return null;
   const p = byId(s, id);
@@ -1457,8 +1465,9 @@ export function goToAgong(s: GameState, midTerm = false): ActionResult {
   }
   me.trust = inGov ? 65 : 50;
   let state: GameState = { ...s, me, formation: null, government: o.government, parliament: { ...s.parliament, pm: o.pm } };
-  // A new cabinet: the AI shares posts by seats; as Prime Minister you can reshuffle it any time.
+  // A new cabinet: the AI shares posts by seats. As Prime Minister after an election you draw it up yourself.
   state.cabinet = formCabinet(state);
+  if (!midTerm) state = openNewTerm(state, s.cabinet);
   // The biggest party provides the Prime Minister: if a partner in your coalition out-won your party, or you lost
   // your own seat, someone else takes the chair.
   if (o.pm === s.player && state.youId !== null && state.cabinet.pm !== state.youId && isPresident(s.career)) {

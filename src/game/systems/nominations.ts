@@ -156,7 +156,7 @@ export function nominate(s: GameState, seat: number, personId: number | "newface
 }
 
 /** A candidate's personal vote in a seat (log-odds for your coalition). */
-export function candidateStrength(s: Pick<GameState, "week">, seat: number, p: Person | undefined): number {
+export function candidateStrength(s: Pick<GameState, "week" | "youId">, seat: number, p: Person | undefined): number {
   if (!p) return 0;
   // A heavyweight pulls votes; an unknown costs a little, not much (voters mostly vote for the party).
   let v = (p.influence - 40) * NOMINATION.perInfluence;
@@ -164,7 +164,7 @@ export function candidateStrength(s: Pick<GameState, "week">, seat: number, p: P
   if (p.seat === seat) v += NOMINATION.incumbent;
   if (ageOf(p, s.week) < 36 && p.seat === null && SEATS[seat].demo.youth > NOMINATION.newFaceYouth) v += NOMINATION.newFace;
   // Who they are: an ustaz in a rural Malay seat, a technocrat in the city, a local son or daughter at home.
-  v += traitVote(p, seat);
+  if (p.id !== s.youId) v += traitVote(p, seat);
   return v;
 }
 

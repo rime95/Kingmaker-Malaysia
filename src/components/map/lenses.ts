@@ -35,6 +35,8 @@ export interface SeatFill {
   opacity?: number;
   /** Dashed outline: the seat would change hands. */
   flipped?: boolean;
+  /** Your result here on election night: held, gained from another party (rampas), or lost. */
+  mark?: "hold" | "gain" | "lost";
 }
 
 /** How hard hostile rivals are working a seat: their buzz plus service built above their starting level. */

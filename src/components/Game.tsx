@@ -6,6 +6,7 @@ import { useGame } from "@/store/gameStore";
 import { NewGame } from "./NewGame";
 import { Toast } from "./Toast";
 import { ElectionNight } from "./ElectionNight";
+import { NewTerm } from "./NewTerm";
 import { SaveSlots } from "./SaveSlots";
 import { MainMap } from "./shell/MainMap";
 import { TopBar } from "./shell/TopBar";
@@ -39,7 +40,7 @@ export function Game() {
  * Phones: navigation moves to the bottom, panels and the seat card become sheets.
  */
 function Main() {
-  const { panel, selected } = useGame();
+  const { panel, selected, analysisOpen } = useGame();
   const game = useGame((s) => s.game)!;
   const [savesOpen, setSavesOpen] = useState(false);
   // Keyboard: N or Space for the next turn, 1–6 for the sections (not while typing or a dialog is open).
@@ -122,7 +123,8 @@ function Main() {
       <RecordModal />
       {!game.night && <ElectionAnalysisModal />}
       {!game.night && <PartyRaceCount />}
-      {game.namePending && !game.night && !game.formation && <NameCoalition />}
+      {game.newTerm && !game.night && !game.formation && !analysisOpen && <NewTerm />}
+      {game.namePending && !game.newTerm && !game.night && !game.formation && <NameCoalition />}
       <ElectionNight />
       <Toast />
     </div>

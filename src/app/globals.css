@@ -1254,3 +1254,98 @@ button.inset:active:not(:disabled),
   color: var(--bad);
   border-color: color-mix(in oklch, var(--bad) 40%, transparent);
 }
+
+/* Election night: your seats marked on the map, the rows and the ticker */
+.map-mark-hold {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.8px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.map-mark-gain {
+  fill: rgb(255 204 0 / 0.18);
+  stroke: #ffcc00;
+  stroke-width: 2.6px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+  animation: mark-pulse 1.6s ease-in-out infinite;
+}
+.map-mark-lost {
+  fill: url(#lost-hatch);
+  stroke: #ff4d4f;
+  stroke-width: 1.8px;
+  stroke-dasharray: 4 2;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+@keyframes mark-pulse {
+  0%,
+  100% {
+    stroke-opacity: 1;
+  }
+  50% {
+    stroke-opacity: 0.45;
+  }
+}
+.map-star {
+  font-size: 15px;
+  font-weight: 900;
+  fill: #ffcc00;
+  stroke: #1a1300;
+  stroke-width: 2.5px;
+  paint-order: stroke;
+}
+.legend-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 11px;
+  border-radius: 2px;
+  font-size: 9px;
+  line-height: 1;
+}
+.legend-hold {
+  border: 2px solid #fff;
+}
+.legend-gain {
+  border: 2px solid #ffcc00;
+  background: rgb(255 204 0 / 0.2);
+  color: #ffcc00;
+  box-shadow: 0 0 6px #ffcc00;
+}
+.legend-lost {
+  border: 2px dashed #ff4d4f;
+  background: repeating-linear-gradient(45deg, rgb(255 77 79 / 0.55) 0 2px, transparent 2px 5px);
+}
+.tv-row-hold {
+  box-shadow: inset 3px 0 0 #fff;
+}
+.tv-row-gain {
+  box-shadow: inset 3px 0 0 #ffcc00;
+  background: linear-gradient(90deg, rgb(255 204 0 / 0.16), transparent 70%);
+}
+.tv-row-lost {
+  box-shadow: inset 3px 0 0 #ff4d4f;
+  background: repeating-linear-gradient(45deg, rgb(255 77 79 / 0.12) 0 4px, transparent 4px 9px);
+}
+.tv-crawl-track > span {
+  white-space: pre;
+}
+.tv-crawl-gain {
+  color: #ffcc00;
+  font-weight: 800;
+}
+.tv-crawl-hold {
+  color: #fff;
+  font-weight: 700;
+}
+.tv-crawl-lost {
+  color: #ff6b6b;
+  font-weight: 800;
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-mark-gain {
+    animation: none;
+  }
+}
