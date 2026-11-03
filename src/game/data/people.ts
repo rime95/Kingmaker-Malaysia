@@ -31,6 +31,44 @@ export const ROSTER_HOME: Record<string, string> = {
   "Peter Anthony": "SBH",
 };
 
+/**
+ * The women among the real figures: GE15 winners (by their name in ge15.ts) and the leadership rosters above. Everyone
+ * else real is a man; generated people are read from their name (systems/gender.ts).
+ */
+export const WOMEN_MPS = new Set([
+  "Siti Zailah Mohd Yusoff",
+  "Siti Mastura Mohamad",
+  "Fadhlina Sidek",
+  "Syerleena Abdul Rashid",
+  "Lim Hui Ying",
+  "Salamiah Mohd Nor",
+  "Young Syefura Othman",
+  "Rodziah Ismail",
+  "Yeo Bee Yin",
+  "Halimah Ali",
+  "Raj Munni Sabu @ Aiman Athirah",
+  "Hannah Yeoh Tseow Suan",
+  "Teresa Kok Suh Sim",
+  "Wan Azizah Wan Ismail",
+  "Mas Ermieyati Samsudin",
+  "Zaliha Mustafa",
+  "Noraini Ahmad",
+  "Wong Shu Qi",
+  "Azalina Othman Said",
+  "Teo Nie Ching",
+  "Isnaraissah Munirah Majilis @ Fakharudy",
+  "Siti Aminah Aching",
+  "Vivian Wong Shir Yee",
+  "Nancy Shukri",
+  "Rubiah Wang",
+  "Rodiyah Sapiee",
+  "Doris Sophia Brodi",
+  "Alice Lau Kiong Yieng",
+  "Hanifah Hajar Taib",
+  "Nurul Izzah Anwar",
+  "Amira Aisya Abdul Aziz",
+]);
+
 export interface PartyRoster {
   president: RosterEntry;
   deputy?: RosterEntry;
