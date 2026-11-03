@@ -8,6 +8,8 @@ import { Toast } from "./Toast";
 import { ElectionNight } from "./ElectionNight";
 import { NewTerm } from "./NewTerm";
 import { Legacy } from "./Legacy";
+import { StateNight } from "./StateNight";
+import { StateTalksScreen, StateTerm } from "./StateTerm";
 import { activeOverlay, blocking } from "./overlays";
 import { SaveSlots } from "./SaveSlots";
 import { MainMap } from "./shell/MainMap";
@@ -131,6 +133,9 @@ function Main() {
       {overlay === "analysis" && <ElectionAnalysisModal />}
       {overlay === "race" && <PartyRaceCount />}
       {overlay === "newterm" && <NewTerm />}
+      {overlay === "statenight" && <StateNight />}
+      {overlay === "statetalks" && <StateTalksScreen />}
+      {overlay === "stateterm" && <StateTerm />}
       {overlay === "naming" && <NameCoalition />}
       {overlay === "legacy" && <Legacy />}
       {overlay === "night" && <ElectionNight />}

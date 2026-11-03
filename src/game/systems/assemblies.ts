@@ -21,6 +21,7 @@ import { commonGround } from "./scorecard";
 import { addPoints } from "./career";
 import { buildAnalysis } from "./analysis";
 import { growRoots } from "./growth";
+import type { StateGov } from "./stategov";
 
 export interface Assembly {
   status: "sitting" | "campaign";
@@ -99,8 +100,9 @@ export function stateRule(dunHolders: CoalitionId[], stateId: string, government
   return { ruler: pool[0][0], side, seats, total };
 }
 
-export function stateRulers(dunHolders: CoalitionId[], government: CoalitionId[]): Record<string, CoalitionId> {
-  return Object.fromEntries(ASSEMBLY_STATES.map((id) => [id, stateRule(dunHolders, id, government).ruler]));
+/** Who rules each state. A government settled by an election or hung-assembly talks (stategov.ts) stands until the next state election. */
+export function stateRulers(dunHolders: CoalitionId[], government: CoalitionId[], stateGov?: Record<string, StateGov>): Record<string, CoalitionId> {
+  return Object.fromEntries(ASSEMBLY_STATES.map((id) => [id, stateGov?.[id]?.settled ? stateGov[id].ruler : stateRule(dunHolders, id, government).ruler]));
 }
 
 /** Weeks until the next general election polling day (estimated if Parliament hasn't dissolved yet). */
@@ -146,6 +148,7 @@ function holdStateElection(s: GameState, stateId: string, inputs: VoterInputs, l
   const name = STATE_BY_ID[stateId].name;
   const ids = DUNS_BY_STATE[stateId];
   const ruleBefore = stateRule(s.dunHolders, stateId, s.government);
+  const rulerBefore = stateRulers(s.dunHolders, s.government, s.stateGov)[stateId];
   const { results, rngState } = runStateElection(inputs, stateId, s.rng);
   const dunHolders = [...s.dunHolders];
   for (const r of results) dunHolders[r.dun] = r.winner;
@@ -155,18 +158,18 @@ function holdStateElection(s: GameState, stateId: string, inputs: VoterInputs, l
 
   const me = { ...next.me };
   const p = s.player;
-  if (ruleAfter.ruler === p && ruleBefore.ruler !== p) {
+  if (ruleAfter.ruler === p && rulerBefore !== p) {
     me.capital = clamp(me.capital + PRN.win.capital, 0, 200);
     me.unity = clamp(me.unity + PRN.win.unity);
     me.nationalBuzz = clamp(me.nationalBuzz + PRN.win.nationalBuzz);
-  } else if (ruleBefore.ruler === p && ruleAfter.ruler !== p) {
+  } else if (rulerBefore === p && ruleAfter.ruler !== p) {
     me.capital = clamp(me.capital + PRN.lose.capital, 0, 200);
     me.unity = clamp(me.unity + PRN.lose.unity);
   }
   next.me = me;
   const gained = (ruleAfter.seats[p] ?? 0) - (ruleBefore.seats[p] ?? 0);
   if (gained > 0) next.career = addPoints(next.career, s.week, gained, `+${gained} seats in the ${name} state election`);
-  if (ruleAfter.ruler === p) next.career = addPoints(next.career, s.week, 8, `${ruleBefore.ruler === p ? "held" : "won"} the ${name} state government`);
+  if (ruleAfter.ruler === p) next.career = addPoints(next.career, s.week, 8, `${rulerBefore === p ? "held" : "won"} the ${name} state government`);
   next.assemblies = {
     ...next.assemblies,
     [stateId]: {
@@ -185,10 +188,10 @@ function holdStateElection(s: GameState, stateId: string, inputs: VoterInputs, l
     .sort((a, b) => b[1] - a[1])
     .map(([c, n]) => `${cshort(c)} ${n}`)
     .join(", ");
-  const change = ruleAfter.ruler !== ruleBefore.ruler ? `${cshort(ruleAfter.ruler)} takes ${name} from ${cshort(ruleBefore.ruler)}` : `${cshort(ruleAfter.ruler)} holds ${name}`;
+  const change = ruleAfter.ruler !== rulerBefore ? `${cshort(ruleAfter.ruler)} takes ${name} from ${cshort(rulerBefore)}` : `${cshort(ruleAfter.ruler)} holds ${name}`;
   lines.push({
     text: `${name} state election: ${change} (${summary}). ${mine === 0 ? "No net change for you" : `You ${mine > 0 ? "won" : "lost"} ${Math.abs(mine)} seat${Math.abs(mine) === 1 ? "" : "s"} net`}.`,
-    tone: ruleAfter.ruler === p || mine > 0 ? "good" : mine < 0 || ruleBefore.ruler === p ? "bad" : "info",
+    tone: ruleAfter.ruler === p || mine > 0 ? "good" : mine < 0 || rulerBefore === p ? "bad" : "info",
   });
   return next;
 }
@@ -288,7 +291,7 @@ export function assembliesWeek(s: GameState, inputs: VoterInputs): { state: Game
   }
 
   // Assemblies: end of term, or an AI ruler calling an early election while ahead
-  const rulers = stateRulers(state.dunHolders, state.government);
+  const rulers = stateRulers(state.dunHolders, state.government, state.stateGov);
   let dunProj: ReturnType<typeof projectDuns> | null = null;
   for (const id of ASSEMBLY_STATES) {
     const a = state.assemblies[id];

@@ -86,7 +86,7 @@ export function unfunded(s: GameState): number {
 export function restingScores(s: GameState, c: CoalitionId): Scores {
   const gov = s.government.includes(c);
   const mine = c === s.player;
-  const ruled = Object.values(stateRulers(s.dunHolders, s.government)).filter((r) => r === c).length;
+  const ruled = Object.values(stateRulers(s.dunHolders, s.government, s.stateGov)).filter((r) => r === c).length;
   const approval = s.nation?.approval ?? 50;
   // Your own government is also judged on the promises it made (met: up; broken: down).
   const promises = mine && gov && s.agenda ? s.agenda.items.reduce((a, it) => a + (itemMet(s, it) ? 3 : brokenPromise(s, it.kpi) ? -3 : 0), 0) : 0;
@@ -371,7 +371,7 @@ export function caseBlocked(s: GameState, m: CaseMove): string | null {
     case "expose":
       return m.target === s.player || !seatsOf(s, m.target) ? "Pick a rival." : null;
     case "showcase": {
-      const ruled = Object.values(stateRulers(s.dunHolders, s.government)).includes(s.player);
+      const ruled = Object.values(stateRulers(s.dunHolders, s.government, s.stateGov)).includes(s.player);
       return s.government.includes(s.player) || ruled ? null : "You need a record: be in government or run a state.";
     }
     case "rebut":

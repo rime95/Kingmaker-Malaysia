@@ -16,6 +16,14 @@ import {
   retire,
   leaveLegacy,
   draftPost,
+  appointPartyPost,
+  sendMission,
+  inviteStateParty,
+  closeStateTalks,
+  statePower,
+  draftState,
+  swearInState,
+  reshuffleState,
   suggestCabinet,
   swearInCabinet,
   autoNominate,
@@ -67,6 +75,7 @@ import { recordTier } from "./meta";
 import type { AssetType, CeoKind } from "@/game/systems/business";
 import type { CoalitionId } from "@/game/world";
 import type { PortfolioId } from "@/game/data/people";
+import type { StatePower } from "@/game/systems/stategov";
 import type { RaceMove } from "@/game/systems/partyrace";
 import { buyProperty, buyShares, cancelOrder, declareAssets, donate, payOffLoan, placeOrder, sellProperty, sellShares, setPayTeam, type Owner } from "@/game/systems/wealth";
 import type { StockOrder } from "@/game/systems/bursa";
@@ -74,7 +83,7 @@ import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result" | "swing";
 /** Side panels that open over the map. */
-export type Panel = "campaign" | "case" | "battle" | "party" | "people" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis" | "cabinet";
+export type Panel = "campaign" | "case" | "battle" | "party" | "people" | "leadership" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis" | "cabinet";
 
 export interface Toast {
   id: number;
@@ -142,6 +151,15 @@ interface Store {
   retire: () => void;
   leaveLegacy: () => void;
   draftPost: (post: PortfolioId, id: number | null) => void;
+  appointPartyPost: (key: string, id: number) => void;
+  sendMission: (id: number) => void;
+  inviteStateParty: (c: CoalitionId, posts: number) => void;
+  closeStateTalks: () => void;
+  statePower: (id: string, power: StatePower) => void;
+  draftState: (id: string, change: { mb?: number; add?: number; remove?: number }) => void;
+  swearInState: (id: string) => void;
+  reshuffleState: (id: string) => void;
+  endStateNight: () => void;
   suggestCabinet: () => void;
   swearIn: () => void;
   autoNominate: () => void;
@@ -428,6 +446,45 @@ export const useGame = create<Store>()(
         autoNominate: () => {
           const g = get().game;
           if (g) result(autoNominate(g));
+        },
+        appointPartyPost: (key, id) => {
+          const g = get().game;
+          if (g) result(appointPartyPost(g, key, id));
+        },
+        sendMission: (id) => {
+          const g = get().game;
+          if (g) result(sendMission(g, id));
+        },
+        inviteStateParty: (c, posts) => {
+          const g = get().game;
+          if (g) result(inviteStateParty(g, c, posts));
+        },
+        closeStateTalks: () => {
+          const g = get().game;
+          if (g) result(closeStateTalks(g));
+        },
+        statePower: (id, power) => {
+          const g = get().game;
+          if (g) result(statePower(g, id, power));
+        },
+        draftState: (id, change) => {
+          const g = get().game;
+          if (!g) return;
+          const r = draftState(g, id, change);
+          if (r.ok) set({ game: r.state });
+          else result(r);
+        },
+        swearInState: (id) => {
+          const g = get().game;
+          if (g) result(swearInState(g, id));
+        },
+        reshuffleState: (id) => {
+          const g = get().game;
+          if (g) result(reshuffleState(g, id));
+        },
+        endStateNight: () => {
+          const g = get().game;
+          if (g) set({ game: { ...g, stateNight: null } });
         },
         draftPost: (post, id) => {
           const g = get().game;

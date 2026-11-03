@@ -13,6 +13,7 @@ import { BattlePanel } from "../panels/BattlePanel";
 import { CasePanel } from "../panels/CasePanel";
 import { PartyPanel } from "../panels/PartyPanel";
 import { PeoplePanel } from "../panels/PeoplePanel";
+import { Leadership } from "../panels/Leadership";
 import { TeamPanel } from "../panels/TeamPanel";
 import { NationPanel } from "../panels/NationPanel";
 import { NominationsPanel } from "../panels/NominationsPanel";
@@ -35,7 +36,7 @@ export function SidePanel() {
   }, [panel, openPanel]);
   const section = sectionOf(panel);
   if (!panel || !section) return null;
-  const wide = panel === "parliament" || panel === "treasury" || panel === "states" || panel === "people" || panel === "analysis";
+  const wide = panel === "parliament" || panel === "treasury" || panel === "states" || panel === "people" || panel === "leadership" || panel === "analysis";
   return (
     <aside className={`panel side-panel slide-in flex flex-col h-full w-full ${wide ? "md:w-[640px]" : "md:w-[500px]"}`} aria-label={section.label(game)}>
       <div className="px-5 pt-4" style={{ borderBottom: "1px solid var(--line)" }}>
@@ -81,6 +82,7 @@ export function SidePanel() {
         {panel === "battle" && <BattlePanel />}
         {panel === "party" && <PartyPanel />}
         {panel === "people" && <PeoplePanel />}
+        {panel === "leadership" && <Leadership />}
         {panel === "team" && <TeamPanel />}
         {panel === "nation" && <NationPanel />}
         {panel === "nominations" && <NominationsPanel />}

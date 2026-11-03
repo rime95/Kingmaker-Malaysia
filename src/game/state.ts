@@ -14,6 +14,8 @@ import { initPeople, makeChairman, syncYou, type Person } from "./systems/people
 import { restoreChairman } from "./systems/chairman";
 import type { NewTerm } from "./systems/newterm";
 import type { Ending } from "./systems/legacy";
+import { autoPosts, postSeatEffects, pullTable, type Posts } from "./systems/posts";
+import { syncStateGov, type StateGov, type StateNight, type StateTalks, type StateTerm } from "./systems/stategov";
 import type { PortfolioId } from "./data/people";
 import type { PartyRace } from "./systems/partyrace";
 import { initTeam, pollError, type Staff } from "./systems/team";
@@ -43,7 +45,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -78,6 +80,8 @@ export interface CardInstance {
   party?: string;
   /** The person a card is about. */
   person?: number;
+  /** The state a card is about. */
+  state?: string;
 }
 
 export interface HistoryPoint {
@@ -245,6 +249,18 @@ export interface GameState {
   newTerm: NewTerm | null;
   /** Your leader's road has ended: the legacy screen is up. */
   ending: Ending | null;
+  /** Party → post (national posts and state chiefs) → person id. */
+  posts: Posts;
+  /** Each post's pull when the game started: effects count from here. */
+  postBase: Record<string, number>;
+  /** Every state government: ruler, MB, exco and (yours) treasury. */
+  stateGov: Record<string, StateGov>;
+  /** MB and exco you are drawing up for states you won. */
+  stateTerms: StateTerm[];
+  /** Hung-assembly talks you are leading. */
+  stateTalks: StateTalks | null;
+  /** State results night to show. */
+  stateNight: StateNight | null;
 }
 
 export interface NewGameOptions {
@@ -353,6 +369,12 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     policyLog: [],
     newTerm: null,
     ending: null,
+    posts: {},
+    postBase: {},
+    stateGov: {},
+    stateTerms: [],
+    stateTalks: null,
+    stateNight: null,
   };
   if (!contestingIn(SEATS[state.career.homeSeat]).includes(player)) state.entries = { [state.career.homeSeat]: [player] };
   Object.assign(state, initPeople(state));
@@ -374,6 +396,8 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
   if (state.settings.scenario === "underdog") {
     state.me = { ...state.me, funds: Math.round(state.me.funds * 0.25), members: Math.round(state.me.members * 0.6), unity: 40, trust: 40 };
   }
+  Object.assign(state, syncStateGov(autoPosts(state)));
+  state.postBase = pullTable(state);
   state.scorecard = initScorecard(state);
   state.history.push({ week: 0, funds: state.me.funds, seats: projectedSeats(state) });
   state.objectives = newObjectives(state);
@@ -470,6 +494,17 @@ export function migrateGame(g: GameState): GameState {
   if ((g.version ?? 0) < 16) Object.assign(migrated, restoreChairman(migrated));
   migrated.newTerm = g.newTerm ?? null;
   migrated.ending = g.ending ?? null;
+  // Saves from before party posts and state governments.
+  migrated.posts = g.posts ?? {};
+  migrated.stateGov = g.stateGov ?? {};
+  migrated.stateTerms = g.stateTerms ?? [];
+  migrated.stateTalks = g.stateTalks ?? null;
+  migrated.stateNight = g.stateNight ?? null;
+  migrated.postBase = g.postBase ?? {};
+  if (!g.posts || !g.stateGov) {
+    Object.assign(migrated, syncStateGov(autoPosts(migrated)));
+    migrated.postBase = pullTable(migrated);
+  }
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));
   if (!migrated.objectives.length) migrated.objectives = newObjectives(migrated);
   return migrated;
@@ -546,6 +581,7 @@ export function seatBreakdown(state: GameState, i: number): { label: string; val
     { label: "Loyal base (roots)", value: state.roots?.[i] ?? 0 },
     { label: "Converted voters", value: Math.log(1 + (state.converts?.[i] ?? 0) / Math.max(0.01, naturalSupport(i, state.player))) },
     { label: "Youth and Wanita wings", value: wingsEffect(state, i) },
+    { label: "Your state chief and Election Director", value: state.posts ? postSeatEffects(state)[i][COALITION_INDEX[state.player]] : 0 },
     { label: "Candidate", value: pick !== undefined ? candidateStrength(state, i, state.people.find((x) => x.id === pick)) : 0 },
     { label: "Policies, Budget and mood", value: playerSeatEffect(state, i) - ((me.service[i] - serviceBase(state.player, i)) * EFFECT.service + me.buzz[i] * EFFECT.buzz + (me.machinery[i] - machineryBase(state.player, i)) * EFFECT.machinery) * wave - issueEffect(state, i, gov) - messageEffect(state, i) - wingsEffect(state, i) - (state.roots?.[i] ?? 0) - pillarEffect(state, state.player, i) },
   ];
@@ -561,8 +597,10 @@ export function voterInputs(state: GameState): VoterInputs {
   const rivals = Object.entries(state.rivals) as [CoalitionId, NonNullable<Rivals[CoalitionId]>][];
   for (const [c, r] of rivals) swing[c] += rivalNationalEffect(r);
   const policy = policyVoters(state.me.policies, isGovernment(state));
+  // Every party's state chiefs and election director (yours and the rivals').
+  const posts = state.posts ? postSeatEffects(state) : null;
   const seatOffsets = state.seatOffsets.map((row, i) => {
-    const out = [...row];
+    const out = posts ? row.map((v, k) => v + posts[i][k]) : [...row];
     out[p] += playerSeatEffect(state, i, policy);
     // Your party's named candidate carries a personal vote.
     const pick = state.nominations?.picks[i];

@@ -24,7 +24,7 @@ const fortresses = (s: GameState) => s.me.service.filter((v, i) => v >= 70 && s.
 /** Three objectives for a new term, chosen from what is a stretch for you right now. */
 export function newObjectives(s: GameState): Objective[] {
   const seats = s.holders.filter((h) => h === s.player).length;
-  const rulers = stateRulers(s.dunHolders, s.government);
+  const rulers = stateRulers(s.dunHolders, s.government, s.stateGov);
   const targetState = ASSEMBLY_STATES.filter((id) => rulers[id] !== s.player)
     .map((id) => ({ id, share: (stateRule(s.dunHolders, id, s.government).seats[s.player] ?? 0) / DUNS_BY_STATE[id].length }))
     .sort((a, b) => b.share - a.share)[0];
@@ -52,7 +52,7 @@ export function newObjectives(s: GameState): Objective[] {
 export function objectiveMet(s: GameState, o: Objective): boolean {
   switch (o.kind) {
     case "state":
-      return stateRule(s.dunHolders, o.stateId!, s.government).ruler === s.player;
+      return stateRulers(s.dunHolders, s.government, s.stateGov)[o.stateId!] === s.player;
     case "fortress":
       return fortresses(s) >= o.target;
     case "unity":
@@ -109,8 +109,8 @@ export const LEGACY: LegacyGoal[] = [
 export const ACHIEVEMENTS: AchievementDef[] = [
   { id: "first-week", name: "Selamat Datang", text: "Play your first week.", check: (s) => s.week >= 1 },
   { id: "byelection", name: "First Blood", text: "Win a by-election.", check: (s) => s.career.log.some((l) => l.text.includes("by-election")) },
-  { id: "state", name: "State Builder", text: "Govern a state.", check: (s) => Object.values(stateRulers(s.dunHolders, s.government)).includes(s.player) },
-  { id: "states4", name: "Empire of States", text: "Govern four states at once.", check: (s) => Object.values(stateRulers(s.dunHolders, s.government)).filter((c) => c === s.player).length >= 4 },
+  { id: "state", name: "State Builder", text: "Govern a state.", check: (s) => Object.values(stateRulers(s.dunHolders, s.government, s.stateGov)).includes(s.player) },
+  { id: "states4", name: "Empire of States", text: "Govern four states at once.", check: (s) => Object.values(stateRulers(s.dunHolders, s.government, s.stateGov)).filter((c) => c === s.player).length >= 4 },
   { id: "fortress5", name: "Kubu Kuat", text: "Hold five strongholds (service 70+).", check: (s) => fortresses(s) >= 5 },
   { id: "fortress20", name: "Fortress Malaysia", text: "Hold twenty strongholds.", check: (s) => fortresses(s) >= 20 },
   { id: "tycoon", name: "Tycoon Party", text: "Own five businesses.", check: (s) => s.me.assets.length >= 5 },

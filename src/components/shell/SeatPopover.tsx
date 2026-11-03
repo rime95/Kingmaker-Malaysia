@@ -10,6 +10,8 @@ import { CHANCE_LABEL, POLLS, chanceBand, winChance } from "@/game/systems/polls
 import { resultView } from "@/game/systems/results";
 import { useGame } from "@/store/gameStore";
 import { contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
+import { chiefKey, holderOf, regionName, regionOf } from "@/game/systems/posts";
+import { mbTitle } from "@/game/systems/stategov";
 import { ActionCard } from "../ActionCard";
 import { chancePct, fmtRM, pct, useReads } from "../common";
 import { SeatIssues } from "./SeatBits";
@@ -119,6 +121,8 @@ export function SeatPopover() {
           </p>
         )}
 
+        <StateLine seat={i} />
+
         <SeatIssues seat={i} compact />
 
         {game.battlegrounds?.[i] && (
@@ -167,5 +171,31 @@ export function SeatPopover() {
         Full details: result, rivals, who lives here →
       </button>
     </div>
+  );
+}
+
+/** Who runs the party and the state here: your state chief, and the MB or KM. */
+function StateLine({ seat }: { seat: number }) {
+  const game = useGame((s) => s.game)!;
+  const st = SEATS[seat].state;
+  const party = game.coalitions[game.player].members[0];
+  const chief = holderOf(game, party, chiefKey(regionOf(st)));
+  const g = game.stateGov[st];
+  const mb = g ? game.people.find((p) => p.id === g.mb) : undefined;
+  if (!chief && !mb) return null;
+  return (
+    <p className="text-[11px]" style={{ color: "var(--ink-2)" }}>
+      {chief && (
+        <>
+          Your {regionName(regionOf(st))} chief: <b>{chief.name}</b>
+        </>
+      )}
+      {chief && mb ? " · " : ""}
+      {mb && (
+        <>
+          {mbTitle(st)}: <b>{mb.name}</b> ({mb.party})
+        </>
+      )}
+    </p>
   );
 }

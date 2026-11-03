@@ -49,6 +49,10 @@ export interface Person {
   chairman?: boolean;
   /** Last week the chairman campaigned for you. */
   campaignWeek?: number;
+  /** Home state (posts.ts regionOf); derived from their seat when not set. */
+  home?: string;
+  /** Last week they went on a mission for you (posts.ts). */
+  missionWeek?: number;
 }
 
 export const PEOPLE = {

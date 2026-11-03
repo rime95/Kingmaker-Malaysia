@@ -33,9 +33,10 @@ export const SECTIONS: Section[] = [
     id: "party",
     label: () => "Party",
     icon: "party",
-    sub: "Your party's health, its people and your own staff",
+    sub: "Your party's health, its lieutenants and generals, its people and your own staff",
     tabs: [
       { id: "party", label: () => "Overview" },
+      { id: "leadership", label: () => "Leadership" },
       { id: "people", label: () => "People" },
       { id: "team", label: () => "Your team" },
     ],

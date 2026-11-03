@@ -8,6 +8,7 @@
 import { PORTFOLIOS, type PortfolioId } from "../data/people";
 import type { GameState, ReportLine } from "../state";
 import { cabinetFairness, formCabinet, youArePm } from "./people";
+import { isMb } from "./stategov";
 
 export interface NewTerm {
   /** The cabinet being drawn up. */
@@ -34,7 +35,7 @@ export function openNewTerm(s: GameState, previous: Partial<Record<PortfolioId, 
 /** Who can sit in cabinet: MPs and senior members of the government's parties. */
 export function cabinetPool(s: GameState) {
   return s.people
-    .filter((p) => !p.retired && p.rank >= 1 && s.government.some((c) => s.coalitions[c].members.includes(p.party)))
+    .filter((p) => !p.retired && p.rank >= 1 && !isMb(s, p.id) && s.government.some((c) => s.coalitions[c].members.includes(p.party)))
     .sort((a, b) => (b.seat !== null ? 1 : 0) - (a.seat !== null ? 1 : 0) || b.competence - a.competence);
 }
 

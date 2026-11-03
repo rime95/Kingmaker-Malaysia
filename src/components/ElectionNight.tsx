@@ -6,7 +6,7 @@ import { fmtRM } from "@/game/money";
 import { TIER_TEXT } from "@/game/systems/formation";
 import { useGame } from "@/store/gameStore";
 import { coalitionLeader } from "@/game/systems/coalitions";
-import { cshort, MAJORITY, SEATS, SUPERMAJORITY, TOTAL_SEATS, type CoalitionId } from "@/game/world";
+import { cshort, MAJORITY, SEATS, STATE_BY_ID, SUPERMAJORITY, TOTAL_SEATS, type CoalitionId } from "@/game/world";
 import { CHART_ORDER, coalColor, fmt } from "./common";
 import { CoalitionTalks } from "./CoalitionTalks";
 import { useT } from "./i18n";
@@ -254,6 +254,7 @@ function Count({ onDone }: { onDone: () => void }) {
               <Stat label="Turnout" value={`${Math.round((votes / electorate) * 100)}%`} />
             </div>
             <Declarations order={called} prev={prev} player={player} />
+            {done && <StateResults />}
           </div>
         </div>
       </div>
@@ -272,6 +273,37 @@ function Count({ onDone }: { onDone: () => void }) {
           done={done}
         />
       )}
+    </div>
+  );
+}
+
+/** States that voted with Parliament: who now runs each one. */
+function StateResults() {
+  const game = useGame((s) => s.game)!;
+  const ids = Object.keys(game.assemblies).filter((id) => game.assemblies[id].lastPollWeek === game.night!.week);
+  if (!ids.length) return null;
+  return (
+    <div className="panel p-3 flex flex-col gap-1.5">
+      <div className="eyebrow">
+        <Term word="PRN" /> · the states that voted tonight
+      </div>
+      {ids.map((id) => {
+        const a = game.assemblies[id];
+        const g = game.stateGov[id];
+        const mine = a.lastAfter?.[game.player] ?? 0;
+        const was = a.lastBefore?.[game.player] ?? 0;
+        return (
+          <div key={id} className="text-xs flex items-center gap-2">
+            <span className="w-28 font-semibold truncate">{STATE_BY_ID[id].name}</span>
+            {g && <CoalitionFlag game={game} c={g.ruler} size={11} />}
+            <span className="flex-1">{g ? (game.stateTalks?.state === id ? "Hung: talks" : `${cshort(g.ruler)} governs`) : ""}</span>
+            <span className="tabular-nums" style={{ color: mine > was ? "var(--good)" : mine < was ? "var(--bad)" : "var(--muted)" }}>
+              you {mine} ({mine - was >= 0 ? "+" : "−"}
+              {Math.abs(mine - was)})
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

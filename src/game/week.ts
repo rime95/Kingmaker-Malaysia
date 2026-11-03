@@ -16,6 +16,8 @@ import { leaderOfParty, peopleMonth, syncYou } from "./systems/people";
 import { chairmanWeek } from "./systems/chairman";
 import { confirmCabinet } from "./systems/newterm";
 import { continueAfterEnding } from "./systems/legacy";
+import { postsWeek, treasurerIncome, wingDemand } from "./systems/posts";
+import { afterStatePolls, resolveStatePending, stateGovWeek } from "./systems/stategov";
 import { celebritySeat, divisionDemand } from "./systems/nomcards";
 import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
 import { CONTEST_POINTS } from "./systems/career";
@@ -51,12 +53,14 @@ export function weeklyCashFlow(s: GameState): { income: WeekReport["income"]; ex
     { label: "Party dues", amount: Math.round(me.members * ECONOMY.duesPerMember) },
     { label: `MPs' contributions (${held} seats)`, amount: held * (gov ? ECONOMY.seatIncomeGov : ECONOMY.seatIncomeOpp) },
   ];
-  for (const [id, ruler] of Object.entries(stateRulers(s.dunHolders, s.government)))
+  for (const [id, ruler] of Object.entries(stateRulers(s.dunHolders, s.government, s.stateGov)))
     if (ruler === s.player) income.push({ label: `State government (${STATE_BY_ID[id].name})`, amount: DUNS_BY_STATE[id].length * PRN.stateIncomePerSeat });
   for (const a of me.assets) income.push({ label: ASSETS[a.type].name, amount: assetIncome(a, gov, me.market) });
   income.push(...partyIncome(s));
   const expenses: WeekReport["expenses"] = [{ label: "HQ & staff", amount: Math.round(hqCost(me.members)) }];
   if (s.team.length && !s.personal.payTeam) expenses.push({ label: "Your team", amount: teamSalaries(s) });
+  const treasurer = treasurerIncome(s, income[0].amount);
+  if (treasurer) income.push({ label: "Party Treasurer's fundraising", amount: treasurer });
   const donations = teamDonations(s);
   if (donations) income.push({ label: `Donors (${s.team.find((x) => x.role === "fundraiser")?.name})`, amount: donations });
   const salaries = me.assets.reduce((sum, a) => sum + ceoPay(a, gov, me.market), 0);
@@ -74,14 +78,17 @@ export function advanceWeek(input: GameState): GameState {
   const carried = input.ending ? continueAfterEnding(input) : input;
   const formed = carried.formation ? autoResolveFormation(carried) : carried;
   // A cabinet still on the drawing board when time moves on is sworn in as drafted.
-  const resolved = formed.newTerm ? confirmCabinet(formed).state : formed;
+  const sworn = formed.newTerm ? confirmCabinet(formed).state : formed;
+  // State governments still being drawn up are sworn in; hung-assembly talks past their deadline end.
+  const pending = resolveStatePending(sworn);
+  const resolved = pending.state;
   const before = projectAllFor(resolved);
   // Staff you delegated to do their routine work first.
   const delegated = delegateWeek(resolved, before);
   const s = delegated.state;
   const gov = isGovernment(s);
   const me = { ...s.me, service: [...s.me.service], buzz: [...s.me.buzz], machinery: [...s.me.machinery], assets: s.me.assets.map((a) => ({ ...a })), policies: { ...s.me.policies } };
-  const lines: ReportLine[] = [...delegated.lines];
+  const lines: ReportLine[] = [...pending.lines, ...delegated.lines];
   const contested = SEATS.filter((seat) => contestingIn(seat, s.entries).includes(s.player)).map((seat) => seat.index);
   const held = s.holders.map((h, i) => (h === s.player ? i : -1)).filter((i) => i >= 0);
 
@@ -113,7 +120,7 @@ export function advanceWeek(input: GameState): GameState {
     me.service[i] = clamp(me.service[i] + perHeld + (plantation && SEATS[i].demo.urbanity < 0.4 ? 0.1 * plantation.level : 0));
   }
   // States you govern build service in their parliamentary seats
-  for (const [id, ruler] of Object.entries(stateRulers(s.dunHolders, s.government)))
+  for (const [id, ruler] of Object.entries(stateRulers(s.dunHolders, s.government, s.stateGov)))
     if (ruler === s.player) for (const seat of SEATS) if (seat.state === id) me.service[seat.index] = clamp(me.service[seat.index] + PRN.stateServicePerWeek);
   // As an MP, your constituency allocation keeps building service in your own seat.
   if (s.career.rung >= 2 && s.holders[s.career.homeSeat] === s.player) me.service[s.career.homeSeat] = clamp(me.service[s.career.homeSeat] + 0.5);
@@ -181,7 +188,7 @@ export function advanceWeek(input: GameState): GameState {
     projections: before,
     weeksToElection: weeksToElection(s),
     campaignStates: campaignStates(s),
-    rulers: stateRulers(s.dunHolders, s.government),
+    rulers: stateRulers(s.dunHolders, s.government, s.stateGov),
     government: s.government,
     aggression: diff.aiAggression,
     entries: s.entries,
@@ -263,9 +270,15 @@ export function advanceWeek(input: GameState): GameState {
   next = noms.state;
   lines.push(...noms.lines);
 
+  const prevDun = next.dunHolders;
   const polls = assembliesWeek(next, voterInputs(next));
   next = polls.state;
   lines.push(...polls.lines);
+  // States that voted: who governs, your MB and exco, and the results night.
+  const polled = Object.entries(next.assemblies).filter(([, a]) => a.lastPollWeek === next.week).map(([id]) => id);
+  const settled = afterStatePolls(next, polled, prevDun);
+  next = settled.state;
+  lines.push(...settled.lines);
   if (next.night && next.night.week === next.week) {
     const ge = careerAfterGE(next, next.night.prevHolders);
     next = ge.state;
@@ -289,12 +302,12 @@ export function advanceWeek(input: GameState): GameState {
   const coal = coalitionsWeek(next);
   next = coal.state;
   lines.push(...coal.lines);
-  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis", nominations: "name your candidates", council: "the Supreme Council meets", chairmanCounsel: "the chairman has advice", chairmanRift: "the chairman breaks ranks", divisionDemand: "a division chief wants the ticket", celebrity: "a famous face wants to stand" };
-  const addCard = (kind: string, party?: string, person?: number, seat?: number) => {
+  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis", nominations: "name your candidates", council: "the Supreme Council meets", chairmanCounsel: "the chairman has advice", chairmanRift: "the chairman breaks ranks", lieutenantRift: "a lieutenant turns", wingDemand: "a wing chief wants more", mbRebel: "your MB goes rogue", divisionDemand: "a division chief wants the ticket", celebrity: "a famous face wants to stand" };
+  const addCard = (kind: string, party?: string, person?: number, seat?: number, state?: string) => {
     const id = Math.max(0, ...next.cards.map((c) => c.id), next.week * 10) + 1;
     const room = makeRoom(next.cards, kind);
     if (!room) return;
-    next = { ...next, cards: [...room, { id, kind, week: next.week, deadline: next.week + 2, party, person, seat }], cardLast: { ...next.cardLast, [kind]: next.week } };
+    next = { ...next, cards: [...room, { id, kind, week: next.week, deadline: next.week + 2, party, person, seat, state }], cardLast: { ...next.cardLast, [kind]: next.week } };
   };
   if (coal.warn && next.cards.length < 4) addCard("partnerWalkout", coal.warn);
   if (next.week % COUNCIL_EVERY === 3 && next.career.rung >= 6 && !next.cards.some((c) => c.kind === "council")) addCard("council");
@@ -313,6 +326,17 @@ export function advanceWeek(input: GameState): GameState {
   const ppl = peopleMonth(next);
   next = ppl.state;
   lines.push(...ppl.lines);
+  // Lieutenants and generals do their jobs; state governments run their states.
+  const pw = postsWeek(next);
+  next = pw.state;
+  lines.push(...pw.lines);
+  if (pw.rift !== null && next.career.rung >= 6) addCard("lieutenantRift", undefined, pw.rift);
+  const wd = wingDemand(next);
+  if (wd && next.career.rung >= 6) addCard("wingDemand", undefined, wd.person);
+  const sgw = stateGovWeek(next);
+  next = sgw.state;
+  lines.push(...sgw.lines);
+  if (sgw.rebel && next.career.rung >= 6) addCard("mbRebel", undefined, sgw.rebel.person, undefined, sgw.rebel.state);
   // Your chairman: steadies the party, offers counsel, and may break ranks if sidelined.
   const chair = chairmanWeek(next);
   next = chair.state;

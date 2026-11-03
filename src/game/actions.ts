@@ -5,6 +5,8 @@ import { ECONOMY, TURN_WEEKS } from "./config";
 import { chairmanCampaign } from "./systems/chairman";
 import { confirmCabinet, openNewTerm, resetDraft, setDraft } from "./systems/newterm";
 import { continueAfterEnding, retireNow } from "./systems/legacy";
+import { appointPost, sendOnMission } from "./systems/posts";
+import { confirmStateTerm, exerciseStatePower, finishTalks, inviteToState, openStateTerm, setStateDraft, type StatePower } from "./systems/stategov";
 import { autoPick } from "./systems/nominations";
 import { standsAside } from "./systems/pacts";
 import { TALKS, claimSeat, concedeSeat, type TalkSeat } from "./systems/seattalks";
@@ -15,7 +17,7 @@ import { MULTIRACIAL, PLEDGE_WEIGHT, POLICY_BY_ID, POLICY_COST, UNFUNDED_INTEGRI
 import { addSeg, type SegEffects } from "./systems/segments";
 import { fmtRM } from "./money";
 import { isGovernment, projectAllFor, simulateElection, weekDate, weekLabel, type GameState, type Player } from "./state";
-import { ASSEMBLY_STATES, dissolveAssembly, dissolveParliament, stateRule } from "./systems/assemblies";
+import { ASSEMBLY_STATES, dissolveAssembly, dissolveParliament, stateRule, stateRulers } from "./systems/assemblies";
 import { AFFINITY, BORNEO, OFFERS, TIER_TEXT, agongDecides, backCandidate, deciding, endRound, winTier, type Offer } from "./systems/formation";
 import { CAREER as CAREER_LOYALTY, RUNGS, addPoints, isPresident } from "./systems/career";
 import { raceMove, type RaceMove } from "./systems/partyrace";
@@ -999,6 +1001,29 @@ export function swearInCabinet(s: GameState): ActionResult {
 export const retire = (s: GameState): ActionResult => teamResult(retireNow(s));
 export const leaveLegacy = (s: GameState): ActionResult => ({ ok: true, state: continueAfterEnding(s), message: s.ending?.reason === "ousted" ? "You fight on from the ranks." : `${s.career.protege} takes over.` });
 export const autoNominate = (s: GameState): ActionResult => teamResult(autoPick(s));
+// Lieutenants, generals and state governments
+export const appointPartyPost = (s: GameState, key: string, id: number): ActionResult => teamResult(appointPost(s, key, id));
+export const sendMission = (s: GameState, id: number): ActionResult => teamResult(sendOnMission(s, id));
+export const inviteStateParty = (s: GameState, c: CoalitionId, posts: number): ActionResult => teamResult(inviteToState(s, c, posts));
+export function closeStateTalks(s: GameState): ActionResult {
+  const t = s.stateTalks;
+  if (!t) return { ok: false, error: "No talks under way." };
+  const state = finishTalks(s);
+  const won = state.stateGov[t.state]?.ruler === s.player;
+  return { ok: true, state, message: won ? `You form the ${STATE_BY_ID[t.state].name} government.` : `${cshort(state.stateGov[t.state].ruler)} forms the ${STATE_BY_ID[t.state].name} government.` };
+}
+export const statePower = (s: GameState, id: string, power: StatePower): ActionResult => teamResult(exerciseStatePower(s, id, power));
+export const draftState = (s: GameState, id: string, change: { mb?: number; add?: number; remove?: number }): ActionResult =>
+  s.stateTerms.some((t) => t.state === id) ? { ok: true, state: setStateDraft(s, id, change), message: "" } : { ok: false, error: "No state government is being formed." };
+export function swearInState(s: GameState, id: string): ActionResult {
+  if (!s.stateTerms.some((t) => t.state === id)) return { ok: false, error: "No state government is being formed." };
+  const r = confirmStateTerm(s, id);
+  return { ok: true, state: r.state, message: r.lines.at(-1)?.text ?? "Sworn in." };
+}
+export function reshuffleState(s: GameState, id: string): ActionResult {
+  if (s.stateGov[id]?.ruler !== s.player) return { ok: false, error: "You don't govern this state." };
+  return { ok: true, state: openStateTerm(s, id), message: `Reshuffling the ${STATE_BY_ID[id].name} exco.` };
+}
 export const claimTalkSeat = (s: GameState, r: TalkSeat): ActionResult => teamResult(claimSeat(s, r));
 export const concedeTalkSeat = (s: GameState, r: TalkSeat): ActionResult => teamResult(concedeSeat(s, r));
 
@@ -1358,7 +1383,7 @@ export function callGeneralElection(s: GameState): ActionResult {
 }
 
 export function assemblyDissolveBlocked(s: GameState, stateId: string): string | null {
-  if (stateRule(s.dunHolders, stateId, s.government).ruler !== s.player) return "Only the state's ruling coalition can dissolve its assembly.";
+  if (stateRulers(s.dunHolders, s.government, s.stateGov)[stateId] !== s.player) return "Only the state's ruling coalition can dissolve its assembly.";
   if (!isPresident(s.career)) return LEADERSHIP_ONLY;
   if (s.assemblies[stateId].status !== "sitting") return "Already dissolved.";
   return null;
@@ -1373,7 +1398,7 @@ export function callStateElection(s: GameState, stateId: string): ActionResult {
 
 /** Whether a state you govern votes together with Parliament. */
 export function setSyncWithGE(s: GameState, stateId: string, sync: boolean): ActionResult {
-  if (stateRule(s.dunHolders, stateId, s.government).ruler !== s.player) return { ok: false, error: "Only the state's ruling coalition decides this." };
+  if (stateRulers(s.dunHolders, s.government, s.stateGov)[stateId] !== s.player) return { ok: false, error: "Only the state's ruling coalition decides this." };
   if (!isPresident(s.career)) return { ok: false, error: LEADERSHIP_ONLY };
   const a = s.assemblies[stateId];
   return {

@@ -1,5 +1,5 @@
 // Running the party: the Youth and Wanita wings, the Supreme Council's meetings, and discipline.
-// - Wings (0–100) drift down unless you fund them. A strong Youth wing wins young voters and gets the vote out; a
+// - Wings (0–100) drift towards a resting level set by the chiefs who run them (posts.ts), and down unless you fund them. A strong Youth wing wins young voters and gets the vote out; a
 //   strong Wanita wing works every kampung and grows the membership.
 // - The Supreme Council meets every eight weeks with one item on its agenda: a real choice with a cost either way.
 // - Discipline: a show-cause letter brings a wavering MP into line; sacking one makes them an independent (the seat goes
@@ -10,6 +10,7 @@ import type { GameState } from "../state";
 import { mpOf } from "./people";
 import { segValue } from "./segments";
 import { SEATS } from "../world";
+import { holderOf, wingRest } from "./posts";
 
 export interface Wings {
   youth: number;
@@ -25,10 +26,14 @@ export function wingsEffect(s: Pick<GameState, "wings">, i: number): number {
   return segValue(i, { youth: (s.wings.youth - 50) * WINGS.youthPull, all: (s.wings.women - 50) * WINGS.womenPull });
 }
 
-/** Weekly: wings drift towards rest; a strong Wanita wing signs up members. */
+/** Weekly: wings drift towards the level their chiefs can hold; a disloyal chief drags theirs down; a strong Wanita wing signs up members. */
 export function wingsWeek(s: GameState): GameState {
   const w = s.wings;
-  const wings = { youth: w.youth + (WINGS.rest - w.youth) * WINGS.drift, women: w.women + (WINGS.rest - w.women) * WINGS.drift };
+  const rest = wingRest(s, WINGS.rest);
+  const wings = {
+    youth: clamp(w.youth + (rest.youth - w.youth) * WINGS.drift - rest.drag.youth),
+    women: clamp(w.women + (rest.women - w.women) * WINGS.drift - rest.drag.women),
+  };
   const members = Math.round(s.me.members * (1 + Math.max(0, w.women - 50) * WINGS.womenMembers * 0.1));
   return { ...s, wings, me: { ...s.me, members } };
 }
@@ -36,8 +41,15 @@ export function wingsWeek(s: GameState): GameState {
 export function fundWing(s: GameState, wing: keyof Wings): { state: GameState; message: string } | { error: string } {
   if (s.me.ap < WINGS.ap) return { error: `Needs ${WINGS.ap} AP.` };
   if (s.me.funds < WINGS.cost) return { error: "Not enough money." };
+  // The wing chief appreciates the money.
+  const chief = holderOf(s, s.coalitions[s.player].members[0], wing === "youth" ? "youth" : "wanita");
   return {
-    state: { ...s, me: { ...s.me, ap: s.me.ap - WINGS.ap, funds: s.me.funds - WINGS.cost }, wings: { ...s.wings, [wing]: clamp(s.wings[wing] + WINGS.fund) } },
+    state: {
+      ...s,
+      me: { ...s.me, ap: s.me.ap - WINGS.ap, funds: s.me.funds - WINGS.cost },
+      wings: { ...s.wings, [wing]: clamp(s.wings[wing] + WINGS.fund) },
+      people: chief ? s.people.map((p) => (p.id === chief.id ? { ...p, loyalty: clamp(p.loyalty + 3) } : p)) : s.people,
+    },
     message: wing === "youth" ? "The Youth wing gets buses, a podcast studio and a futsal league." : "Wanita gets funds for kampung visits, kitchens and child-care drives.",
   };
 }
@@ -66,14 +78,21 @@ const yourMember = (s: GameState, id: number) => {
   return p && s.coalitions[s.player].members[0] === p.party && p.id !== s.youId ? p : undefined;
 };
 
+/** A capable Secretary-General makes discipline cheaper. */
+export function showCauseCost(s: GameState): number {
+  const sg = holderOf(s, s.coalitions[s.player].members[0], "sg");
+  return Math.max(1, DISCIPLINE.showCause.capital - (sg && sg.competence >= 70 ? 1 : 0));
+}
+
 export function showCause(s: GameState, id: number): { state: GameState; message: string } | { error: string } {
   const p = yourMember(s, id);
   if (!p) return { error: "Only members of your own party." };
-  if (s.me.capital < DISCIPLINE.showCause.capital) return { error: `Needs ${DISCIPLINE.showCause.capital} political capital.` };
+  const cost = showCauseCost(s);
+  if (s.me.capital < cost) return { error: `Needs ${cost} political capital.` };
   return {
     state: {
       ...s,
-      me: { ...s.me, capital: s.me.capital - DISCIPLINE.showCause.capital, unity: clamp(s.me.unity + DISCIPLINE.showCause.unity) },
+      me: { ...s.me, capital: s.me.capital - cost, unity: clamp(s.me.unity + DISCIPLINE.showCause.unity) },
       people: s.people.map((x) => (x.id === id ? { ...x, loyalty: clamp(x.loyalty + DISCIPLINE.showCause.loyalty), ambition: clamp(x.ambition - 5) } : x)),
     },
     message: `${p.name} gets a show-cause letter and falls into line, for now.`,

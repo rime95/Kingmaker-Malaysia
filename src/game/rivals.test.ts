@@ -23,7 +23,7 @@ const step = (g: GameState) =>
     projections: projectAllFor(g),
     weeksToElection: weeksToElection(g),
     campaignStates: campaignStates(g),
-    rulers: stateRulers(g.dunHolders, g.government),
+    rulers: stateRulers(g.dunHolders, g.government, g.stateGov),
     government: g.government,
   });
 

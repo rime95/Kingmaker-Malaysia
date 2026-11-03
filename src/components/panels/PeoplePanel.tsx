@@ -6,10 +6,12 @@ import { PORTFOLIOS, type PortfolioId } from "@/game/data/people";
 import { coalitionOf, partyColor } from "@/game/systems/coalitions";
 import { PEOPLE, RANKS, ageOf, byId, favourBlocked, favourOf, meetBlocked, partyPeople, postOf, titleOf, type Person } from "@/game/systems/people";
 import { useGame } from "@/store/gameStore";
-import { COALITIONS, PARTIES, SEATS, cshort } from "@/game/world";
+import { COALITIONS, PARTIES, SEATS, STATE_BY_ID, cshort } from "@/game/world";
 import { fmtRM } from "../common";
 import { DISCIPLINE } from "@/game/systems/partyorg";
 import { PartyFlag } from "../flags";
+import { postName, postOfPerson } from "@/game/systems/posts";
+import { mbTitle } from "@/game/systems/stategov";
 
 /** Who's who: the cabinet, then any party's leadership from the President down to the branch chiefs. */
 export function PeoplePanel() {
@@ -258,9 +260,15 @@ function PersonCard({ p }: { p: Person }) {
   const meetWhy = meetBlocked(game, p.id);
   const favWhy = favourBlocked(game, p.id);
   const f = favourOf(game, p);
+  const post = postOfPerson(game, p);
+  const mbState = Object.keys(game.stateGov).find((id) => game.stateGov[id].mb === p.id);
   return (
     <div className="px-2.5 pb-2.5 flex flex-col gap-2 text-xs">
-      <div style={{ color: "var(--ink-2)" }}>{titleOf(game, p)}</div>
+      <div style={{ color: "var(--ink-2)" }}>
+        {titleOf(game, p)}
+        {post ? ` · ${postName(post)}` : ""}
+        {mbState ? ` · ${mbTitle(mbState)} of ${STATE_BY_ID[mbState].name}` : ""}
+      </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1">
         <Stat label="Standing" v={p.influence} />
         <Stat label="Competence" v={p.competence} />

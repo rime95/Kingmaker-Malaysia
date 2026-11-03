@@ -20,6 +20,8 @@ import { addSeg, describeSeg, type SegEffects } from "./segments";
 import { CAMPAIGN_CARDS, COUNCIL_CARD, MINISTER_SCANDAL_CARD, scandalMinister } from "./moreCards";
 import { CHAIRMAN_COUNSEL_CARD, CHAIRMAN_RIFT_CARD } from "./chairman";
 import { CELEBRITY_CARD, DIVISION_DEMAND_CARD } from "./nomcards";
+import { LIEUTENANT_RIFT_CARD, WING_DEMAND_CARD } from "./posts";
+import { MB_REBEL_CARD } from "./stategov";
 
 export interface Effect {
   funds?: number;
@@ -515,6 +517,9 @@ export const CARD_BY_KIND: Record<string, CardDef> = Object.fromEntries([
   [CHAIRMAN_RIFT_CARD.kind, CHAIRMAN_RIFT_CARD],
   [DIVISION_DEMAND_CARD.kind, DIVISION_DEMAND_CARD],
   [CELEBRITY_CARD.kind, CELEBRITY_CARD],
+  [LIEUTENANT_RIFT_CARD.kind, LIEUTENANT_RIFT_CARD],
+  [WING_DEMAND_CARD.kind, WING_DEMAND_CARD],
+  [MB_REBEL_CARD.kind, MB_REBEL_CARD],
   ...FESTIVALS.map((f) => [
     f.kind,
     {
@@ -723,6 +728,9 @@ export const CARD_PRIORITY: Record<string, number> = {
   chairmanRift: 1,
   mpJump: 1,
   deputyRestless: 1,
+  lieutenantRift: 1,
+  mbRebel: 1,
+  wingDemand: 2,
   agm: 2,
   partyRace: 2,
   council: 2,

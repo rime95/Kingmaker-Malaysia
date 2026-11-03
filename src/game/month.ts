@@ -13,7 +13,10 @@ function mergeAmounts(lists: { label: string; amount: number }[][]): { label: st
   return [...out].map(([label, amount]) => ({ label, amount }));
 }
 
-/** Run `n` weekly steps; with `stopAtNight`, stop early when Election Night starts (you watch it as it happens). */
+/**
+ * Run `n` weekly steps; with `stopAtNight`, stop early when Election Night starts (you watch it as it happens), and for a
+ * state election night, hung-assembly talks or a state government to form (they need you this week).
+ */
 export function advanceWeeks(s: GameState, n: number, stopAtNight = false): GameState {
   let state = s;
   const reports: WeekReport[] = [];
@@ -40,6 +43,7 @@ export function advanceWeeks(s: GameState, n: number, stopAtNight = false): Game
     }
     reports.push(state.report!);
     if (stopAtNight && state.night && state.night.week === state.week) break;
+    if (stopAtNight && (state.stateNight || state.stateTalks || state.stateTerms?.length)) break;
   }
   if (reports.length === 1) return state;
   const last = reports.at(-1)!;

@@ -10,7 +10,11 @@ import { useGame } from "@/store/gameStore";
 import { cshort, STATE_BY_ID, type CoalitionId } from "@/game/world";
 import { CHART_ORDER, coalColor, pct } from "./common";
 import { hemicycle } from "./Dewan";
-import { CoalitionFlag } from "./flags";
+import { CoalitionFlag, PartyFlag } from "./flags";
+import { STATEGOV, STATE_POWERS, mbTitle, statePowerBlocked, type StatePower } from "@/game/systems/stategov";
+import { chiefKey, holderOf as postHolder, homeOf, regionOf } from "@/game/systems/posts";
+import { fmtRM } from "@/game/money";
+import { Term } from "./Term";
 
 function useDunProjections(): DunProjection[] {
   const game = useGame((s) => s.game);
@@ -100,6 +104,9 @@ function SeatStrip({ seats, total }: { seats: Partial<Record<CoalitionId, number
 function StateCard({ id, proj, active, onPick }: { id: string; proj: DunProjection[]; active: boolean; onPick: () => void }) {
   const game = useGame((s) => s.game)!;
   const rule = stateRule(game.dunHolders, id, game.government);
+  const g = game.stateGov[id];
+  const ruler = g?.ruler ?? rule.ruler;
+  const mb = game.people.find((p) => p.id === g?.mb);
   const a = game.assemblies[id];
   const ids = DUNS_BY_STATE[id];
   const today = countSeats(ids.map((d) => proj[d].leader));
@@ -110,16 +117,21 @@ function StateCard({ id, proj, active, onPick }: { id: string; proj: DunProjecti
     <button
       onClick={onPick}
       className="panel p-3 text-left flex flex-col gap-1.5"
-      style={{ borderColor: active ? "var(--ink)" : undefined, borderLeft: a.status === "campaign" ? "4px solid var(--accent)" : undefined }}
+      style={{ borderColor: active ? "var(--ink)" : undefined, boxShadow: a.status === "campaign" ? "inset 4px 0 0 var(--accent)" : undefined }}
     >
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-semibold text-sm">{STATE_BY_ID[id].name}</span>
         <span className="text-xs inline-flex items-center gap-1">
-          <CoalitionFlag game={game} c={rule.ruler} size={10} />
-          {cshort(rule.ruler)}
-          {rule.ruler === game.player ? " (you)" : ""}
+          <CoalitionFlag game={game} c={ruler} size={10} />
+          {cshort(ruler)}
+          {ruler === game.player ? " (you)" : ""}
         </span>
       </div>
+      {mb && (
+        <div className="text-xs truncate" style={{ color: "var(--ink-2)" }}>
+          {mbTitle(id)}: <b>{mb.name}</b> ({mb.party})
+        </div>
+      )}
       <SeatStrip seats={rule.seats} total={rule.total} />
       <div className="text-xs flex flex-wrap justify-between gap-x-2" style={{ color: "var(--muted)" }}>
         <span>
@@ -143,11 +155,13 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
   const ids = DUNS_BY_STATE[id];
   const a = game.assemblies[id];
   const rule = stateRule(game.dunHolders, id, game.government);
+  const g = game.stateGov[id];
+  const ruler = g?.ruler ?? rule.ruler;
   const holderOf = (d: number) => (view === "now" ? game.dunHolders[d] : proj[d].leader);
   const order = [...ids].sort((x, y) => CHART_ORDER.indexOf(holderOf(x)) - CHART_ORDER.indexOf(holderOf(y)) || x - y);
   const geo = hemicycle(order);
   const blocked = assemblyDissolveBlocked(game, id);
-  const mine = rule.ruler === game.player;
+  const mine = ruler === game.player;
   const counts = countSeats(ids.map(holderOf));
 
   return (
@@ -228,7 +242,7 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
             )}
             {!mine && (
               <span className="text-xs" style={{ color: "var(--muted)" }}>
-                Run by {cshort(rule.ruler)}: they decide when it dissolves.
+                Run by {cshort(ruler)}: they decide when it dissolves.
               </span>
             )}
           </>
@@ -236,10 +250,106 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
           <span className="text-sm">Campaigning: polling day {weekLabel(a.pollWeek!)}. Rivals are pouring effort into this state.</span>
         )}
       </div>
+      {g && <StateGovernment id={id} />}
+      <StateChiefs id={id} />
       <p className="text-xs" style={{ color: "var(--muted)" }}>
-        Governing a state pays RM {(PRN.stateIncomePerSeat / 1000).toFixed(0)}k per assembly seat a week and builds service in its parliamentary seats. State
-        seats are generated inside each parliamentary seat; real names come later.
+        Governing a state pays RM {(PRN.stateIncomePerSeat / 1000).toFixed(0)}k per assembly seat a week to the party, fills a state treasury of RM{" "}
+        {(STATEGOV.incomePerSeat / 1000).toFixed(0)}k per seat a week, and builds service in its parliamentary seats.
       </p>
     </section>
+  );
+}
+
+/** Who runs the state: the MB or KM, the exco, and (your states) the treasury and its powers. */
+function StateGovernment({ id }: { id: string }) {
+  const game = useGame((s) => s.game)!;
+  const { statePower, reshuffleState } = useGame();
+  const g = game.stateGov[id];
+  const person = (x: number | null) => game.people.find((p) => p.id === x);
+  const mb = person(g.mb);
+  const mine = g.ruler === game.player;
+  return (
+    <div className="inset p-3 flex flex-col gap-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="eyebrow">State government</h3>
+        <span className="text-xs inline-flex items-center gap-1" style={{ color: "var(--muted)" }}>
+          <CoalitionFlag game={game} c={g.ruler} size={10} />
+          {[g.ruler, ...g.partners].map(cshort).join(" + ")}
+        </span>
+      </div>
+      <div className="text-sm">
+        <Term word={mbTitle(id)} />: <b>{mb ? mb.name : "vacant"}</b>
+        {mb && (
+          <span className="text-xs" style={{ color: "var(--muted)" }}>
+            {" "}
+            · {mb.party} · competence {Math.round(mb.competence)}
+            {mine ? ` · trust ${Math.round(mb.loyalty)}` : ""}
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {g.exco.map((x) => {
+          const p = person(x);
+          return p ? (
+            <span key={x} className="trait-chip inline-flex items-center gap-1" title={`${p.party} · competence ${Math.round(p.competence)}`}>
+              <PartyFlag id={p.party} size={9} />
+              {p.name}
+            </span>
+          ) : null;
+        })}
+      </div>
+      {mine && (
+        <>
+          <div className="text-xs" style={{ color: "var(--ink-2)" }}>
+            State treasury: <b>{fmtRM(g.funds)}</b>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(STATE_POWERS) as StatePower[]).map((k) => {
+              const why = statePowerBlocked(game, id, k);
+              return (
+                <button key={k} className="btn btn-ghost" disabled={!!why} title={why ?? STATE_POWERS[k].text} onClick={() => statePower(id, k)}>
+                  {STATE_POWERS[k].name}
+                </button>
+              );
+            })}
+            <button className="btn btn-ghost" onClick={() => reshuffleState(id)}>
+              Reshuffle the exco
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Every party's general in this state. */
+function StateChiefs({ id }: { id: string }) {
+  const game = useGame((s) => s.game)!;
+  const region = regionOf(id);
+  const rows = Object.keys(game.posts)
+    .map((party) => ({ party, p: postHolder(game, party, chiefKey(region)) }))
+    .filter((r) => r.p)
+    .sort((a, b) => b.p!.competence - a.p!.competence);
+  if (!rows.length) return null;
+  const yours = game.coalitions[game.player].members[0];
+  return (
+    <details className="inset px-3 py-2">
+      <summary className="text-xs font-semibold cursor-pointer" style={{ color: "var(--ink-2)" }}>
+        Party chiefs in {STATE_BY_ID[id].name} ({rows.length})
+      </summary>
+      <div className="mt-2 flex flex-col gap-1">
+        {rows.map(({ party, p }) => (
+          <div key={party} className="text-xs flex items-center gap-2">
+            <PartyFlag id={party} size={10} />
+            <span className="w-14 font-semibold">{party}</span>
+            <span className={party === yours ? "font-semibold" : ""}>{p!.name}</span>
+            <span style={{ color: "var(--muted)" }}>
+              comp {Math.round(p!.competence)}
+              {homeOf(p!) !== region ? " · parachuted" : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }

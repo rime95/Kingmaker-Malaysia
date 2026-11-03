@@ -274,7 +274,7 @@ export function winTier(s: GameState, f: Formation, o: FormationOutcome): WinTie
   const seats = f.seats[s.player];
   let tier: WinTier["tier"] = "none";
   if (seats > f.seatsBefore) tier = "bronze";
-  if (Object.values(stateRulers(s.dunHolders, o.government)).includes(s.player)) tier = "silver";
+  if (Object.values(stateRulers(s.dunHolders, o.government, s.stateGov)).includes(s.player)) tier = "silver";
   if (o.government.includes(s.player)) tier = "gold";
   if (o.pm === s.player) tier = o.sds >= SUPERMAJORITY ? "diamond" : "platinum";
   return { week: f.week, tier, seats, govSeats: o.sds };
