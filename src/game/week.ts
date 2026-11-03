@@ -2,6 +2,7 @@
 
 import { AI, DECAY, DIFFICULTY, ECONOMY, ECONOMY_DRIFT, MACC, MOOD_DECAY, PRN, hqCost } from "./config";
 import { battlegroundsWeek, bump, scorecardWeek } from "./systems/scorecard";
+import { alliesWeek } from "./systems/pacts";
 import { CRISIS_SWAY } from "./systems/governing";
 import { ALLOC, fullAllocations, fundingWeek, partyIncome } from "./systems/funding";
 import { assembliesWeek, campaignStates, stateRulers, weeksToElection } from "./systems/assemblies";
@@ -12,6 +13,8 @@ import { newBubbles } from "./systems/bubbles";
 import { pollsWeek } from "./systems/polls";
 import { coalitionsWeek, syncNames } from "./systems/coalitions";
 import { leaderOfParty, peopleMonth, syncYou } from "./systems/people";
+import { chairmanWeek } from "./systems/chairman";
+import { celebritySeat, divisionDemand } from "./systems/nomcards";
 import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
 import { CONTEST_POINTS } from "./systems/career";
 import { economyScore, nationWeek, projectSeats } from "./systems/nation";
@@ -233,6 +236,10 @@ export function advanceWeek(input: GameState): GameState {
   const bg = battlegroundsWeek(next);
   next = bg.state;
   lines.push(...bg.lines);
+  // Your pact partners campaign for you in the seats they gave you.
+  const al = alliesWeek(next, before);
+  next = al.state;
+  lines.push(...al.lines);
 
   // The Dewan Rakyat: meetings open and adjourn; the motion due this week is voted on
   const dw = dewanWeek(next, weekDate(next.week));
@@ -276,7 +283,7 @@ export function advanceWeek(input: GameState): GameState {
   const coal = coalitionsWeek(next);
   next = coal.state;
   lines.push(...coal.lines);
-  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis", nominations: "name your candidates", council: "the Supreme Council meets" };
+  const CARD_NEWS: Record<string, string> = { seatTalks: "seat talks with your partners", partnerWalkout: "a partner threatens to walk out", deputyRestless: "your deputy is on the move", mpJump: "an MP is thinking of jumping", partyRace: "party elections are open", appointment: "a call from the party president", crisis: "a national crisis", nominations: "name your candidates", council: "the Supreme Council meets", chairmanCounsel: "the chairman has advice", chairmanRift: "the chairman breaks ranks", divisionDemand: "a division chief wants the ticket", celebrity: "a famous face wants to stand" };
   const addCard = (kind: string, party?: string, person?: number, seat?: number) => {
     const id = Math.max(0, ...next.cards.map((c) => c.id), next.week * 10) + 1;
     next = { ...next, cards: [...next.cards, { id, kind, week: next.week, deadline: next.week + 2, party, person, seat }], cardLast: { ...next.cardLast, [kind]: next.week } };
@@ -286,12 +293,24 @@ export function advanceWeek(input: GameState): GameState {
   if (next.week % COUNCIL_EVERY === 3 && next.career.rung >= 6 && !next.cards.some((c) => c.kind === "council")) addCard("council");
   if (nw.crisis) addCard("crisis");
   if (next.nominations?.open && next.nominations.closesWeek === next.week + 2 && next.career.rung >= 6 && next.cards.length < 4) addCard("nominations");
+  // Nomination drama while you draw up the list.
+  if (next.nominations?.open && next.career.rung >= 6 && next.cards.length < 4 && next.nominations.closesWeek - next.week >= 1) {
+    const d = divisionDemand(next);
+    if (d && (next.cardLast.divisionDemand ?? -99) < next.week - 20) addCard("divisionDemand", undefined, d.person, d.seat);
+    const celeb = celebritySeat(next);
+    if (celeb !== null && next.cards.length < 4 && hash01("celebcard", next.seed, next.week) < 0.5 && (next.cardLast.celebrity ?? -99) < next.week - 40) addCard("celebrity", undefined, undefined, celeb);
+  }
   if (next.cards.length < 4 && next.parliament.status === "campaign" && next.coalitions[next.player].members.length > 1 && (next.cardLast.seatTalks ?? -99) < next.week - 12) addCard("seatTalks");
 
   // People: age, standing, retirements and successions
   const ppl = peopleMonth(next);
   next = ppl.state;
   lines.push(...ppl.lines);
+  // Your chairman: steadies the party, offers counsel, and may break ranks if sidelined.
+  const chair = chairmanWeek(next);
+  next = chair.state;
+  lines.push(...chair.lines);
+  if (chair.card && next.cards.length < 4) addCard(chair.card, undefined, undefined);
   if (next.week % 4 === 2 && next.cards.length < 4) {
     const lead = next.coalitions[next.player].members[0];
     const mine = next.coalitions[next.player].members;

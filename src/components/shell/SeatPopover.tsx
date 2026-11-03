@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { allyIn, saturation } from "@/game/actions";
 import { BUBBLE_INFO } from "@/game/systems/bubbles";
 import { asideFor } from "@/game/systems/pacts";
+import { chairmanCampaignBlocked, chairmanOf } from "@/game/systems/chairman";
 import { mpOf } from "@/game/systems/people";
 import { CHANCE_LABEL, POLLS, chanceBand, winChance } from "@/game/systems/polls";
 import { resultView } from "@/game/systems/results";
@@ -14,13 +15,14 @@ import { chancePct, fmtRM, pct, useReads } from "../common";
 import { coalColor } from "../map/lenses";
 import { SeatIssues } from "./SeatBits";
 import { Icon } from "./icons";
+import { PartyFlag } from "../flags";
 
 export const SEAT_MOVES = ["ground", "ceramah", "walkabout", "issue", "service", "machinery", "handout"];
 
 /** Click a seat: your moves there, right where you clicked. "Full details" opens the Seat tab. */
 export function SeatPopover() {
   const game = useGame((s) => s.game)!;
-  const { selected, select, popAt, claim, poll, showPanel, panel } = useGame();
+  const { selected, select, popAt, claim, poll, showPanel, panel, chairmanStump } = useGame();
   const reads = useReads();
   const [size, setSize] = useState({ w: 1280, h: 800 });
   useEffect(() => {
@@ -40,7 +42,9 @@ export function SeatPopover() {
   const i = selected;
   const seat = SEATS[i];
   const holder = game.holders[i];
-  const contests = contestingIn(seat, game.entries).includes(game.player);
+  // Where you stand aside under a pact, you campaign for your partner instead.
+  const contests = contestingIn(seat, game.entries).includes(game.player) && !game.pacts.some((p) => p.seats[i] === game.player);
+  const chair = chairmanOf(game);
   const last = resultView(game.seatResults, i);
   const read = reads[i];
   const chance = contests ? winChance(read, game.player, game.week) : null;
@@ -68,7 +72,7 @@ export function SeatPopover() {
           </div>
           <div className="font-bold leading-tight truncate">{seat.name}</div>
           <div className="flex items-center gap-1.5 text-[11px] mt-0.5" style={{ color: "var(--ink-2)" }}>
-            <span className="swatch" style={{ background: coalColor(holder), width: 8, height: 8 }} />
+            <PartyFlag id={game.holderParties[i]} size={10} />
             <span className="truncate">
               {mpOf(game, i)?.name ?? last.candidates[0].name} · {game.holderParties[i]} ({cshort(holder)})
             </span>
@@ -110,8 +114,9 @@ export function SeatPopover() {
         )}
 
         {aside && (
-          <p className="text-[11px]" style={{ color: "var(--ink-2)" }}>
-            Pact: <b>{cshort(aside.out)}</b> stands aside here for <b>{cshort(aside.to)}</b>.
+          <p className="text-[11px] inline-flex items-center gap-1.5 flex-wrap" style={{ color: "var(--ink-2)" }}>
+            <PartyFlag id={aside.to} size={10} /> Agreed seat: <b>{cshort(aside.to)}</b> stands, <b>{aside.out === game.player ? "you support" : `${cshort(aside.out)} supports`}</b>.
+            {aside.out === game.player ? " Joint ceramah here moves more of your voters behind them." : ""}
           </p>
         )}
 
@@ -134,6 +139,16 @@ export function SeatPopover() {
                 <ActionCard key={id} id={id} target={{ kind: "seat", seat: i }} dense />
               ))}
             </div>
+            {chair && (
+              <button
+                className="chip justify-start text-xs"
+                disabled={!!chairmanCampaignBlocked(game, i)}
+                title={chairmanCampaignBlocked(game, i) ?? "Free, once a week: stronger in their home state"}
+                onClick={() => chairmanStump(i)}
+              >
+                <PartyFlag id={chair.party} size={10} /> {chair.name} campaigns here (Chairman · free, once a week)
+              </button>
+            )}
             <button className="chip justify-center text-xs" disabled={polled || game.me.funds < POLLS.seatCost} onClick={() => poll(i)}>
               {polled ? "Polled this turn" : `Commission a poll · ${fmtRM(POLLS.seatCost)}`}
             </button>

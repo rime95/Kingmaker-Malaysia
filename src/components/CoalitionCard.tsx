@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { COALITION_RULES, partyColor } from "@/game/systems/coalitions";
+import { COALITION_RULES } from "@/game/systems/coalitions";
 import { isPresident } from "@/game/systems/career";
 import { useGame } from "@/store/gameStore";
 import { PARTIES, cname } from "@/game/world";
 import { NameCoalition } from "./shell/NameCoalition";
+import { CoalitionFlag, PartyFlag } from "./flags";
 
 /** Your coalition: its member parties, their MPs and leaders, and how happy each partner is. */
 export function CoalitionCard() {
@@ -24,7 +25,7 @@ export function CoalitionCard() {
       </div>
       <div className="inset p-3 flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <span className="swatch" style={{ background: mine.color, width: 14, height: 14 }} />
+          <CoalitionFlag game={game} c={game.player} size={16} />
           <span className="font-semibold">{cname(game.player)}</span>
           <span className="text-xs" style={{ color: "var(--muted)" }}>
             {mine.members.length} parties
@@ -36,8 +37,8 @@ export function CoalitionCard() {
             const sat = game.partySat[p];
             const unhappy = sat !== undefined && sat <= COALITION_RULES.warn;
             return (
-              <li key={p} className="grid grid-cols-[12px_1fr_auto] items-center gap-2 text-sm">
-                <span className="swatch" style={{ background: partyColor(game, p), width: 10, height: 10 }} />
+              <li key={p} className="grid grid-cols-[20px_1fr_auto] items-center gap-2 text-sm">
+                <PartyFlag id={p} size={12} />
                 <span className="min-w-0">
                   <span className="font-medium">{p}</span>{" "}
                   <span className="text-xs" style={{ color: "var(--muted)" }}>

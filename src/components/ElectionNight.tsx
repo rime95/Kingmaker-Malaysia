@@ -10,7 +10,8 @@ import { cshort, MAJORITY, SEATS, SUPERMAJORITY, TOTAL_SEATS, type CoalitionId }
 import { CHART_ORDER, coalColor, fmt } from "./common";
 import { CoalitionTalks } from "./CoalitionTalks";
 import { useT } from "./i18n";
-import { sfx } from "./audio";
+import { audio, sfx } from "./audio";
+import { CoalitionFlag, JalurGemilang, PartyFlag } from "./flags";
 import { SoundControls } from "./SoundControls";
 
 /** Milliseconds per seat call at 1× (222 seats ≈ 40 seconds). */
@@ -89,9 +90,11 @@ function Count({ onDone }: { onDone: () => void }) {
       const m = { key: n, seat: r.seatIndex, winner: r.winner, from, majority: r.majority };
       if (flip && r.winner === player) {
         sfx("gain");
+        sfx("crowd");
         setMoment({ ...m, kind: "gain" });
       } else if (flip && from === player) {
         sfx("loss");
+        sfx("groan");
         setMoment({ ...m, kind: "loss" });
       } else if (upset && speed <= 4 && n - k === 1) {
         sfx("call");
@@ -129,6 +132,16 @@ function Count({ onDone }: { onDone: () => void }) {
     return () => clearTimeout(id);
   });
 
+  // The kompang drives harder as your seats climb toward a majority.
+  const mine = countAt(k)[player];
+  useEffect(() => {
+    if (!audio) return;
+    audio.intensity = Math.min(1, mine / MAJORITY);
+    return () => {
+      if (audio) audio.intensity = 0;
+    };
+  }, [mine]);
+
   useEffect(() => {
     if (!moment) return;
     const id = setTimeout(() => setMoment(null), 2600 / Math.min(speed, 2));
@@ -150,17 +163,23 @@ function Count({ onDone }: { onDone: () => void }) {
   const electorate = SEATS.reduce((s, x) => s + x.electorate, 0);
 
   return (
-    <div className="min-h-full flex flex-col">
+    <div className="min-h-full flex flex-col relative">
+      {/* The studio: spotlights sweeping behind the set */}
+      <div className="tv-studio" aria-hidden>
+        <span className="tv-beam tv-beam-l" />
+        <span className="tv-beam tv-beam-r" />
+      </div>
       {/* The broadcast bar */}
       <header className="tv-bar sticky top-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
         <span className="tv-live">
           <span className="tv-live-dot" /> LIVE
         </span>
+        <JalurGemilang height={22} wave />
         <div className="leading-tight">
-          <div className="text-[11px] font-bold tracking-[0.2em]" style={{ color: "var(--accent)" }}>
-            PRU{game.geCount} · MALAM PILIHAN RAYA
+          <div className="text-[11px] font-bold tracking-[0.2em] tv-gold">PRU{game.geCount} · MALAM PILIHAN RAYA</div>
+          <div className="text-lg font-black tabular-nums">
+            {done ? t("allDeclared") : `${clockLabel(k / TOTAL_SEATS)} · ${k} / ${TOTAL_SEATS} ${t("declared")}`}
           </div>
-          <div className="text-lg font-black tabular-nums">{done ? t("allDeclared") : `${clockLabel(k / TOTAL_SEATS)} · ${k} / ${TOTAL_SEATS} ${t("declared")}`}</div>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <SoundControls compact />
@@ -191,8 +210,9 @@ function Count({ onDone }: { onDone: () => void }) {
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-[1400px] px-4 py-3 flex flex-col gap-3 flex-1">
+      <div className="mx-auto w-full max-w-[1400px] px-4 py-3 flex flex-col gap-3 flex-1 relative">
         <Scoreboard counts={counts} player={player} />
+        <RaceTo112 counts={counts} player={player} />
 
         <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr] flex-1">
           <div className="panel p-2 relative overflow-hidden">
@@ -203,6 +223,10 @@ function Count({ onDone }: { onDone: () => void }) {
             </div>
           </div>
           <div className="flex flex-col gap-3">
+            <CrowdCam
+              mood={moment?.kind === "gain" ? "cheer" : moment?.kind === "loss" ? "quiet" : counts[player] >= MAJORITY ? "cheer" : "tense"}
+              share={counts[player] / MAJORITY}
+            />
             <Swingometer gains={gains} losses={losses} player={player} />
             <div className="panel p-3 grid grid-cols-3 gap-2 text-center">
               <Stat label="Your gains" value={`+${gains}`} tone="var(--good)" />
@@ -263,7 +287,8 @@ function Scoreboard({ counts, player }: { counts: Record<CoalitionId, number>; p
         {top.map((c, i) => (
           <div key={c} className="tv-tile" style={{ borderColor: coalColor(c), boxShadow: i === 0 ? `0 0 24px -8px ${coalColor(c)}` : undefined }}>
             <div className="flex items-baseline justify-between gap-2">
-              <span className="font-black tracking-wide">
+              <span className="font-black tracking-wide inline-flex items-center gap-1.5">
+                <CoalitionFlag game={game} c={c} size={14} />
                 {cshort(c)}
                 {c === player ? " ★" : ""}
               </span>
@@ -279,7 +304,12 @@ function Scoreboard({ counts, player }: { counts: Record<CoalitionId, number>; p
       </div>
       <div className="relative h-7 rounded-md overflow-hidden flex" style={{ background: "var(--surface-2)" }}>
         {order.map((c) => (
-          <div key={c} className="h-full transition-[width] duration-200" style={{ width: `${(counts[c] / TOTAL_SEATS) * 100}%`, background: coalColor(c) }} title={`${cshort(c)} ${counts[c]}`} />
+          <div
+            key={c}
+            className="h-full transition-[width] duration-200"
+            style={{ width: `${(counts[c] / TOTAL_SEATS) * 100}%`, background: coalColor(c) }}
+            title={`${cshort(c)} ${counts[c]}`}
+          />
         ))}
         <div className="absolute inset-y-0 w-[3px]" style={{ left: `${(MAJORITY / TOTAL_SEATS) * 100}%`, background: "#fff", boxShadow: "0 0 8px #fff" }} />
       </div>
@@ -287,6 +317,120 @@ function Scoreboard({ counts, player }: { counts: Record<CoalitionId, number>; p
         <span>{declared} declared</span>
         <span style={{ marginLeft: `${(MAJORITY / TOTAL_SEATS) * 100 - 12}%` }}>▲ {MAJORITY} for a majority</span>
         <span>{TOTAL_SEATS - declared} to go</span>
+      </div>
+    </div>
+  );
+}
+
+/** The race to 112: the leading blocs run in lanes, their leaders riding the tips, past the majority line. */
+function RaceTo112({ counts, player }: { counts: Record<CoalitionId, number>; player: CoalitionId }) {
+  const game = useGame((s) => s.game)!;
+  const lanes: CoalitionId[] = CHART_ORDER.filter((c) => c !== "OTHERS")
+    .sort((a, b) => counts[b] - counts[a])
+    .slice(0, 3);
+  // You always have a lane, even before your first seat.
+  if (!lanes.includes(player)) lanes[2] = player;
+  // The track runs to 160 so the two-thirds mark (148) sits near the end.
+  const max = 160;
+  const at = (n: number) => `${(Math.min(n, max) / max) * 100}%`;
+  return (
+    <div className="panel p-3 tv-race" aria-label="Race to 112">
+      <div className="flex items-center justify-between text-[11px] font-bold tracking-widest mb-2" style={{ color: "var(--muted)" }}>
+        <span>LUMBA KE PUTRAJAYA · RACE TO 112</span>
+        <span className="tv-gold">148 = two-thirds</span>
+      </div>
+      <div className="grid grid-cols-[84px_1fr] gap-x-2 gap-y-2.5 items-center py-1">
+        {lanes.map((c) => (
+          <span key={c} className="text-[11px] font-black tracking-wide inline-flex items-center gap-1 truncate" style={{ gridColumn: 1 }}>
+            <CoalitionFlag game={game} c={c} size={10} /> {cshort(c)}{" "}
+            <span className="tabular-nums" style={{ color: coalColor(c) }}>
+              {counts[c]}
+            </span>
+          </span>
+        ))}
+        <div className="relative flex flex-col gap-2.5" style={{ gridColumn: 2, gridRow: `1 / span ${lanes.length}` }}>
+          <div className="tv-race-line" style={{ left: at(MAJORITY) }}>
+            <span>112</span>
+          </div>
+          <div className="tv-race-line tv-race-gold" style={{ left: at(SUPERMAJORITY) }} />
+          {lanes.map((c) => {
+            const won = counts[c] >= MAJORITY;
+            const name = c === player ? game.career.name : coalitionLeader(game, c);
+            return (
+              <div key={c} className="relative h-6 rounded-full" style={{ background: "var(--surface-2)" }}>
+                <div
+                  className={`h-full rounded-full transition-[width] duration-300 ${won ? "tv-race-won" : ""}`}
+                  style={{ width: at(counts[c]), background: coalColor(c), boxShadow: `0 0 18px -4px ${coalColor(c)}` }}
+                />
+                <div className="tv-racer" style={{ left: at(counts[c]), borderColor: coalColor(c) }} title={name}>
+                  {initialsOf(name)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter((w) => w && w[0] === w[0].toUpperCase())
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("");
+
+/** Picture-in-picture: your party's HQ, where the crowd cheers your gains and falls silent at your losses. */
+function CrowdCam({ mood, share }: { mood: "cheer" | "tense" | "quiet"; share: number }) {
+  const game = useGame((s) => s.game)!;
+  const party = game.coalitions[game.player].members[0] ?? game.player;
+  const city = SEATS[game.career.homeSeat]?.name ?? "Kuala Lumpur";
+  const people = 26;
+  return (
+    <div
+      className={`panel tv-cam tv-cam-${mood}`}
+      aria-label={`Your party headquarters: the crowd is ${mood === "cheer" ? "cheering" : mood === "quiet" ? "silent" : "watching nervously"}`}
+    >
+      <div className="tv-cam-tag">
+        <span className="tv-live-dot" /> LIVE · {party} HQ, {city}
+      </div>
+      <div className="tv-cam-screen">
+        <div className="tv-cam-stage">
+          <span className="tv-cam-banner">
+            <PartyFlag id={party} size={16} /> {game.career.name.toUpperCase()}
+          </span>
+        </div>
+        <div className="tv-crowd">
+          {Array.from({ length: people }, (_, k) => {
+            const flag = k % 4 === 1;
+            return (
+              <span
+                key={k}
+                className="tv-fan"
+                style={{
+                  left: `${(k / people) * 100 + ((k * 37) % 7) * 0.4}%`,
+                  animationDelay: `${((k * 53) % 10) / 14}s`,
+                  bottom: `${((k * 29) % 3) * 6}px`,
+                  transform: `scale(${0.8 + ((k * 17) % 5) / 12})`,
+                }}
+              >
+                {flag && (
+                  <span className="tv-fan-flag">
+                    <PartyFlag id={party} size={9} />
+                  </span>
+                )}
+                <span className="tv-fan-head" />
+                <span className="tv-fan-body" />
+              </span>
+            );
+          })}
+        </div>
+        <div className="tv-cam-meter" style={{ width: `${Math.min(100, share * 100)}%`, background: coalColor(game.player) }} />
+      </div>
+      <div className="tv-cam-caption">
+        {mood === "cheer" ? 'The hall erupts: "Menang! Menang!"' : mood === "quiet" ? "A hush falls over the hall." : "Supporters watch the screens, waiting."}
       </div>
     </div>
   );
@@ -353,10 +497,18 @@ function Declarations({ order, prev, player }: { order: Call[]; prev: CoalitionI
         const seat = SEATS[r.seatIndex];
         const flip = prev[r.seatIndex] !== r.winner;
         const upset = flip && seat.ge15Majority > 8000;
-        const tag = upset ? "UPSET" : flip ? `GAIN from ${cshort(prev[r.seatIndex])}` : r.majority < 300 ? "RECOUNT" : r.majority < 1500 ? "Too close to call" : "";
+        const tag = upset
+          ? "UPSET"
+          : flip
+            ? `GAIN from ${cshort(prev[r.seatIndex])}`
+            : r.majority < 300
+              ? "RECOUNT"
+              : r.majority < 1500
+                ? "Too close to call"
+                : "";
         return (
           <div key={r.seatIndex} className="tv-row flex items-center gap-2 text-sm">
-            <span className="swatch" style={{ background: coalColor(r.winner) }} />
+            <PartyFlag id={r.winnerParty} size={11} />
             <span className="truncate">
               <b>{seat.name}</b> · {r.winnerParty} ({cshort(r.winner)}) {flip ? "wins" : "holds"} by {fmt(r.majority)}
             </span>
@@ -379,7 +531,9 @@ function Declarations({ order, prev, player }: { order: Call[]; prev: CoalitionI
 function Crawl({ order, prev }: { order: Call[]; prev: CoalitionId[] }) {
   const items = order.slice(-14).reverse();
   if (!items.length) return null;
-  const text = items.map((r) => `${SEATS[r.seatIndex].name}: ${cshort(r.winner)} ${prev[r.seatIndex] !== r.winner ? "GAIN" : "hold"} (${fmt(r.majority)})`).join("   •   ");
+  const text = items
+    .map((r) => `${SEATS[r.seatIndex].name}: ${cshort(r.winner)} ${prev[r.seatIndex] !== r.winner ? "GAIN" : "hold"} (${fmt(r.majority)})`)
+    .join("   •   ");
   return (
     <div className="tv-crawl" aria-hidden>
       <span className="tv-crawl-tag">TERKINI</span>
@@ -464,13 +618,21 @@ function Verdict({ onClose }: { onClose: () => void }) {
   const inGov = game.government.includes(game.player);
   const top = tier.tier === "platinum" || tier.tier === "diamond";
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgb(0 0 0 / 0.75)" }} role="dialog" aria-label="Election verdict">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgb(0 0 0 / 0.75)" }}
+      role="dialog"
+      aria-label="Election verdict"
+    >
       <div className="panel p-6 w-full max-w-md text-center flex flex-col gap-3 relative overflow-hidden tv-pop">
         {top && <Fireworks color={coalColor(game.player)} />}
         <div className="text-xs uppercase tracking-widest" style={{ color: "var(--muted)" }}>
           {tr("verdict")}
         </div>
-        <div className="text-5xl font-black" style={{ color: tier.tier === "none" ? "var(--bad)" : "var(--accent)", textShadow: top ? "0 0 30px var(--accent)" : undefined }}>
+        <div
+          className="text-5xl font-black"
+          style={{ color: tier.tier === "none" ? "var(--bad)" : "var(--accent)", textShadow: top ? "0 0 30px var(--accent)" : undefined }}
+        >
           {t.name}
         </div>
         <p className="text-sm">{t.text}</p>

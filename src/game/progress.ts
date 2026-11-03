@@ -1,6 +1,7 @@
 // Weekly bookkeeping for your career, term objectives and achievements, plus the career effects of elections.
 
 import { TURN_WEEKS } from "./config";
+import { youArePm } from "./systems/people";
 import type { GameState, ReportLine } from "./state";
 import { AP_BY_RUNG, CAREER, MP, PRESIDENT, addPoints, factionSize, promote, rungName, succession } from "./systems/career";
 import { ACHIEVEMENTS, OBJECTIVE_REWARD, newAchievements, newObjectives, objectiveMet } from "./systems/goals";
@@ -13,7 +14,7 @@ const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 export function careerWeek(s: GameState): { state: GameState; lines: ReportLine[] } {
   const lines: ReportLine[] = [];
   let c = { ...s.career, loyalty: s.career.loyalty.map((l) => l * (1 - CAREER.loyaltyDecay)) };
-  const pm = s.parliament.pm === s.player && c.rung >= PRESIDENT;
+  const pm = youArePm(s) && c.rung >= PRESIDENT;
   if (pm) c.pmWeeks += 1;
 
   if (s.week % 52 === c.birthdayWeek % 52) {
@@ -106,5 +107,5 @@ export function careerAfterFormation(s: GameState, f: Formation, o: FormationOut
 }
 
 export function careerTitle(s: GameState): string {
-  return rungName(s.career, s.government.includes(s.player), s.parliament.pm === s.player);
+  return rungName(s.career, s.government.includes(s.player), youArePm(s));
 }

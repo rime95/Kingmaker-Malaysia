@@ -5,12 +5,13 @@ import { MIN_START_FUNDS, edgeOf, standing, TURN_WEEKS, AP_PER_WEEK, AUTO_DISSOL
 import { initAssemblies, initParliament, type Assembly, type Parliament } from "./systems/assemblies";
 import { DUN_START } from "./systems/dun";
 import type { Formation, WinTier } from "./systems/formation";
-import { AP_BY_RUNG, initCareer, type Career } from "./systems/career";
+import { AP_BY_RUNG, initCareer, isCustomLeader, type Career } from "./systems/career";
 import { newObjectives, type Objective } from "./systems/goals";
 import { newBubbles, type Bubble } from "./systems/bubbles";
 import { initPolls, type Polls } from "./systems/polls";
 import { initCoalitions, initPartySat, type Coalitions } from "./systems/coalitions";
-import { initPeople, syncYou, type Person } from "./systems/people";
+import { initPeople, makeChairman, syncYou, type Person } from "./systems/people";
+import { restoreChairman } from "./systems/chairman";
 import type { PortfolioId } from "./data/people";
 import type { PartyRace } from "./systems/partyrace";
 import { initTeam, pollError, type Staff } from "./systems/team";
@@ -40,7 +41,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -347,10 +348,16 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
   };
   if (!contestingIn(SEATS[state.career.homeSeat]).includes(player)) state.entries = { [state.career.homeSeat]: [player] };
   Object.assign(state, initPeople(state));
-  // Your own character takes the party president's chair (and the real president steps out of the game).
-  const myName = opts.name?.trim();
-  if (myName && state.youId !== null) state.people = state.people.map((p) => (p.id === state.youId ? { ...p, name: myName } : p));
-  Object.assign(state, syncYou(state));
+  // Your own character takes the party president's chair. The real president is not pushed aside: they stay on as
+  // Party Chairman, your partner at the helm (and keep their seat and any cabinet post).
+  if (isCustomLeader(player, opts.mode ?? "leader", opts.name) && state.youId !== null) {
+    const was = state.youId;
+    state.people = state.people.map((p) => (p.id === was ? makeChairman(p, 0) : p));
+    state.youId = null;
+    Object.assign(state, syncYou(state));
+    // Leading the government: you take the Prime Minister's chair, your chairman keeps their other posts.
+    if (state.parliament.pm === player && state.cabinet.pm === was && state.youId !== null) state.cabinet = { ...state.cabinet, pm: state.youId };
+  } else Object.assign(state, syncYou(state));
   state.me.apMax = state.me.ap = AP_BY_RUNG[state.career.rung] * TURN_WEEKS;
   // Difficulty and scenario
   state.me.funds = Math.round(Math.max(state.me.funds, MIN_START_FUNDS * edgeOf(state)) * DIFFICULTY[state.settings.difficulty].funds);
@@ -451,6 +458,8 @@ export function migrateGame(g: GameState): GameState {
   // Saves from before Parti Bersama: give it a place in every per-coalition table.
   if ((g.version ?? 0) < 15) Object.assign(migrated, addBersama(migrated));
   if (!migrated.people.length) Object.assign(migrated, syncYou({ ...migrated, ...initPeople(migrated) }));
+  // Saves from before the Party Chairman: a leader you replaced comes back as your chairman.
+  if ((g.version ?? 0) < 16) Object.assign(migrated, restoreChairman(migrated));
   if (!migrated.polls.national.length) migrated.polls = initPolls(projectAllFor(migrated), migrated.seed, migrated.week, pollError(migrated));
   if (!migrated.objectives.length) migrated.objectives = newObjectives(migrated);
   return migrated;

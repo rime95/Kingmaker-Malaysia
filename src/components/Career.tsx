@@ -1,6 +1,7 @@
 "use client";
 
 import { careerTitle } from "@/game/progress";
+import { youArePm } from "@/game/systems/people";
 import { fortressLevel, weekLabel } from "@/game/state";
 import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, RUNGS_OPP, contestChance, factionSize } from "@/game/systems/career";
 import { TIER_TEXT } from "@/game/systems/formation";
@@ -74,9 +75,9 @@ export function Career() {
                 </li>
               );
             })}
-            <li className="flex items-center gap-2 text-sm rounded-md px-2 py-1" style={{ color: game.parliament.pm === game.player && c.rung >= PRESIDENT ? "var(--ink)" : "var(--muted)" }}>
+            <li className="flex items-center gap-2 text-sm rounded-md px-2 py-1" style={{ color: youArePm(game) && c.rung >= PRESIDENT ? "var(--ink)" : "var(--muted)" }}>
               <span className="w-5 text-center" aria-hidden>
-                {game.parliament.pm === game.player && c.rung >= PRESIDENT ? "★" : "○"}
+                {youArePm(game) && c.rung >= PRESIDENT ? "★" : "○"}
               </span>
               Prime Minister
               <span className="ml-auto text-[11px]">win the coalition talks after a GE</span>

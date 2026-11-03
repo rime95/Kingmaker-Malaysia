@@ -209,9 +209,11 @@ export function moveParty(s: GameState, party: string, to: CoalitionId): GameSta
     if (!contestingIn(seat, entries).includes(to)) entries[seat.index] = [...(entries[seat.index] ?? []), to];
     const contests = contestingIn(seat, entries);
     seatOffsets[seat.index][fi] -= COALITION_RULES.personalVote;
+    // It carries the new coalition's flag where it holds the seat; elsewhere the lead party stands (seat talks can change it).
     if (contests.includes(to)) {
+      // Its local base campaigns for the new coalition everywhere it stood.
       seatOffsets[seat.index][ti] += COALITION_RULES.personalVote;
-      seatParty[seat.index] = { ...seatParty[seat.index], [to]: party };
+      if (s.holderParties[seat.index] === party) seatParty[seat.index] = { ...seatParty[seat.index], [to]: party };
     }
     const rest = { ...seatParty[seat.index] };
     delete rest[from];

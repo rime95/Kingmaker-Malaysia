@@ -45,6 +45,10 @@ export interface Person {
   since: number;
   /** Last week they did you a favour. */
   favourWeek?: number;
+  /** The party's elder statesman: the president you took over from, who stays on to lead with you (sits at rank 3). */
+  chairman?: boolean;
+  /** Last week the chairman campaigned for you. */
+  campaignWeek?: number;
 }
 
 export const PEOPLE = {
@@ -78,9 +82,15 @@ export const ageOf = (p: Person, week: number) => yearOf(week) - p.born;
 
 const r = (seed: number, ...key: (string | number)[]) => hash01("ppl", seed, ...key);
 
-function baseLoyalty(party: string, s: Pick<GameState, "player" | "coalitions">): number {
+function baseLoyalty(party: string, s: Pick<GameState, "player" | "coalitions">, chairman = false): number {
   const mine = s.coalitions[s.player].members;
+  if (chairman && party === mine[0]) return 75;
   return party === mine[0] ? 50 : mine.includes(party) ? 35 : 15;
+}
+
+/** Turns a party's president into its chairman: they hand you the top job and stay on as your partner at the helm. */
+export function makeChairman(p: Person, week: number): Person {
+  return { ...p, rank: 3, chairman: true, since: week, loyalty: Math.max(p.loyalty, 80), influence: Math.max(p.influence, 85), retired: false };
 }
 
 function newPerson(id: number, name: string, party: string, rank: number, seed: number, week: number, born: number, real: boolean, s: Pick<GameState, "player" | "coalitions">, seat: number | null = null): Person {
@@ -191,7 +201,7 @@ export const postOf = (s: Pick<GameState, "cabinet">, id: number): PortfolioId[]
 
 /** Title for a person, e.g. "Vice President, UMNO · Minister of Health · MP for Kuala Selangor". */
 export function titleOf(s: Pick<GameState, "cabinet">, p: Person): string {
-  const parts = [`${p.retired ? "Former leader" : RANKS[p.rank]}, ${p.party}`];
+  const parts = [`${p.retired ? "Former leader" : p.chairman ? "Party Chairman" : RANKS[p.rank]}, ${p.party}`];
   const posts = postOf(s, p.id);
   if (posts.length) parts.push(posts.map((k) => PORTFOLIOS.find((x) => x.id === k)!.name).join(", "));
   if (p.seat !== null) parts.push(`MP for ${SEATS[p.seat].name}`);
@@ -226,7 +236,7 @@ function fill(m: Mutable, party: string, rank: number, seed: number, week: numbe
     return;
   }
   // Anyone about to retire stays where they are.
-  const eligible = (p: Person) => p.party === party && !p.retired && p.id !== m.youId && ageOf(p, week) < p.retireAge - 1;
+  const eligible = (p: Person) => p.party === party && !p.retired && !p.chairman && p.id !== m.youId && ageOf(p, week) < p.retireAge - 1;
   const below = m.people.filter((p) => eligible(p) && p.rank === rank - 1);
   // At the very top, a strong Vice President can beat the Deputy.
   const pool = rank === PRESIDENT_RANK ? m.people.filter((p) => eligible(p) && (p.rank === 4 || p.rank === 3)) : below;
@@ -309,7 +319,7 @@ export function peopleMonth(s: GameState): { state: GameState; lines: ReportLine
       let inf = p.influence + PEOPLE.influencePerMonth[p.rank] + (p.seat !== null ? PEOPLE.mpInfluencePerMonth : 0) + (inCabinet.has(p.id) ? PEOPLE.ministerInfluencePerMonth : 0);
       if (age > 75) inf -= 0.6;
       // Loyalty drifts slowly back toward where it started.
-      const rest = baseLoyalty(p.party, s);
+      const rest = baseLoyalty(p.party, s, p.chairman);
       return { ...p, influence: Math.max(0, Math.min(100, inf)), loyalty: p.loyalty + (rest - p.loyalty) * 0.03 };
     }),
   };
@@ -408,10 +418,15 @@ export function formCabinet(s: Pick<GameState, "people" | "holders" | "holderPar
   const pmCoal = s.parliament.pm;
   const pmParty = s.coalitions[pmCoal].members[0];
   if (!cabinet.pm) {
-    const pm = pmCoal === s.player && s.youId !== null ? byId(s, s.youId) : leaderOfParty(s, pmParty);
+    const pm = choosePm(s, pmCoal);
     if (pm) cabinet.pm = pm.id;
   }
   if (cabinet.pm) taken.add(cabinet.pm);
+  // Your coalition governs but another party in it won more seats: its leader is PM and you are the deputy.
+  if (pmCoal === s.player && s.youId !== null && cabinet.pm !== s.youId && !cabinet.dpm && s.career.rung >= 6 && !taken.has(s.youId)) {
+    cabinet.dpm = s.youId;
+    taken.add(s.youId);
+  }
   const seats = partySeats(s, s.government);
   const partners = s.government.filter((c) => c !== pmCoal && c !== "OTHERS").sort((a, b) => coalSeats(s, b) - coalSeats(s, a));
   const leaderOf = (c: CoalitionId) => {
@@ -423,6 +438,15 @@ export function formCabinet(s: Pick<GameState, "people" | "holders" | "holderPar
     if (p) {
       cabinet.dpm = p.id;
       taken.add(p.id);
+    }
+  }
+  // Your chairman is your first pick for cabinet: Deputy Prime Minister if no partner claims it, else Finance.
+  const chair = pmCoal === s.player ? s.people.find((p) => p.chairman && p.party === pmParty && !taken.has(p.id)) : undefined;
+  if (chair) {
+    const post: PortfolioId = !cabinet.dpm ? "dpm" : !cabinet.finance ? "finance" : (PORTFOLIOS.find((x) => !cabinet[x.id])?.id ?? "finance");
+    if (!cabinet[post]) {
+      cabinet[post] = chair.id;
+      taken.add(chair.id);
     }
   }
   const borneo = partners.find((c) => c === "GPS" || c === "GRS");
@@ -452,6 +476,31 @@ export function formCabinet(s: Pick<GameState, "people" | "holders" | "holderPar
   }
   return cabinet;
 }
+
+/**
+ * Who becomes Prime Minister for a coalition. In your coalition it is the leader of the party that won the most seats
+ * (ties go to the lead party): you, if that is your party and you won your own seat. Otherwise the coalition's leader.
+ */
+export function choosePm(s: Pick<GameState, "people" | "holders" | "holderParties" | "coalitions" | "youId" | "player">, pmCoal: CoalitionId): Person | undefined {
+  const members = s.coalitions[pmCoal].members;
+  const lead = members[0];
+  if (pmCoal !== s.player) return leaderOfParty(s, lead) ?? nominees(s.people, lead, new Set())[0];
+  const seats = partySeats(s, [pmCoal]);
+  const biggest = members.reduce((best, p) => ((seats[p] ?? 0) > (seats[best] ?? 0) ? p : best), lead);
+  if (biggest !== lead) return leaderOfParty(s, biggest) ?? nominees(s.people, biggest, new Set())[0];
+  const you = byId(s, s.youId);
+  const anyMps = s.people.some((p) => p.party === lead && p.seat !== null);
+  if (you && (you.seat !== null || !anyMps)) return you;
+  // You lost your own seat: the party's most senior MP takes the chair (your chairman first).
+  return (
+    s.people
+      .filter((p) => p.party === lead && p.seat !== null && !p.retired && p.id !== s.youId)
+      .sort((a, b) => (b.chairman ? 100 : 0) + b.rank * 12 + b.influence - ((a.chairman ? 100 : 0) + a.rank * 12 + a.influence))[0] ?? you
+  );
+}
+
+/** You personally are Prime Minister (not just your coalition in power). */
+export const youArePm = (s: Pick<GameState, "parliament" | "player" | "cabinet" | "youId">) => s.parliament.pm === s.player && s.youId !== null && s.cabinet.pm === s.youId;
 
 function coalSeats(s: Pick<GameState, "holders">, c: CoalitionId): number {
   return s.holders.filter((h) => h === c).length;
@@ -490,7 +539,7 @@ const RANK_FOR_RUNG = [0, 1, 1, 2, 2, 3, 5];
 export function heir(s: Pick<GameState, "people" | "youId" | "coalitions" | "player">): Person | undefined {
   const lead = s.coalitions[s.player].members[0];
   return s.people
-    .filter((p) => p.party === lead && (p.rank === 4 || p.rank === 3) && p.id !== s.youId && !p.retired)
+    .filter((p) => p.party === lead && (p.rank === 4 || p.rank === 3) && p.id !== s.youId && !p.retired && !p.chairman)
     .sort((a, b) => b.loyalty * 0.6 + b.influence * 0.4 - (a.loyalty * 0.6 + a.influence * 0.4))[0];
 }
 
@@ -528,9 +577,9 @@ export function syncYou(s: GameState, lines: ReportLine[] = []): GameState {
   if (you.rank !== rank) {
     const sitting = m.people.find((p) => p.party === lead && p.rank === rank && p.id !== you!.id);
     if (rank === PRESIDENT_RANK && sitting) {
-      // The old president moves aside to the council (or retires if old enough).
-      sitting.rank = 2;
-      lines.push({ text: `${sitting.name} hands the ${lead} presidency to ${you.name}.`, tone: "info" });
+      // The old president is not pushed aside: they stay on as Party Chairman and lead the party with you.
+      Object.assign(sitting, makeChairman(sitting, s.week));
+      lines.push({ text: `${sitting.name} hands the ${lead} presidency to ${you.name} and stays on as Party Chairman. You lead together.`, tone: "good" });
     }
     const was = you.rank;
     you.rank = rank;

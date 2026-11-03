@@ -8,6 +8,7 @@ import type { Projection } from "@/game/voter";
 export { fmtRM } from "@/game/money";
 import { cshort, PARTIES, SEATS, type CoalitionId } from "@/game/world";
 import { useMemo } from "react";
+import { CoalitionFlag, PartyFlag } from "./flags";
 
 export const coalColor = (c: CoalitionId) => `var(--c-${c})`;
 
@@ -47,9 +48,10 @@ export function partyLabel(party: string) {
 }
 
 export function CoalitionChip({ c }: { c: CoalitionId }) {
+  const game = useGame((s) => s.game);
   return (
     <span className="inline-flex items-center gap-1.5 text-sm">
-      <span className="swatch" style={{ background: coalColor(c) }} />
+      {game ? <CoalitionFlag game={game} c={c} size={11} /> : <PartyFlag id={c} size={11} />}
       {cshort(c)}
     </span>
   );

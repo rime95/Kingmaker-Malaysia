@@ -12,6 +12,8 @@ import type { GameState, ReportLine } from "../state";
 import { COALITION_INDEX } from "../voter";
 import { SEATS, contestingIn } from "../world";
 import { seatCandidate } from "./coalitions";
+import { standsAside } from "./pacts";
+import { traitVote } from "./profiles";
 import { ageOf, leaderOfParty, mpOf, recruitPerson, type Person } from "./people";
 
 export interface Nominations {
@@ -51,7 +53,8 @@ export const yourParty = (s: Pick<GameState, "coalitions" | "player">) => s.coal
 /** Seats where your party (not a partner) puts up the candidate. */
 export function partySeats(s: GameState): number[] {
   const party = yourParty(s);
-  return SEATS.filter((seat) => contestingIn(seat, s.entries).includes(s.player) && seatCandidate(s, seat, s.player) === party).map((seat) => seat.index);
+  // Seats where you stand aside for a pact partner have no candidate of yours.
+  return SEATS.filter((seat) => contestingIn(seat, s.entries).includes(s.player) && !standsAside(s, seat.index, s.player) && seatCandidate(s, seat, s.player) === party).map((seat) => seat.index);
 }
 
 /** Who you, the president, can put up in a seat: its sitting MP and members of your party without a seat. */
@@ -160,6 +163,8 @@ export function candidateStrength(s: Pick<GameState, "week">, seat: number, p: P
   if (v < 0) v *= 0.4;
   if (p.seat === seat) v += NOMINATION.incumbent;
   if (ageOf(p, s.week) < 36 && p.seat === null && SEATS[seat].demo.youth > NOMINATION.newFaceYouth) v += NOMINATION.newFace;
+  // Who they are: an ustaz in a rural Malay seat, a technocrat in the city, a local son or daughter at home.
+  v += traitVote(p, seat);
   return v;
 }
 
@@ -199,4 +204,34 @@ export function nominationsWeek(s: GameState): { state: GameState; lines: Report
   if (s.parliament.status === "campaign" && !s.nominations) return openNominations(s);
   if (s.nominations?.open && s.week >= s.nominations.closesWeek) return closeNominations(s);
   return { state: s, lines: [] };
+}
+
+/** The strongest candidates you could put up in a seat (your shortlist), best first. */
+export function shortlist(s: GameState, seat: number, n = 3): Person[] {
+  return eligible(s, seat)
+    .map((p) => ({ p, v: candidateStrength(s, seat, p) }))
+    .sort((a, b) => b.v - a.v)
+    .slice(0, n)
+    .map((x) => x.p);
+}
+
+/** Put the strongest available candidate up in every seat where they beat the current pick. */
+export function autoPick(s: GameState): { state: GameState; message: string } | { error: string } {
+  if (!s.nominations?.open) return { error: "Nominations are closed." };
+  if (s.career.rung < 6) return { error: "Your party president names the candidates." };
+  let state = s;
+  let changed = 0;
+  for (const seat of partySeats(s)) {
+    const cur = state.people.find((p) => p.id === state.nominations!.picks[seat]);
+    // Never drop a sitting MP or yourself: that is a choice you make by hand.
+    if (cur && (cur.seat === seat || cur.id === s.youId)) continue;
+    const best = shortlist(state, seat, 1)[0];
+    if (!best || best.id === cur?.id || candidateStrength(state, seat, best) <= candidateStrength(state, seat, cur)) continue;
+    const r = nominate(state, seat, best.id);
+    if ("state" in r) {
+      state = r.state;
+      changed++;
+    }
+  }
+  return { state, message: changed ? `Your strongest candidates go up in ${changed} seat${changed === 1 ? "" : "s"}.` : "Your list is already the strongest you can field." };
 }

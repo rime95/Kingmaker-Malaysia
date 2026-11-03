@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { TalkSeat } from "@/game/systems/seattalks";
 import {
   adoptPolicy,
   answerCard,
@@ -11,6 +12,10 @@ import {
   closeRace,
   delegateStaff,
   nominateCandidate,
+  chairmanStumps,
+  autoNominate,
+  claimTalkSeat,
+  concedeTalkSeat,
   makePact,
   dewanPrep,
   dewanTable,
@@ -128,6 +133,9 @@ interface Store {
   poll: (seat: number) => void;
   meet: (id: number) => void;
   nominate: (seat: number, person: number | "newface" | "local") => void;
+  chairmanStump: (seat: number) => void;
+  autoNominate: () => void;
+  talkSeat: (row: TalkSeat, claim: boolean) => void;
   pact: (c: CoalitionId, on: boolean) => void;
   order: (id: string, target: Target) => void;
   dewan: (motionId: number, move: PrepMove) => void;
@@ -406,6 +414,18 @@ export const useGame = create<Store>()(
         nominate: (seat, person) => {
           const g = get().game;
           if (g) result(nominateCandidate(g, seat, person));
+        },
+        autoNominate: () => {
+          const g = get().game;
+          if (g) result(autoNominate(g));
+        },
+        chairmanStump: (seat) => {
+          const g = get().game;
+          if (g) result(chairmanStumps(g, seat));
+        },
+        talkSeat: (row, claim) => {
+          const g = get().game;
+          if (g) result(claim ? claimTalkSeat(g, row) : concedeTalkSeat(g, row));
         },
         meet: (id) => {
           const g = get().game;

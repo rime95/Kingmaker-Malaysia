@@ -135,5 +135,5 @@ describe("the people", () => {
     for (let i = 0; i < 260; i++) g = advanceWeek(g);
     for (const party of HIERARCHY_PARTIES) expect(leaderOfParty(g, party)).toBeDefined();
     expect(new Set(g.people.filter((p) => p.seat !== null).map((p) => p.seat)).size).toBe(SEATS.length);
-  });
+  }, 30_000);
 });

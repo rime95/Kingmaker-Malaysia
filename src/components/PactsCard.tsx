@@ -5,7 +5,7 @@ import { PACT, pactBlocked, pactGains } from "@/game/systems/pacts";
 import { useGame } from "@/store/gameStore";
 import { COALITIONS, cshort, type CoalitionId } from "@/game/world";
 import { fmtRM } from "@/game/money";
-import { coalColor } from "./common";
+import { CoalitionFlag } from "./flags";
 
 const signed = (n: number) => `${n >= 0 ? "+" : "−"}${Math.abs(n)}`;
 
@@ -27,13 +27,14 @@ export function PactsCard() {
     <section>
       <h3 className="eyebrow mb-1">Seat pacts</h3>
       <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
-        Stop splitting the vote. In every seat you both contest, the weaker of you stands aside and most of its voters follow the deal. They sign if it wins
-        them seats. Runs until the next general election. {PACT.ap} AP, {fmtRM(PACT.cost)} for the talks.
+        Stop splitting the vote. Each side keeps the seats it holds and the rest are shared by vote; most of the withdrawn side&apos;s voters follow the deal.
+        Then claim or concede seats in Seat talks (Nominations tab), and campaign for each other in the agreed seats. They sign if it wins them seats. Runs
+        until the next general election. {PACT.ap} AP, {fmtRM(PACT.cost)} for the talks.
       </p>
       <div className="flex flex-col gap-1.5">
         {others.map(({ c, has, why, g }) => (
           <div key={c} className="inset px-2.5 py-2 text-xs flex items-center gap-2">
-            <span className="swatch" style={{ background: coalColor(c as CoalitionId) }} />
+            <CoalitionFlag game={game} c={c as CoalitionId} size={11} />
             <span className="font-semibold w-16 truncate">{cshort(c)}</span>
             <span className="flex-1 min-w-0" style={{ color: "var(--ink-2)" }}>
               {has

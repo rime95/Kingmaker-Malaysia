@@ -9,7 +9,8 @@
 //   may challenge you. All numbers TEMPORARY.
 
 import { hash01 } from "../rng";
-import { COALITION_INFO, SEATS, type CoalitionId } from "../world";
+import { COALITION_INFO, PARTIES, SEATS, contestingIn, type CoalitionId } from "../world";
+import { ROSTERS } from "../data/people";
 
 export const RUNGS = [
   "Ketua Cawangan",
@@ -88,9 +89,32 @@ export function defaultHomeSeat(player: CoalitionId): number {
   return seat.index;
 }
 
+/** Leader mode with your own character (not the real leader): the real president stays on as your chairman. */
+export function isCustomLeader(player: CoalitionId, mode: "career" | "leader", name?: string): boolean {
+  const n = name?.trim();
+  return mode === "leader" && !!n && n.toLowerCase() !== COALITION_INFO[player].leader.toLowerCase();
+}
+
+/**
+ * Your own seat when you lead with your own character: the party's safest seat not held by its president or deputy
+ * (they keep theirs); a small party with no such seat sends you to win a city seat next door.
+ */
+export function newcomerSeat(player: CoalitionId): number {
+  const lead = Object.values(PARTIES).find((p) => p.coalition === player)?.id ?? player;
+  const r = ROSTERS[lead];
+  const taken = new Set([r?.president[1], r?.deputy?.[1]].filter(Boolean));
+  const held = SEATS.filter((s) => s.ge15Party === lead && !taken.has(s.code)).sort((a, b) => b.ge15Majority - a.ge15Majority)[0];
+  if (held) return held.index;
+  const near = SEATS[defaultHomeSeat(player)];
+  const open = SEATS.filter((s) => s.state === near.state && s.ge15Coalition !== player && contestingIn(s).includes(player)).sort((a, b) => b.demo.urbanity - a.demo.urbanity)[0];
+  return (open ?? near).index;
+}
+
 export function initCareer(player: CoalitionId, seed: number, mode: "career" | "leader", name?: string, homeSeat?: number): Career {
   const leader = mode === "leader";
-  const age = leader ? (LEADER_AGE[player] ?? 60) : 34;
+  const custom = isCustomLeader(player, mode, name);
+  const age = custom ? 45 : leader ? (LEADER_AGE[player] ?? 60) : 34;
+  homeSeat ??= custom ? newcomerSeat(player) : undefined;
   return {
     name: name?.trim() || (leader ? COALITION_INFO[player].leader : "You"),
     mode,

@@ -6,7 +6,7 @@
 // engine waits for the first one.
 
 export type MusicMode = "title" | "campaign" | "night";
-export type Sfx = "click" | "chime" | "gain" | "loss" | "hold" | "call" | "majority" | "fanfare" | "whoosh";
+export type Sfx = "click" | "chime" | "gain" | "loss" | "hold" | "call" | "majority" | "fanfare" | "whoosh" | "crowd" | "groan";
 
 interface Song {
   bpm: number;
@@ -93,6 +93,8 @@ class Engine {
   private seed = 1;
   volume = 0.7;
   sfxOn = true;
+  /** 0–1: how hard the kompang drives on the counting night (rises as your seats climb). */
+  intensity = 0;
 
   /** Create the audio graph on the first user gesture. */
   unlock() {
@@ -170,6 +172,11 @@ class Engine {
       if (song.dum[s]) this.drum(t, 85, 0.5, 220);
       if (song.tak[s]) this.drum(t, 0, 0.18, 1800);
       if (song.tick[s]) this.tick(t, s % 4 === 0 ? 0.05 : 0.025);
+      // The counting night builds: more kompang slaps, then a second "dum", as your seats climb.
+      if (this.mode === "night" && this.intensity > 0) {
+        if (s % 2 === 1 && this.rand() < this.intensity * 0.7) this.drum(t, 0, 0.08 + 0.12 * this.intensity, 2000);
+        if (this.intensity > 0.6 && (s === 6 || s === 14)) this.drum(t, 80, 0.35 * this.intensity, 220);
+      }
       if (s % 2 === 0 && this.rand() < song.melody) {
         // Melody stays near the chord: pick a scale note, prefer chord tones.
         const pool = song.scale.filter((n) => chord.notes.some((x) => (chord.root + x - n) % 12 === 0));
@@ -299,6 +306,28 @@ class Engine {
     n.start(t, 0, 0.5);
   }
 
+  /** A crowd: band-passed noise that swells and fades (a roar, or a groan that sinks). */
+  private crowd(t: number, roar: boolean) {
+    const ctx = this.ctx!;
+    for (const [band, vol] of roar ? ([[700, 0.3], [2200, 0.12]] as const) : ([[380, 0.22]] as const)) {
+      const n = ctx.createBufferSource();
+      n.buffer = this.noise;
+      n.loop = true;
+      const f = ctx.createBiquadFilter();
+      f.type = "bandpass";
+      f.Q.value = 0.8;
+      f.frequency.setValueAtTime(band, t);
+      if (!roar) f.frequency.exponentialRampToValueAtTime(band * 0.55, t + 1.4);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(vol, t + (roar ? 0.35 : 0.2));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (roar ? 2.4 : 1.5));
+      n.connect(f).connect(g).connect(this.sfxBus);
+      n.start(t);
+      n.stop(t + 2.6);
+    }
+  }
+
   /** A one-shot sound effect. */
   sfx(kind: Sfx) {
     const ctx = this.ctx;
@@ -328,6 +357,12 @@ class Engine {
         break;
       case "whoosh":
         this.whoosh(t);
+        break;
+      case "crowd":
+        this.crowd(t, true);
+        break;
+      case "groan":
+        this.crowd(t, false);
         break;
       case "majority":
       case "fanfare": {

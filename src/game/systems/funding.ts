@@ -9,6 +9,7 @@
 // Numbers TEMPORARY (salaries are close to the real 2024 figures).
 
 import { fmtRM } from "../money";
+import { youArePm } from "./people";
 import type { GameState, ReportLine } from "../state";
 import { mpOf } from "./people";
 import { UNDERDOG, underdog } from "./growth";
@@ -51,7 +52,7 @@ export function yourPay(s: GameState): { label: string; monthly: number }[] {
   const mine = you !== null && s.people.find((p) => p.id === you);
   const isMp = !!mine && mine.seat !== null && mpOf(s, mine.seat)?.id === you;
   if (isMp) rows.push({ label: "MP's salary", monthly: PAY.mp });
-  if (s.parliament.pm === s.player && s.career.rung >= 6) rows.push({ label: "Prime Minister's salary", monthly: PAY.pm });
+  if (youArePm(s) && s.career.rung >= 6) rows.push({ label: "Prime Minister's salary", monthly: PAY.pm });
   else if (you !== null && Object.values(s.cabinet).includes(you)) rows.push({ label: "Minister's salary", monthly: PAY.minister });
   return rows;
 }

@@ -96,7 +96,7 @@ export function startRace(s: GameState, kind: RaceKind): PartyRace {
     const pres = ppl.find((p) => p.rank === PRESIDENT_RANK);
     rivals = pres ? [{ id: pres.id, name: pres.name, effort: pres.influence / 3 }] : [];
   } else {
-    const challenger = [...ppl.filter((p) => p.rank === 4 || p.rank === 3)].sort((a, b) => b.ambition + b.influence - (a.ambition + a.influence))[0];
+    const challenger = [...ppl.filter((p) => (p.rank === 4 || p.rank === 3) && !p.chairman)].sort((a, b) => b.ambition + b.influence - (a.ambition + a.influence))[0];
     rivals = challenger ? [{ id: challenger.id, name: challenger.name, effort: challenger.influence / 3 }] : [];
   }
   const post = kind === "defend" ? RUNGS[PRESIDENT] : RUNGS[s.career.rung + 1];

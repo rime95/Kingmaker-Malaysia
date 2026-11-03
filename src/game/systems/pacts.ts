@@ -1,19 +1,25 @@
-// Seat pacts: two coalitions agree not to split the vote. In every seat where both stand, the weaker one stands aside
-// for the stronger, and most of its voters follow the deal. This is how Malaysian oppositions win: one-on-one fights.
+// Seat pacts: two coalitions agree not to split the vote. In the seats both contest, each side keeps what it holds and
+// the open seats are shared fairly by vote (see seattalks.ts, where you can then claim or concede seats); most of the
+// withdrawn side's voters follow the deal. This is how Malaysian oppositions win: one-on-one fights.
 // A pact runs until the next general election is over. AI coalitions sign when it wins them seats.
 
 import { hash01 } from "../rng";
 import { isGovernment, projectAllFor, type GameState } from "../state";
 import type { StandAside } from "../voter";
-import { SEATS, contestingIn, cshort, type CoalitionId } from "../world";
+import { SEATS, cshort, type CoalitionId } from "../world";
 import { isPresident } from "./career";
 import { AFFINITY } from "./formation";
+import { TALKS, fairSplit } from "./seattalks";
 
 export interface Pact {
   with: CoalitionId;
   since: number;
   /** Seat → the coalition that stands aside there. */
   seats: Record<number, CoalitionId>;
+  /** Goodwill in seat talks (0–100). */
+  goodwill?: number;
+  /** Weeks of joint campaigning you have done in their seats (raises how many of your voters follow the deal). */
+  joint?: number;
 }
 
 export const PACT = {
@@ -33,33 +39,26 @@ export const PACT = {
   friendTolerance: 2,
   transferBase: 0.45,
   transferAffinity: 0.35,
+  /** Each joint ceramah in their seats moves more of your voters behind their candidate, up to this much. */
+  jointPer: 0.01,
+  jointMax: 0.1,
 };
 
 const sameSide = (s: GameState, c: CoalitionId) => isGovernment(s, c) === isGovernment(s);
 
-/** In each seat you both contest, the weaker of you (by today's projection) stands aside. */
+/** The fair starting split of the seats you both contest (who stands aside where). */
 export function pactSeats(s: GameState, c: CoalitionId): Record<number, CoalitionId> {
+  // Seats where you already stand aside for another partner are not yours to trade.
   const proj = projectAllFor({
     ...s,
     pacts: s.pacts.filter((p) => p.with !== c),
   });
-  const out: Record<number, CoalitionId> = {};
-  for (const seat of SEATS) {
-    const list = contestingIn(seat, s.entries);
-    if (!list.includes(c) || !list.includes(s.player)) continue;
-    const sh = proj[seat.index].shares;
-    out[seat.index] = (sh[c] ?? 0) >= (sh[s.player] ?? 0) ? s.player : c;
-  }
-  // The junior partner's share of the deal: seats the senior partner can't win alone but the two could win together.
-  const aside = Object.keys(out).map(Number).filter((i) => out[i] === s.player);
-  const quota = aside.length >= 3 ? Math.min(PACT.quotaMax, Math.ceil(aside.length * PACT.quota)) : 0;
-  const given = Object.values(out).filter((x) => x === c).length;
-  if (given < quota) {
-    // The senior partner keeps its fortresses (its safest third) and lends the junior partner the next-best seats.
-    const ranked = aside.sort((a, b) => (proj[b].shares[c] ?? 0) - (proj[a].shares[c] ?? 0));
-    const picks = ranked.slice(Math.floor(ranked.length / 3)).slice(0, quota - given);
-    for (const i of picks) out[i] = c;
-  }
+  const other = s.pacts.filter((p) => p.with !== c);
+  const entries = { ...s.entries };
+  const out = fairSplit({ ...s, entries }, c, (i) => proj[i].shares);
+  for (const k of Object.keys(out)) if (other.some((p) => p.seats[Number(k)] === s.player)) delete out[Number(k)];
+  // You never stand aside in your own seat.
+  if (out[s.career.homeSeat] === s.player) out[s.career.homeSeat] = c;
   return out;
 }
 
@@ -116,7 +115,7 @@ export function proposePact(s: GameState, c: CoalitionId): { state: GameState; m
       message: `${cshort(c)} turns the pact down: ${why2}.`,
     };
   }
-  const pact: Pact = { with: c, since: s.week, seats: g.seats };
+  const pact: Pact = { with: c, since: s.week, seats: g.seats, goodwill: TALKS.goodwill, joint: 0 };
   return {
     state: { ...paid, pacts: [...s.pacts, pact] },
     message: `Pact signed with ${cshort(c)}: you stand aside in ${aside} seats, they stand aside in ${Object.keys(g.seats).length - aside}. Projected: you ${g.you >= 0 ? "+" : "−"}${Math.abs(g.you)} seats, them ${g.them >= 0 ? "+" : "−"}${Math.abs(g.them)}.`,
@@ -141,11 +140,49 @@ export function asideFor(s: Pick<GameState, "pacts" | "player" | "government">):
     for (const [k, out_] of Object.entries(p.seats)) {
       const to = out_ === s.player ? p.with : s.player;
       // How much of a withdrawn vote follows the deal depends on how much its voters like the other side.
-      const transfer = Math.max(PACT.transferAcross, Math.min(0.75, PACT.transferBase + (AFFINITY[out_]?.[to] ?? 0) * PACT.transferAffinity));
+      const joint = out_ === s.player ? Math.min(PACT.jointMax, (p.joint ?? 0) * PACT.jointPer) : 0;
+      const transfer = Math.max(PACT.transferAcross, Math.min(0.75 + joint, PACT.transferBase + (AFFINITY[out_]?.[to] ?? 0) * PACT.transferAffinity + joint));
       (out[Number(k)] ??= []).push({ out: out_, to, transfer });
     }
   }
   return out;
+}
+
+export const ALLIES = {
+  /** Goodwill needed before a partner campaigns for you, seats a week, buzz per visit (×goodwill/100), and its cost to them. */
+  goodwill: 40,
+  seats: 2,
+  buzz: 9,
+  cost: 40_000,
+};
+
+/**
+ * Weekly, during the campaign: pact partners return the favour. In the agreed seats where they stand aside for you,
+ * their machinery campaigns for your candidate in your closest races (more of it the more goodwill there is).
+ */
+export function alliesWeek(s: GameState, projections: { leader: CoalitionId; margin: number }[]): { state: GameState; lines: { text: string; tone: "good" }[] } {
+  const lines: { text: string; tone: "good" }[] = [];
+  if (s.parliament.status !== "campaign" || !s.pacts.length) return { state: s, lines };
+  const buzz = [...s.me.buzz];
+  let rivals = s.rivals;
+  for (const p of s.pacts) {
+    const gw = p.goodwill ?? TALKS.goodwill;
+    const r = rivals[p.with];
+    if (gw < ALLIES.goodwill || !r || r.funds < ALLIES.cost) continue;
+    // Your closest races among the seats they gave you.
+    const seats = Object.entries(p.seats)
+      .filter(([, out]) => out === p.with)
+      .map(([k]) => Number(k))
+      .map((i) => ({ i, m: projections[i].leader === s.player ? projections[i].margin : -projections[i].margin }))
+      .filter((x) => x.m < 0.12 && x.m > -0.15)
+      .sort((a, b) => Math.abs(a.m) - Math.abs(b.m))
+      .slice(0, ALLIES.seats);
+    if (!seats.length) continue;
+    for (const { i } of seats) buzz[i] = Math.min(100, buzz[i] + ALLIES.buzz * (gw / 100) * (1 - buzz[i] / 120));
+    rivals = { ...rivals, [p.with]: { ...r, funds: r.funds - ALLIES.cost * seats.length } };
+    lines.push({ text: `${cshort(p.with)} machinery campaigns for your candidate in ${seats.map((x) => SEATS[x.i].name).join(" and ")}.`, tone: "good" });
+  }
+  return { state: { ...s, rivals, me: { ...s.me, buzz } }, lines };
 }
 
 /** Whether a coalition stands aside in a seat under a pact. */

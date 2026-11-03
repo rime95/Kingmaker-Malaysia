@@ -11,6 +11,14 @@ import { coalColor } from "../map/lenses";
 import { useT } from "../i18n";
 import { Icon } from "./icons";
 import { SoundControls } from "../SoundControls";
+import { Bunting, CoalitionFlag } from "../flags";
+import type { GameState } from "@/game/state";
+
+/** Campaign bunting: the flags of every party standing, strung along the top. */
+const buntingFor = (g: GameState) => {
+  const ids = COALITIONS.filter((c) => c !== "OTHERS" && g.coalitions[c].members.length).flatMap((c) => g.coalitions[c].members.slice(0, 3));
+  return Array.from({ length: 28 }, (_, k) => ids[k % ids.length]);
+};
 
 /** The slim status bar across the top (GE16 "status report" style). */
 export function TopBar({ onSaves }: { onSaves: () => void }) {
@@ -31,10 +39,11 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
   const waiting = pending > 0 && (snoozed.length > 0 || budgetSnoozed);
 
   return (
-    <header className="panel px-3 py-2 flex items-center gap-2 sm:gap-3">
+    <header className="panel px-3 py-2 flex items-center gap-2 sm:gap-3 relative">
+      {game.parliament.status === "campaign" && <Bunting ids={buntingFor(game)} />}
       <div className="min-w-0 flex-none">
         <div className="flex items-center gap-1.5 text-sm font-semibold">
-          <span className="swatch" style={{ background: coalColor(game.player) }} />
+          <CoalitionFlag game={game} c={game.player} size={13} />
           {cshort(game.player)}
           <span className="font-normal hidden sm:inline" style={{ color: "var(--muted)" }}>
             · {isGovernment(game) ? t("government") : t("opposition")}
@@ -64,7 +73,7 @@ export function TopBar({ onSaves }: { onSaves: () => void }) {
                 {counts[c]}
               </div>
               <div className="text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 mt-0.5" style={{ color: "var(--ink-2)" }}>
-                <span className="swatch" style={{ background: coalColor(c), width: 8, height: 8 }} />
+                <CoalitionFlag game={game} c={c} size={9} />
                 {cshort(c)}
                 {c === game.player ? " ★" : ""}
               </div>

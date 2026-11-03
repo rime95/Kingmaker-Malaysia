@@ -2,6 +2,10 @@
 // Actions cost Action Points (AP) and money. Business decisions cost money only.
 
 import { ECONOMY, TURN_WEEKS } from "./config";
+import { chairmanCampaign } from "./systems/chairman";
+import { autoPick } from "./systems/nominations";
+import { standsAside } from "./systems/pacts";
+import { TALKS, claimSeat, concedeSeat, type TalkSeat } from "./systems/seattalks";
 import { POLLS, commissionedRead } from "./systems/polls";
 import { BUDGET, BUDGET_LINES, budgetEnvelope } from "./systems/budget";
 import { resolveCard } from "./systems/events";
@@ -82,11 +86,16 @@ const hasAsset = (me: Player, type: AssetType) => me.assets.some((a) => a.type =
 const seatOf = (t: Target) => (t.kind === "seat" ? SEATS[t.seat] : null);
 const notContesting = (s: GameState, t: Target) => {
   const seat = seatOf(t);
-  return seat && !contestingIn(seat, s.entries).includes(s.player) ? "Your coalition does not stand here yet. Open a branch first." : null;
+  if (!seat) return null;
+  if (!contestingIn(seat, s.entries).includes(s.player)) return "Your coalition does not stand here yet. Open a branch first.";
+  const pact = s.pacts.find((p) => p.seats[seat.index] === s.player);
+  return pact ? `You stand aside here for ${cshort(pact.with)} under your pact. Campaign for their candidate with "Back an ally".` : null;
 };
 
-/** The friendliest coalition standing in a seat your coalition doesn't contest. */
+/** The friendliest coalition standing in a seat your coalition doesn't contest (or your pact partner where you stand aside). */
 export function allyIn(s: GameState, i: number): CoalitionId | null {
+  const pact = s.pacts.find((p) => p.seats[i] === s.player);
+  if (pact) return pact.with;
   let best: CoalitionId | null = null;
   let score = 0.2;
   for (const c of contestingIn(SEATS[i], s.entries)) {
@@ -428,7 +437,7 @@ export const ACTIONS: ActionDef[] = [
     blocked: (s, t) => {
       const seat = seatOf(t);
       if (!seat) return null;
-      if (contestingIn(seat, s.entries).includes(s.player)) return "You field a candidate here. Use your own moves.";
+      if (contestingIn(seat, s.entries).includes(s.player) && !standsAside(s, seat.index, s.player)) return "You field a candidate here. Use your own moves.";
       return allyIn(s, seat.index) ? null : "No friendly party stands here.";
     },
     run: (me, s, t) => {
@@ -436,7 +445,9 @@ export const ACTIONS: ActionDef[] = [
       const ally = allyIn(s, i)!;
       me.trust = clamp(me.trust + 2);
       me.favours += 1;
-      return `You campaign for the ${cshort(ally)} candidate in ${SEATS[i].name}. They will remember it.`;
+      return standsAside(s, i, s.player)
+        ? `A joint ceramah in ${SEATS[i].name}: you share the stage with the ${cshort(ally)} candidate, and tell your voters to back them.`
+        : `You campaign for the ${cshort(ally)} candidate in ${SEATS[i].name}. They will remember it.`;
     },
     after: (s, t) => {
       const i = (t as { seat: number }).seat;
@@ -445,7 +456,9 @@ export const ACTIONS: ActionDef[] = [
       if (!ally || !r) return s;
       const buzz = [...r.buzz];
       buzz[i] = clamp(buzz[i] + ALLY_BUZZ);
-      return { ...s, rivals: { ...s.rivals, [ally]: { ...r, buzz } } };
+      // Under a pact, joint work wins goodwill and makes more of your voters follow the deal.
+      const pacts = s.pacts.map((p) => (p.with === ally && p.seats[i] === s.player ? { ...p, goodwill: Math.min(100, (p.goodwill ?? TALKS.goodwill) + 2), joint: (p.joint ?? 0) + 1 } : p));
+      return { ...s, pacts, rivals: { ...s.rivals, [ally]: { ...r, buzz } } };
     },
   },
   {
@@ -973,6 +986,11 @@ export function breakPact(s: GameState, c: CoalitionId): ActionResult {
 }
 
 /** Name a candidate (you, as party president, while nominations are open). */
+export const chairmanStumps = (s: GameState, seat: number): ActionResult => teamResult(chairmanCampaign(s, seat));
+export const autoNominate = (s: GameState): ActionResult => teamResult(autoPick(s));
+export const claimTalkSeat = (s: GameState, r: TalkSeat): ActionResult => teamResult(claimSeat(s, r));
+export const concedeTalkSeat = (s: GameState, r: TalkSeat): ActionResult => teamResult(concedeSeat(s, r));
+
 export function nominateCandidate(s: GameState, seat: number, person: number | "newface" | "local"): ActionResult {
   const r = nominate(s, seat, person);
   return "error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message };
@@ -1441,6 +1459,13 @@ export function goToAgong(s: GameState, midTerm = false): ActionResult {
   let state: GameState = { ...s, me, formation: null, government: o.government, parliament: { ...s.parliament, pm: o.pm } };
   // A new cabinet: the AI shares posts by seats; as Prime Minister you can reshuffle it any time.
   state.cabinet = formCabinet(state);
+  // The biggest party provides the Prime Minister: if a partner in your coalition out-won your party, or you lost
+  // your own seat, someone else takes the chair.
+  if (o.pm === s.player && state.youId !== null && state.cabinet.pm !== state.youId && isPresident(s.career)) {
+    const pm = state.people.find((p) => p.id === state.cabinet.pm);
+    const you = state.people.find((p) => p.id === state.youId);
+    if (pm) lines.push(you?.seat == null ? `You lost your own seat, so ${pm.name} (${pm.party}) becomes Prime Minister.` : `${pm.name} becomes Prime Minister: ${pm.party} won the most seats in your coalition. You serve as Deputy Prime Minister.`);
+  }
   // The winner may rebrand: you name your coalition; an AI prime minister's coalition sometimes relaunches.
   if (o.pm === s.player && !midTerm) state.namePending = true;
   else {

@@ -9,6 +9,7 @@ import { useGame } from "@/store/gameStore";
 import { COALITIONS, PARTIES, SEATS, cshort } from "@/game/world";
 import { fmtRM } from "../common";
 import { DISCIPLINE } from "@/game/systems/partyorg";
+import { PartyFlag } from "../flags";
 
 /** Who's who: the cabinet, then any party's leadership from the President down to the branch chiefs. */
 export function PeoplePanel() {
@@ -26,7 +27,8 @@ export function PeoplePanel() {
   const roster = q
     ? all.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || (p.seat !== null && SEATS[p.seat].name.toLowerCase().includes(q.toLowerCase())))
     : all;
-  const groups = [5, 4, 3, 2].map((rank) => ({ rank, people: roster.filter((p) => p.rank === rank && !p.retired) }));
+  const chair = roster.find((p) => p.chairman);
+  const groups = [5, 4, 3, 2].map((rank) => ({ rank, people: roster.filter((p) => p.rank === rank && !p.retired && !p.chairman) }));
   const mps = roster.filter((p) => p.rank <= 1 && p.seat !== null);
   const others = roster.filter((p) => (p.rank === 1 && p.seat === null) || p.retired);
   const branch = roster.filter((p) => p.rank === 0);
@@ -38,7 +40,7 @@ export function PeoplePanel() {
         <div className="flex flex-wrap gap-1.5">
           {parties.map((p) => (
             <button key={p} className="chip !py-1 !px-2.5 text-xs" aria-pressed={party === p} onClick={() => setParty(p)}>
-              <span className="swatch" style={{ background: partyColor(game, p), width: 8, height: 8 }} />
+              <PartyFlag id={p} size={10} />
               {p}
             </button>
           ))}
@@ -62,6 +64,21 @@ export function PeoplePanel() {
           />
         </div>
       </section>
+
+      {chair && party === mine[0] && (
+        <section className="inset p-3 flex gap-3 items-center">
+          <PartyFlag id={party} size={26} />
+          <div className="text-xs min-w-0">
+            <div className="font-semibold text-sm">
+              {game.career.name} &amp; {chair.name}
+            </div>
+            <div style={{ color: "var(--ink-2)" }}>
+              You lead {party}; {chair.name} stays on as Party Chairman. A loyal chairman keeps the party behind you, campaigns for you once a week (seat card) and offers
+              counsel. Leave them out of your cabinet and they drift. Loyalty {Math.round(chair.loyalty)}.
+            </div>
+          </div>
+        </section>
+      )}
 
       {view === "chart" && <OrgChart roster={roster} open={open} onOpen={setOpen} />}
 
@@ -110,7 +127,9 @@ export function PeoplePanel() {
 /** The party as a pyramid: the President at the top, then each rank below; click anyone for their card. */
 function OrgChart({ roster, open, onOpen }: { roster: Person[]; open: number | null; onOpen: (id: number | null) => void }) {
   const game = useGame((s) => s.game)!;
-  const tiers = [5, 4, 3, 2].map((rank) => ({ rank, people: roster.filter((p) => p.rank === rank && !p.retired) })).filter((t) => t.people.length);
+  const tiers = [6, 5, 4, 3, 2]
+    .map((rank) => ({ rank, people: rank === 6 ? roster.filter((p) => p.chairman) : roster.filter((p) => p.rank === rank && !p.retired && !p.chairman) }))
+    .filter((t) => t.people.length);
   const mps = roster.filter((p) => p.rank <= 1 && p.seat !== null);
   const sel = open !== null ? roster.find((p) => p.id === open) : undefined;
   return (
@@ -118,7 +137,7 @@ function OrgChart({ roster, open, onOpen }: { roster: Person[]; open: number | n
       {tiers.map((t) => (
         <div key={t.rank} className="w-full">
           <div className="text-[10px] text-center mb-1" style={{ color: "var(--muted)" }}>
-            {t.rank === 3 ? "Vice Presidents" : t.rank === 2 ? "Supreme Council" : RANKS[t.rank]}
+            {t.rank === 6 ? "Party Chairman" : t.rank === 3 ? "Vice Presidents" : t.rank === 2 ? "Supreme Council" : RANKS[t.rank]}
           </div>
           <div className="flex flex-wrap justify-center gap-1.5">
             {t.people.map((p) => (

@@ -18,6 +18,8 @@ import { MULTIRACIAL } from "./policies";
 import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, addPoints, contestChance, factionSize, promote, succession } from "./career";
 import { addSeg, describeSeg, type SegEffects } from "./segments";
 import { CAMPAIGN_CARDS, COUNCIL_CARD, MINISTER_SCANDAL_CARD, scandalMinister } from "./moreCards";
+import { CHAIRMAN_COUNSEL_CARD, CHAIRMAN_RIFT_CARD } from "./chairman";
+import { CELEBRITY_CARD, DIVISION_DEMAND_CARD } from "./nomcards";
 
 export interface Effect {
   funds?: number;
@@ -509,6 +511,10 @@ export const CARD_BY_KIND: Record<string, CardDef> = Object.fromEntries([
   [DEPUTY_CARD.kind, DEPUTY_CARD],
   [JUMP_CARD.kind, JUMP_CARD],
   [SEAT_TALKS_CARD.kind, SEAT_TALKS_CARD],
+  [CHAIRMAN_COUNSEL_CARD.kind, CHAIRMAN_COUNSEL_CARD],
+  [CHAIRMAN_RIFT_CARD.kind, CHAIRMAN_RIFT_CARD],
+  [DIVISION_DEMAND_CARD.kind, DIVISION_DEMAND_CARD],
+  [CELEBRITY_CARD.kind, CELEBRITY_CARD],
   ...FESTIVALS.map((f) => [
     f.kind,
     {

@@ -532,7 +532,8 @@ export function battlegroundsWeek(s: GameState): { state: GameState; lines: Repo
   const work = s.seatWork ?? [];
   for (let i = 0; i < work.length; i++) {
     const by = s.holders[i];
-    if (by === s.player || by === "OTHERS" || battlegrounds[i] || work[i] < BATTLE.pressure || !rivals[by]) continue;
+    // Your pact partners don't fight you: in seats they hold, your work is joint work.
+    if (by === s.player || by === "OTHERS" || battlegrounds[i] || work[i] < BATTLE.pressure || !rivals[by] || s.pacts.some((p) => p.with === by)) continue;
     battlegrounds[i] = { by, until: s.week + BATTLE.weeks };
     lines.push({ text: `${cshort(by)} digs in at ${SEATS[i].name}: they're counter-campaigning against you there.`, tone: "bad" });
   }

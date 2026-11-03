@@ -12,6 +12,7 @@ import { Toast } from "./Toast";
 import { MalaysiaMap } from "./map/MalaysiaMap";
 import { SoundControls } from "./SoundControls";
 import { sfx } from "./audio";
+import { JalurGemilang, PartyFlag } from "./flags";
 
 const PLAYABLE: CoalitionId[] = ["PH", "BN", "PN", "GPS", "GRS", "WARISAN", "MUDA", "BERSAMA"];
 const noop = () => () => {};
@@ -59,8 +60,11 @@ export function NewGame() {
               aria-pressed={pick === c}
             >
               <div className="flex items-center gap-3">
-                <span className="party-avatar" style={{ background: coalColor(c) }} aria-hidden>
-                  {initials(info.leader)}
+                <span className="party-avatar-wrap" aria-hidden>
+                  <PartyFlag id={c} size={30} />
+                  <span className="party-avatar" style={{ background: coalColor(c) }}>
+                    {initials(info.leader)}
+                  </span>
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
@@ -101,7 +105,7 @@ export function NewGame() {
               onKeyDown={(e) => e.key === "Enter" && named && start(pick, { mode: "leader", scenario, difficulty, name })}
             />
             <span className="text-xs" style={{ color: "var(--muted)" }}>
-              You are the new president of {cname(pick)}, taking over from {COALITION_INFO[pick].leader}.
+              You lead {cname(pick)} as its new president. {COALITION_INFO[pick].leader} stays on as Party Chairman: you rule the party together.
             </span>
           </label>
           <Choice label="Scenario">
@@ -188,11 +192,7 @@ function Hero({ onStart }: { onStart: () => void }) {
         <SoundControls compact />
       </div>
       <div className="relative z-10 flex flex-col items-center text-center px-4">
-        <div className="jalur" aria-hidden>
-          {Array.from({ length: 14 }, (_, i) => (
-            <span key={i} style={{ background: i % 2 ? "#fff" : "#cc0001" }} />
-          ))}
-        </div>
+        <JalurGemilang height={44} wave className="hero-flag" />
         <div className="text-xs md:text-sm font-bold tracking-[0.35em] mt-4" style={{ color: "#ffcc00" }}>
           PILIHAN RAYA UMUM · MALAYSIA
         </div>
