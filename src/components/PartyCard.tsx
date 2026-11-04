@@ -1,6 +1,7 @@
 "use client";
 
 import { type Vote } from "@/game/systems/dewan";
+import { Tip } from "./Tip";
 import { mpOf } from "@/game/systems/people";
 import { partyColor } from "@/game/systems/coalitions";
 import { partyStats } from "@/game/systems/partyStats";
@@ -16,11 +17,8 @@ export function PartyCard({ party, seat, x, y, votes }: { party: string; seat: n
   const mp = seat !== null ? mpOf(game, seat) : undefined;
   const delta = st.seats - st.seatsAtGE;
   const coalSeats = game.holders.filter((h) => h === st.coalition).length;
-  const w = 284;
-  const left = typeof window !== "undefined" && x + w + 16 > window.innerWidth ? x - w - 14 : x + 14;
-  const top = typeof window !== "undefined" && y + 260 > window.innerHeight ? y - 250 : y + 14;
   return (
-    <div className="tooltip party-card" style={{ left, top, width: w }}>
+    <Tip x={x} y={y} width={284} className="party-card">
       <div className="flex items-center gap-2">
         <span className="swatch" style={{ background: partyColor(game, party), width: 12, height: 12 }} />
         <span className="font-semibold text-[13px] leading-tight flex-1">{st.name}</span>
@@ -77,7 +75,7 @@ export function PartyCard({ party, seat, x, y, votes }: { party: string; seat: n
           <div className="text-[10px]">Click for the seat</div>
         </div>
       )}
-    </div>
+    </Tip>
   );
 }
 

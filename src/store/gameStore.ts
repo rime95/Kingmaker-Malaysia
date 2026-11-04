@@ -650,13 +650,13 @@ export const useGame = create<Store>()(
       name: "mpr-save",
       version: SAVE_VERSION,
       storage: safeStorage,
-      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound, music: s.music, volume: s.volume, testTools: s.testTools, summaryOn: s.summaryOn, autoSkip: s.autoSkip }),
+      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound, music: s.music, volume: s.volume, testTools: s.testTools, summaryOn: s.summaryOn, autoSkip: s.autoSkip, voteSeen: s.voteSeen, resultSeen: s.resultSeen }),
       // Saves from before the turn loop can't be upgraded: start fresh.
       migrate: (persisted, version) => (version < 2 ? { game: null, lens: "holder" } : persisted) as Store,
       // Every load fills fields added since the save was made (safe to repeat).
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<Store>;
-        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound, music: p.music ?? current.music, volume: p.volume ?? current.volume, testTools: p.testTools ?? current.testTools, summaryOn: p.summaryOn ?? current.summaryOn, autoSkip: p.autoSkip ?? current.autoSkip };
+        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound, music: p.music ?? current.music, volume: p.volume ?? current.volume, testTools: p.testTools ?? current.testTools, summaryOn: p.summaryOn ?? current.summaryOn, autoSkip: p.autoSkip ?? current.autoSkip, voteSeen: p.voteSeen ?? current.voteSeen, resultSeen: p.resultSeen ?? current.resultSeen };
       },
     },
   ),

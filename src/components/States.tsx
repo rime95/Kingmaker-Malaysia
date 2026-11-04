@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Tip } from "./Tip";
 import { assemblyDissolveBlocked, parliamentDissolveBlocked } from "@/game/actions";
 import { GE, PRN } from "@/game/config";
 import { voterInputs, weekLabel } from "@/game/state";
@@ -202,7 +203,7 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
         </text>
       </svg>
       {hover && (
-        <div className="tooltip" style={{ left: hover.x + 14, top: hover.y + 14 }}>
+        <Tip x={hover.x} y={hover.y}>
           <div className="font-semibold">
             {DUNS[hover.d].code} {DUNS[hover.d].name}
           </div>
@@ -210,7 +211,7 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
           <div style={{ color: "var(--muted)" }}>
             Today: {cshort(proj[hover.d].leader)} by {pct(proj[hover.d].margin, 1)}
           </div>
-        </div>
+        </Tip>
       )}
 
       {a.lastAfter && (

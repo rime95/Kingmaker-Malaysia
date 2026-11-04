@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Tip } from "../Tip";
 import { BUBBLE_INFO } from "@/game/systems/bubbles";
 import { DUNS } from "@/game/systems/dun";
 import { isHostile } from "@/game/systems/rivals";
@@ -98,11 +99,8 @@ function SeatTip({ i, x, y, reads }: { i: number; x: number; y: number; reads: S
   const why = contests ? seatBreakdown(game, i).sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 2) : [];
   const aside = asideFor(game)[i]?.[0];
   const nominee = byId(game, game.nominations?.picks[i]);
-  // Keep it on screen.
-  const left = typeof window !== "undefined" && x + 300 > window.innerWidth ? x - 300 : x + 14;
-  const top = typeof window !== "undefined" && y + 260 > window.innerHeight ? y - 250 : y + 14;
   return (
-    <div className="tooltip" style={{ left, top, width: 280 }}>
+    <Tip x={x} y={y} width={280}>
       <div className="font-semibold">
         {seat.code} {seat.name}
       </div>
@@ -152,7 +150,7 @@ function SeatTip({ i, x, y, reads }: { i: number; x: number; y: number; reads: S
       <div className="mt-1 text-[10px]" style={{ color: "var(--muted)" }}>
         Click for your moves here
       </div>
-    </div>
+    </Tip>
   );
 }
 
@@ -160,7 +158,7 @@ function DunTip({ i, x, y }: { i: number; x: number; y: number }) {
   const game = useGame((s) => s.game)!;
   const d = DUNS[i];
   return (
-    <div className="tooltip" style={{ left: x + 14, top: y + 14 }}>
+    <Tip x={x} y={y}>
       <div className="font-semibold">
         {d.code} {d.name}
       </div>
@@ -171,7 +169,7 @@ function DunTip({ i, x, y }: { i: number; x: number; y: number }) {
         <CoalitionFlag game={game} c={game.dunHolders[i]} size={10} />
         {cshort(game.dunHolders[i])}
       </div>
-    </div>
+    </Tip>
   );
 }
 

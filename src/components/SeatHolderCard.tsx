@@ -1,6 +1,7 @@
 "use client";
 
 import { PORTFOLIOS } from "@/game/data/people";
+import { Tip } from "./Tip";
 import { type Vote } from "@/game/systems/dewan";
 import { ageOf, mpOf, postOf } from "@/game/systems/people";
 import { resultView } from "@/game/systems/results";
@@ -19,9 +20,8 @@ export function SeatHolderCard({ i, x, y, vote }: { i: number; x: number; y: num
   const posts = mp ? postOf(game, mp.id) : [];
   const last = resultView(game.seatResults, i);
   const gov = game.government.includes(game.holders[i]);
-  const left = typeof window !== "undefined" && x + 270 > window.innerWidth ? x - 270 : x + 14;
   return (
-    <div className="tooltip" style={{ left, top: y + 14, width: 256 }}>
+    <Tip x={x} y={y} width={256}>
       <div className="font-semibold">{mp ? mp.name : `Vacant (last won by ${last.candidates[0].name})`}</div>
       <div className="flex items-center gap-1.5">
         <CoalitionFlag game={game} c={game.holders[i]} size={10} />
@@ -46,6 +46,6 @@ export function SeatHolderCard({ i, x, y, vote }: { i: number; x: number; y: num
           Voted: {VOTE_LABEL[vote]}
         </div>
       )}
-    </div>
+    </Tip>
   );
 }
