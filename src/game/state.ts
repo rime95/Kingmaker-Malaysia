@@ -10,11 +10,12 @@ import { newObjectives, type Objective } from "./systems/goals";
 import { newBubbles, type Bubble } from "./systems/bubbles";
 import { initPolls, type Polls } from "./systems/polls";
 import { initCoalitions, initPartySat, type Coalitions } from "./systems/coalitions";
-import { fillVacantSeats, initPeople, makeChairman, syncYou, type Person } from "./systems/people";
+import { fillVacantSeats, fixRealAges, initPeople, makeChairman, syncYou, type Person } from "./systems/people";
 import { restoreChairman } from "./systems/chairman";
 import type { NewTerm } from "./systems/newterm";
 import type { Ending } from "./systems/legacy";
 import { autoPosts, migrateHomes, postSeatEffects, pullTable, type Posts } from "./systems/posts";
+import { initCamps, syncDivisions, type Divisions } from "./systems/camps";
 import { syncStateGov, type StateGov, type StateNight, type StateTalks, type StateTerm } from "./systems/stategov";
 import type { Laws } from "./systems/laws";
 import type { PortfolioId } from "./data/people";
@@ -46,7 +47,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 24;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -252,6 +253,8 @@ export interface GameState {
   ending: Ending | null;
   /** Party → post (national posts and state chiefs) → person id. */
   posts: Posts;
+  /** Your party's divisions: seat → division chief (camps.ts). */
+  divisions: Divisions;
   /** Each post's pull when the game started: effects count from here. */
   postBase: Record<string, number>;
   /** Every state government: ruler, MB, exco and (yours) treasury. */
@@ -375,6 +378,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     newTerm: null,
     ending: null,
     posts: {},
+    divisions: {},
     postBase: {},
     stateGov: {},
     stateTerms: [],
@@ -403,6 +407,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     state.me = { ...state.me, funds: Math.round(state.me.funds * 0.25), members: Math.round(state.me.members * 0.6), unity: 40, trust: 40 };
   }
   Object.assign(state, syncStateGov(autoPosts(state)));
+  Object.assign(state, initCamps(syncDivisions(state)));
   state.postBase = pullTable(state);
   state.scorecard = initScorecard(state);
   state.history.push({ week: 0, funds: state.me.funds, seats: projectedSeats(state) });
@@ -514,6 +519,14 @@ export function migrateGame(g: GameState): GameState {
     migrated.postBase = pullTable(migrated);
   }
   migrated.postBase = g.postBase ?? {};
+  // Saves before version 23: real MPs' ages, and wing chiefs who fit (women for Wanita and Puteri, the young for Youth).
+  if ((g.version ?? 0) < 23 && migrated.people.length) {
+    migrated.people = fixRealAges(migrated.people, migrated.week);
+    Object.assign(migrated, autoPosts(migrated));
+  }
+  // Saves before version 24: divisions and camps.
+  migrated.divisions = g.divisions ?? {};
+  if ((g.version ?? 0) < 24 && migrated.people.length) Object.assign(migrated, initCamps(syncDivisions(migrated)));
   if (!g.posts || !g.stateGov) {
     Object.assign(migrated, syncStateGov(autoPosts(migrated)));
     migrated.postBase = pullTable(migrated);

@@ -14,6 +14,7 @@ import { SEATS } from "../world";
 import { CONTEST_POINTS, MP, PRESIDENT, RUNGS, addPoints, factionSize, promote } from "./career";
 import { makeName, recruitBloc } from "./names";
 import { PRESIDENT_RANK, promoteTo, type Person } from "./people";
+import { campLean } from "./camps";
 
 export type RaceKind = "division" | "vp" | "president" | "defend";
 
@@ -103,9 +104,17 @@ export function startRace(s: GameState, kind: RaceKind): PartyRace {
   return { kind, post, startWeek: s.week, voteWeek: s.week + RACE.weeks, rivals, effort: 0, money: 0, result: null };
 }
 
-/** The delegations that vote: your division's branches, or the party's divisions led by its chiefs. */
+/** The delegations that vote: your division's branches, or the party's divisions led by their chiefs. */
 function delegations(s: GameState, race: PartyRace): { label: string; chief: Person | null }[] {
   if (race.kind === "division") return Array.from({ length: RACE.branches }, (_, i) => ({ label: `Cawangan ${i + 1}`, chief: null }));
+  // Every division sends a delegation, led by its chief (a candidate's own division backs them).
+  const divs = Object.entries(s.divisions ?? {});
+  if (divs.length) {
+    const byId = new Map(s.people.map((p) => [p.id, p]));
+    return divs
+      .filter(([, id]) => id !== s.youId && !race.rivals.some((r) => r.id === id))
+      .map(([seat, id]) => ({ label: `Bahagian ${SEATS[Number(seat)].name}`, chief: (id !== undefined ? byId.get(id) : undefined) ?? null }));
+  }
   const party = lead(s);
   const chiefs = s.people.filter((p) => p.party === party && p.id !== s.youId && p.rank >= 1 && !race.rivals.some((r) => r.id === p.id));
   const out = chiefs.map((p) => ({ label: p.seat !== null ? `Bahagian ${SEATS[p.seat].name}` : `${p.name}'s division`, chief: p as Person | null }));
@@ -124,6 +133,8 @@ function leanToYou(s: GameState, race: PartyRace, chief: Person | null): number 
   p += Math.max(-0.15, Math.min(0.15, (s.career.points - need) / 200));
   p += (s.me.unity - 60) / 400;
   if (chief) p += chief.loyalty >= 60 ? 0.3 : chief.loyalty <= 30 ? -0.3 : 0;
+  // Their camp: your own delivers, a rival candidate's goes the other way.
+  if (chief) p += campLean(s, chief, race.rivals.map((r) => r.id));
   if (race.kind === "defend") p += 0.05; // incumbency
   return Math.max(0.03, Math.min(0.97, p));
 }

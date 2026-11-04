@@ -14,7 +14,8 @@ import type { CardDef } from "./events";
 import type { GameState, ReportLine } from "../state";
 import { COALITIONS, FT, SEATS, STATES, candidateParty, contestingIn, regionOf } from "../world";
 import { seatCandidate } from "./coalitions";
-import { HIERARCHY_PARTIES, guessHome, homeOf, recruitPerson, type Person } from "./people";
+import { HIERARCHY_PARTIES, ageOf, guessHome, homeOf, recruitPerson, type Person } from "./people";
+import { isWoman } from "./gender";
 import { blocOfName } from "./names";
 
 export const NATIONAL_POSTS = ["sg", "treasurer", "info", "director", "youth", "wanita", "puteri"] as const;
@@ -101,6 +102,29 @@ export function postPool(s: Pick<GameState, "people" | "youId">, party: string):
   return s.people.filter((p) => p.party === party && !p.retired && !p.chairman && p.id !== s.youId);
 }
 
+/** The wings' age limits: Youth (Pemuda) and Puteri are for the young. */
+export const WING_AGE: Partial<Record<string, number>> = { youth: 40, puteri: 35 };
+
+/**
+ * Can this person hold this post at all? The Wanita and Puteri chiefs are women and the Youth chief a man (young women
+ * have Puteri); the young wings' chiefs are young.
+ */
+export function postEligible(p: Person, key: string, week: number): boolean {
+  if ((key === "wanita" || key === "puteri") && !isWoman(p)) return false;
+  if (key === "youth" && isWoman(p)) return false;
+  const limit = WING_AGE[key];
+  return limit === undefined || ageOf(p, week) <= limit;
+}
+
+/** Why someone can't hold a post, in words (null when they can). */
+export function postEligibleWhy(p: Person, key: string, week: number): string | null {
+  if ((key === "wanita" || key === "puteri") && !isWoman(p)) return `The ${postName(key)} leads the party's women: it must be a woman.`;
+  if (key === "youth" && isWoman(p)) return "Young women have their own wing: make her Puteri Chief.";
+  const limit = WING_AGE[key];
+  if (limit !== undefined && ageOf(p, week) > limit) return `The ${postName(key)} must be ${limit} or under.`;
+  return null;
+}
+
 function fitFor(p: Person, key: string): number {
   // A state chief should be from the state: an outsider only when the party has nobody local.
   const local = key.startsWith("chief:") ? (homeOf(p) === key.slice(6) ? 60 : 0) : 0;
@@ -117,15 +141,22 @@ export function autoPosts(s: GameState): GameState {
     const ids = new Set(pool.map((p) => p.id));
     const keys = postKeys(s, party);
     const cur: Partial<Record<string, number>> = {};
-    for (const [k, id] of Object.entries(s.posts?.[party] ?? {})) if (id !== undefined && ids.has(id) && keys.includes(k)) cur[k] = id;
+    // A holder keeps the post while they still fit it (a wing chief who ages out makes way at the next reshuffle).
+    const byId = new Map(pool.map((p) => [p.id, p]));
+    for (const [k, id] of Object.entries(s.posts?.[party] ?? {})) if (id !== undefined && ids.has(id) && keys.includes(k) && postEligible(byId.get(id)!, k, s.week)) cur[k] = id;
     const used = new Set(Object.values(cur));
     for (const key of keys) {
       if (cur[key] !== undefined) continue;
-      const free = pool.filter((p) => !used.has(p.id));
+      const free = pool.filter((p) => !used.has(p.id) && postEligible(p, key, s.week));
       // A state chief is always from the state: with nobody local free, the party brings in a local organiser.
       let pick = key.startsWith("chief:") ? free.filter((p) => homeOf(p) === key.slice(6)).sort((a, b) => fitFor(b, key) - fitFor(a, key))[0] : free.sort((a, b) => fitFor(b, key) - fitFor(a, key))[0];
       if (!pick && key.startsWith("chief:")) {
         pick = { ...recruitPerson(next++, party, s.seed, s.week, s, localSeat(party, key.slice(6))), rank: 1 };
+        people = [...people, pick];
+      }
+      // Likewise a wing with nobody who fits: the party brings in a young organiser (a woman for Wanita and Puteri).
+      if (!pick && key in WING_RECRUIT) {
+        pick = { ...recruitPerson(next++, party, s.seed, s.week, s, undefined, WING_RECRUIT[key]), rank: 1 };
         people = [...people, pick];
       }
       if (!pick) continue;
@@ -136,6 +167,8 @@ export function autoPosts(s: GameState): GameState {
   }
   return { ...s, posts, people, nextPersonId: next };
 }
+
+const WING_RECRUIT: Record<string, { woman?: boolean; man?: boolean; young?: boolean }> = { wanita: { woman: true }, puteri: { woman: true, young: true }, youth: { man: true, young: true } };
 
 /** A seat in a region to recruit a local from: one the party stands in, else any. */
 function localSeat(party: string, region: string): number {
@@ -221,7 +254,10 @@ export function appointPostBlocked(s: GameState, key: string, id: number): strin
   const party = yourPartyOf(s);
   if (s.career.rung < 6 && s.career.mode !== "leader") return "Only the party president makes appointments.";
   if (!postKeys(s, party).includes(key)) return "Your party has no such post.";
-  if (!postPool(s, party).some((p) => p.id === id)) return "Only active members of your party.";
+  const who = postPool(s, party).find((p) => p.id === id);
+  if (!who) return "Only active members of your party.";
+  const unfit = postEligibleWhy(who, key, s.week);
+  if (unfit) return unfit;
   if (s.posts?.[party]?.[key] === id) return "They already hold it.";
   if (s.me.capital < POSTS.appointCapital) return `Needs ${POSTS.appointCapital} political capital.`;
   return null;

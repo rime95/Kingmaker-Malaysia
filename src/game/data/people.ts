@@ -35,6 +35,34 @@ export const ROSTER_HOME: Record<string, string> = {
  * The women among the real figures: GE15 winners (by their name in ge15.ts) and the leadership rosters above. Everyone
  * else real is a man; generated people are read from their name (systems/gender.ts).
  */
+/**
+ * Birth years of well-known GE15 MPs who aren't in a party roster (rosters carry their own). Other real MPs get an age
+ * of 45 or more, so a made-up age never puts a veteran in a youth wing.
+ */
+export const MP_BORN: Record<string, number> = {
+  "Wan Azizah Wan Ismail": 1952,
+  "Syed Saddiq Syed Abdul Rahman": 1992,
+  "Adam Adli Abdul Halim": 1989,
+  "Nik Nazmi Nik Ahmad": 1982,
+  "Ahmad Fahmi Mohamed Fadzil": 1981,
+  "Steven Sim Chee Keong": 1982,
+  "Hannah Yeoh Tseow Suan": 1979,
+  "Anthony Loke Siew Fook": 1977,
+  "Gobind Singh Deo": 1973,
+  "Lim Guan Eng": 1960,
+  "Ismail Sabri Yaakob": 1960,
+  "Hishammuddin Hussein": 1961,
+  "Wee Ka Siong": 1968,
+  "Mohamad Hasan": 1956,
+  "Azalina Othman Said": 1963,
+  "Hamzah Zainudin": 1957,
+  "Fadillah Yusof": 1962,
+  "Abdul Hadi Awang": 1947,
+  "Anwar Ibrahim": 1947,
+  "Saifuddin Nasution Ismail": 1963,
+  "Mohamad Sabu": 1954,
+};
+
 export const WOMEN_MPS = new Set([
   "Siti Zailah Mohd Yusoff",
   "Siti Mastura Mohamad",

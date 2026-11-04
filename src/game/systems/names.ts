@@ -206,9 +206,52 @@ export const FEMALE_GIVEN = new Set([
 ]);
 export const MUSLIM_FATHERS = new Set(MALAY_FATHER);
 
-/** A name for someone from a bloc. Women are about a third of new recruits. */
+// Women's given names for each community, for a recruit who must be a woman (the Wanita and Puteri chiefs).
+const CHINESE_F = ["Mei Ling", "Siew Lan", "Hui Min", "Jia Hui", "Pei Shan", "Li Ying"];
+const INDIAN_F = ["Priya", "Kavitha", "Devi", "Meena", "Lakshmi", "Nirmala"];
+const BORNEO_F = ["Joanna", "Grace", "Felicia", "Clara", "Lily", "Julia", "Sylvia", "Rosnah"];
+
+/** A name for someone from a bloc. Women are about a third of new Malay recruits. */
 export function makeName(bloc: Bloc, ...key: (string | number)[]): string {
-  const female = hash01("female", ...key) < 0.33;
+  return nameFor(bloc, undefined, ...key);
+}
+
+/** A woman's name from a bloc. */
+export function makeWomanName(bloc: Bloc, ...key: (string | number)[]): string {
+  return nameFor(bloc, true, ...key);
+}
+
+/** A man's name from a bloc. */
+export function makeManName(bloc: Bloc, ...key: (string | number)[]): string {
+  return nameFor(bloc, false, ...key);
+}
+
+const notWoman = (list: string[]) => list.filter((n) => !FEMALE_GIVEN.has(n));
+
+function nameFor(bloc: Bloc, woman: boolean | undefined, ...key: (string | number)[]): string {
+  const female = woman ?? hash01("female", ...key) < 0.33;
+  if (woman === false)
+    switch (bloc) {
+      case "chinese":
+        return `${pick(CHINESE_SURNAME, "cs", ...key)} ${pick(notWoman(CHINESE_GIVEN), "cgm", ...key)}`;
+      case "indian":
+        return `${pick(notWoman(INDIAN_GIVEN), "igm", ...key)} ${pick(INDIAN_FATHER, "if", ...key)}`;
+      case "sabah":
+        return `${pick(notWoman(SABAH_GIVEN), "sgm", ...key)} ${pick(SABAH_SURNAME, "ss", ...key)}`;
+      case "sarawak":
+        return `${pick(notWoman(SARAWAK_GIVEN), "wgm", ...key)} anak ${pick(SARAWAK_FATHER, "wf", ...key)}`;
+    }
+  if (woman)
+    switch (bloc) {
+      case "chinese":
+        return `${pick(CHINESE_SURNAME, "cs", ...key)} ${pick(CHINESE_F, "cgf", ...key)}`;
+      case "indian":
+        return `${pick(INDIAN_F, "igf", ...key)} ${pick(INDIAN_FATHER, "if", ...key)}`;
+      case "sabah":
+        return `${pick(BORNEO_F, "sgf", ...key)} ${pick(SABAH_SURNAME, "ss", ...key)}`;
+      case "sarawak":
+        return `${pick(BORNEO_F, "wgf", ...key)} anak ${pick(SARAWAK_FATHER, "wf", ...key)}`;
+    }
   switch (bloc) {
     case "chinese":
       return `${pick(CHINESE_SURNAME, "cs", ...key)} ${pick(CHINESE_GIVEN, "cg", ...key)}`;

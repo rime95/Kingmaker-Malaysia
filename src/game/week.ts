@@ -17,6 +17,7 @@ import { chairmanWeek } from "./systems/chairman";
 import { confirmCabinet } from "./systems/newterm";
 import { continueAfterEnding } from "./systems/legacy";
 import { postsWeek, treasurerIncome, wingDemand } from "./systems/posts";
+import { campsMonth, divisionMachinery, syncDivisions } from "./systems/camps";
 import { courtedBy, hoppingLaw } from "./systems/laws";
 import { afterStatePolls, resolveStatePending, stateGovWeek } from "./systems/stategov";
 import { celebritySeat, divisionDemand } from "./systems/nomcards";
@@ -331,6 +332,11 @@ export function advanceWeek(input: GameState): GameState {
   const pw = postsWeek(next);
   next = pw.state;
   lines.push(...pw.lines);
+  // Divisions keep a chief; camps gain and lose followers; division chiefs work the ground.
+  next = syncDivisions(next);
+  const cm = campsMonth(next);
+  next = divisionMachinery(cm.state);
+  lines.push(...cm.lines);
   if (pw.rift !== null && next.career.rung >= 6) addCard("lieutenantRift", undefined, pw.rift);
   const wd = wingDemand(next);
   if (wd && next.career.rung >= 6) addCard("wingDemand", undefined, wd.person);

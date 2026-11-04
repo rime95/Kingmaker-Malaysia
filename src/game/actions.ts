@@ -2,6 +2,7 @@
 // Actions cost Action Points (AP) and money. Business decisions cost money only.
 
 import { ECONOMY, TURN_WEEKS } from "./config";
+import { bringIntoCamp, replaceChief } from "./systems/camps";
 import { chairmanCampaign } from "./systems/chairman";
 import { confirmCabinet, openNewTerm, resetDraft, setDraft } from "./systems/newterm";
 import { continueAfterEnding, retireNow } from "./systems/legacy";
@@ -943,7 +944,9 @@ export type DeepOp =
   | { kind: "mou" }
   | { kind: "recruit"; party: string }
   | ({ kind: "case" } & CaseMove)
-  | { kind: "autoGround"; on: boolean };
+  | { kind: "autoGround"; on: boolean }
+  | { kind: "bringCamp"; id: number }
+  | { kind: "replaceChief"; seat: number };
 
 export function deepMove(s: GameState, op: DeepOp): ActionResult {
   const wrap = (r: { state: GameState; message: string } | { error: string }): ActionResult => ("error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message });
@@ -980,6 +983,10 @@ export function deepMove(s: GameState, op: DeepOp): ActionResult {
     }
     case "mou":
       return wrap(toggleMou(s));
+    case "bringCamp":
+      return wrap(bringIntoCamp(s, op.id));
+    case "replaceChief":
+      return wrap(replaceChief(s, op.seat));
     case "recruit": {
       // Taking in another party's MPs looks like frog-buying to some voters.
       const r = recruitParty(s, op.party);

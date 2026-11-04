@@ -15,6 +15,7 @@ import {
   missionChance,
   postKeys,
   postOfPerson,
+  postEligible,
   postPool,
   postSkill,
   regionName,
@@ -149,6 +150,7 @@ function PostCard({
     () =>
       yours
         ? postPool(game, party)
+            .filter((x) => postEligible(x, postKey, game.week))
             .sort(
               (a, b) =>
                 b.competence +
@@ -157,7 +159,7 @@ function PostCard({
             )
             .slice(0, 30)
         : [],
-    [game, party, region, yours],
+    [game, party, region, yours, postKey],
   );
   const mission = p && yours ? missionBlocked(game, p.id) : "x";
   const blocked = pick

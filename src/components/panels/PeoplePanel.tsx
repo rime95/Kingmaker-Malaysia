@@ -13,6 +13,21 @@ import { PartyFlag } from "../flags";
 import { postName, postOfPerson } from "@/game/systems/posts";
 import { LAWS, hoppingLaw, poachBlocked, poachChance } from "@/game/systems/laws";
 import { mbTitle } from "@/game/systems/stategov";
+import { CAMPS, bringBlocked, campName, campsOf, divisionOf, patrons, replaceBlocked } from "@/game/systems/camps";
+import { regionName } from "@/game/systems/posts";
+import { regionOf } from "@/game/world";
+import type { GameState } from "@/game/state";
+
+// Camp colours: yours in brass, the leader's (when it isn't you) violet, rivals red and blue.
+const RIVAL_COLORS = ["#e0705c", "#5b9be0", "#58b58a"];
+/** Each patron's camp colour in a party. */
+function campColors(game: GameState, party: string): Map<number, string> {
+  const out = new Map<number, string>();
+  let k = 0;
+  for (const p of patrons(game, party)) out.set(p.id, p.id === game.youId ? "#e3c27a" : p.rank === 5 ? "#a58be0" : RIVAL_COLORS[k++ % RIVAL_COLORS.length]);
+  return out;
+}
+const UNALIGNED = "#5d6476";
 
 /** Who's who: the cabinet, then any party's leadership from the President down to the branch chiefs. */
 export function PeoplePanel() {
@@ -83,6 +98,7 @@ export function PeoplePanel() {
         </section>
       )}
 
+      {!q && <CampsBar party={party} />}
       {view === "chart" && <OrgChart roster={roster} open={open} onOpen={setOpen} />}
 
       {view === "list" &&
@@ -130,6 +146,10 @@ export function PeoplePanel() {
 /** The party as a pyramid: the President at the top, then each rank below; click anyone for their card. */
 function OrgChart({ roster, open, onOpen }: { roster: Person[]; open: number | null; onOpen: (id: number | null) => void }) {
   const game = useGame((s) => s.game)!;
+  const party = roster[0]?.party;
+  const colors = party ? campColors(game, party) : new Map<number, string>();
+  const ring = (p: Person) => (p.camp != null ? (colors.get(p.camp) ?? UNALIGNED) : UNALIGNED);
+  const yours = party === game.coalitions[game.player].members[0];
   const tiers = [6, 5, 4, 3, 2]
     .map((rank) => ({ rank, people: rank === 6 ? roster.filter((p) => p.chairman) : roster.filter((p) => p.rank === rank && !p.retired && !p.chairman) }))
     .filter((t) => t.people.length);
@@ -150,7 +170,7 @@ function OrgChart({ roster, open, onOpen }: { roster: Person[]; open: number | n
                 style={{ outline: open === p.id ? "1px solid var(--accent)" : undefined }}
                 onClick={() => onOpen(open === p.id ? null : p.id)}
               >
-                <Initials name={p.name} color={partyColor(game, p.party)} />
+                <Initials name={p.name} color={partyColor(game, p.party)} ring={ring(p)} />
                 <span className="min-w-0">
                   <span className="block text-xs font-semibold truncate">{p.name}</span>
                   <span className="block text-xs truncate" style={{ color: "var(--muted)" }}>
@@ -163,10 +183,11 @@ function OrgChart({ roster, open, onOpen }: { roster: Person[]; open: number | n
           <div className="mx-auto w-px h-2" style={{ background: "var(--line)" }} />
         </div>
       ))}
-      {mps.length > 0 && (
+      {yours && Object.keys(game.divisions ?? {}).length > 0 && <Divisions open={open} onOpen={onOpen} ring={ring} />}
+      {!yours && mps.length > 0 && (
         <div className="w-full">
           <div className="text-xs text-center mb-1" style={{ color: "var(--muted)" }}>
-            MPs and division chiefs ({mps.length})
+            MPs ({mps.length})
           </div>
           <div className="flex flex-wrap justify-center gap-1">
             {mps.map((p) => (
@@ -177,7 +198,7 @@ function OrgChart({ roster, open, onOpen }: { roster: Person[]; open: number | n
                 className="rounded-full"
                 style={{ outline: open === p.id ? "2px solid var(--accent)" : undefined }}
               >
-                <Initials name={p.name} color={partyColor(game, p.party)} />
+                <Initials name={p.name} color={partyColor(game, p.party)} ring={ring(p)} />
               </button>
             ))}
           </div>
@@ -230,7 +251,120 @@ function PersonRow({ p, open, onToggle }: { p: Person; open: boolean; onToggle: 
   );
 }
 
-function Initials({ name, color }: { name: string; color: string }) {
+/** A party's camps: who leads each, and how many divisions (delegates) and council seats they hold. */
+function CampsBar({ party }: { party: string }) {
+  const game = useGame((s) => s.game)!;
+  const c = campsOf(game, party);
+  if (!c.camps.length) return null;
+  const colors = campColors(game, party);
+  const mine = party === game.coalitions[game.player].members[0];
+  return (
+    <section className="inset p-3 flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="eyebrow">Camps</h3>
+        <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+          {mine ? `${c.total} divisions vote at the AGM` : `${c.total} leaders and MPs`}
+        </span>
+      </div>
+      <div className="flex h-2.5 rounded-full overflow-hidden" style={{ background: "var(--surface-2)" }} role="img" aria-label="Camp strength">
+        {c.camps.map((x) => (
+          <div key={x.patron} style={{ width: `${x.share * 100}%`, background: colors.get(x.patron) }} title={`${x.name}: ${x.divisions}`} />
+        ))}
+        <div style={{ width: `${(c.unaligned / c.total) * 100}%`, background: UNALIGNED }} title={`Unaligned: ${c.unaligned}`} />
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+        {c.camps.map((x) => {
+          const pt = game.people.find((p) => p.id === x.patron)!;
+          return (
+            <span key={x.patron} className="inline-flex items-center gap-1.5">
+              <span className="swatch" style={{ background: colors.get(x.patron), width: 9, height: 9 }} />
+              <b>{x.name}</b>
+              <span style={{ color: "var(--muted)" }}>
+                {x.yours ? "you" : x.leader ? "the leader" : pt.rank === 4 ? "Deputy" : "VP"} · {x.divisions} {mine ? "div." : "people"} · {x.council} on council
+              </span>
+            </span>
+          );
+        })}
+        <span className="inline-flex items-center gap-1.5" style={{ color: "var(--muted)" }}>
+          <span className="swatch" style={{ background: UNALIGNED, width: 9, height: 9 }} />
+          Unaligned · {c.unaligned}
+        </span>
+      </div>
+      {mine && (
+        <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+          Division chiefs vote at the AGM, build or neglect your machinery, and expect the seat. A rival camp with {Math.round(CAMPS.challengeShare * 100)}% of the divisions, and more than you, will challenge you.
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** Your party's divisions, state by state: each chief ringed in their camp's colour. Click one for their card. */
+function Divisions({ open, onOpen, ring }: { open: number | null; onOpen: (id: number | null) => void; ring: (p: Person) => string }) {
+  const game = useGame((s) => s.game)!;
+  const [only, setOnly] = useState<"all" | "yours" | "rivals" | "unaligned" | "hostile">("all");
+  const byState = useMemo(() => {
+    const m = new Map<string, { seat: number; p: Person }[]>();
+    for (const [k, id] of Object.entries(game.divisions ?? {})) {
+      const p = game.people.find((x) => x.id === id);
+      if (!p) continue;
+      const seat = Number(k);
+      const r = regionOf(SEATS[seat].state);
+      m.set(r, [...(m.get(r) ?? []), { seat, p }]);
+    }
+    return [...m].sort((a, b) => b[1].length - a[1].length);
+  }, [game.divisions, game.people]);
+  const keep = (p: Person) =>
+    only === "all" ||
+    (only === "yours" && p.camp === game.youId) ||
+    (only === "rivals" && p.camp != null && p.camp !== game.youId) ||
+    (only === "unaligned" && p.camp == null) ||
+    (only === "hostile" && p.loyalty < 35);
+  return (
+    <div className="w-full flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs mr-1" style={{ color: "var(--muted)" }}>
+          Divisions ({Object.keys(game.divisions).length})
+        </span>
+        {(["all", "yours", "rivals", "unaligned", "hostile"] as const).map((k) => (
+          <button key={k} className="chip !py-0.5 !px-2 !text-[11px]" aria-pressed={only === k} onClick={() => setOnly(k)}>
+            {k === "all" ? "All" : k === "yours" ? "Your camp" : k === "rivals" ? "Rival camps" : k === "unaligned" ? "Unaligned" : "Hostile"}
+          </button>
+        ))}
+      </div>
+      {byState.map(([region, list]) => {
+        const shown = list.filter((x) => keep(x.p));
+        if (!shown.length) return null;
+        return (
+          <div key={region} className="flex gap-2 items-start">
+            <div className="text-[11px] w-24 flex-none pt-2" style={{ color: "var(--ink-2)" }}>
+              {regionName(region)} <span style={{ color: "var(--muted)" }}>{list.length}</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {shown.map(({ seat, p }) => (
+                <button
+                  key={seat}
+                  title={`Bahagian ${SEATS[seat].name}: ${p.name}${p.seat === seat ? " (MP)" : ""} · loyalty ${Math.round(p.loyalty)}`}
+                  onClick={() => onOpen(open === p.id ? null : p.id)}
+                  className="rounded-full relative p-0.5"
+                  style={{ outline: open === p.id ? "2px solid var(--accent)" : undefined }}
+                >
+                  <Initials name={p.name} color={partyColor(game, p.party)} ring={ring(p)} hollow={p.seat !== seat} />
+                  {p.loyalty < 35 && <span className="absolute top-0 right-0 w-2 h-2 rounded-full" style={{ background: "var(--bad)" }} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+        Solid: the MP leads their own division. Hollow: a local organiser where you have no MP. Ring: their camp. Red dot: hostile.
+      </p>
+    </div>
+  );
+}
+
+function Initials({ name, color, ring, hollow }: { name: string; color: string; ring?: string; hollow?: boolean }) {
   const letters = name
     .split(/\s+/)
     .filter((w) => /^[A-Z]/.test(w) && !["Bin", "Binti", "Anak"].includes(w))
@@ -238,7 +372,10 @@ function Initials({ name, color }: { name: string; color: string }) {
     .map((w) => w[0])
     .join("");
   return (
-    <span className="flex-none w-8 h-8 rounded-full grid place-items-center text-xs font-bold text-white" style={{ background: color }}>
+    <span
+      className="flex-none w-8 h-8 rounded-full grid place-items-center text-xs font-bold text-white"
+      style={{ background: hollow ? "var(--surface-2)" : color, color: hollow ? color : undefined, boxShadow: ring ? `0 0 0 2px var(--surface), 0 0 0 4px ${ring}` : undefined, border: hollow ? `1.5px solid ${color}` : undefined }}
+    >
       {letters}
     </span>
   );
@@ -276,6 +413,7 @@ function PersonCard({ p }: { p: Person }) {
         <Stat label="Ambition" v={p.ambition} />
         {!you && <Stat label="Loyalty to you" v={p.loyalty} />}
       </div>
+      <CampLine p={p} />
       <div style={{ color: "var(--muted)" }}>
         {RANKS[p.rank]} since {p.since === 0 ? "before the game" : `week ${p.since + 1}`} · age {ageOf(p, game.week)}
         {p.retired ? " · retiring at the election" : ""}
@@ -328,6 +466,46 @@ function PersonCard({ p }: { p: Person }) {
       {!you && (
         <div className="text-xs" style={{ color: "var(--muted)" }}>
           Favour: {f.text}. {favWhy ?? `Costs ${PEOPLE.favourLoyalty} loyalty.`}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Which camp someone follows and which division they run, with your moves on both. */
+function CampLine({ p }: { p: Person }) {
+  const game = useGame((s) => s.game)!;
+  const { deep } = useGame();
+  const own = p.party === game.coalitions[game.player].members[0];
+  const patron = p.camp != null ? game.people.find((x) => x.id === p.camp) : undefined;
+  const division = own ? divisionOf(game, p.id) : undefined;
+  const leads = patrons(game, p.party).some((x) => x.id === p.id);
+  const bring = own ? bringBlocked(game, p.id) : "x";
+  const replace = division !== undefined ? replaceBlocked(game, division) : "x";
+  const you = p.id === game.youId;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div style={{ color: "var(--ink-2)" }}>
+        {leads ? `Leads ${campName(p)}` : patron ? `In ${campName(patron)}${patron.id === game.youId ? " (your camp)" : ""}` : "Unaligned: in no camp"}
+        {division !== undefined ? ` · ${p.seat === division ? "leads their own division" : "division chief"} in ${SEATS[division].name}` : ""}
+      </div>
+      {own && !you && !leads && (
+        <div className="flex flex-wrap gap-1.5">
+          {p.camp !== game.youId && (
+            <button className="chip !py-1 text-xs" disabled={!!bring} title={bring ?? `${CAMPS.bring.ap} AP, ${CAMPS.bring.capital} capital: they bring their delegates to you`} onClick={() => deep({ kind: "bringCamp", id: p.id })}>
+              Bring into your camp
+            </button>
+          )}
+          {division !== undefined && (
+            <button
+              className="chip !py-1 text-xs"
+              disabled={!!replace}
+              title={replace ?? `${CAMPS.replace.capital} capital: someone from your camp takes over; ${p.name} goes to a rival camp`}
+              onClick={() => confirm(`Replace ${p.name} as division chief in ${SEATS[division].name}? They will go over to a rival camp.`) && deep({ kind: "replaceChief", seat: division })}
+            >
+              Replace as division chief
+            </button>
+          )}
         </div>
       )}
     </div>

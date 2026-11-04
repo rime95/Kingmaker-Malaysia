@@ -8,6 +8,7 @@
 // - Partner parties and other coalitions pick their own candidates. All numbers TEMPORARY.
 
 import { hash01 } from "../rng";
+import { CAMPS, divisionChief } from "./camps";
 import type { GameState, ReportLine } from "../state";
 import { COALITION_INDEX } from "../voter";
 import { SEATS, contestingIn, regionOf } from "../world";
@@ -112,6 +113,15 @@ function defaultPicks(s: GameState): { state: GameState; picks: Record<number, n
   const pool = s.people.filter((p) => p.party === party && p.seat === null && !p.retired && p.rank >= 1 && p.id !== s.youId).sort((a, b) => b.influence - a.influence);
   let people = s.people;
   let next = s.nextPersonId;
+  // Where you have no MP, the division chief is first in line.
+  for (const i of seats) {
+    if (picks[i] !== undefined) continue;
+    const chief = divisionChief(s, i);
+    if (chief && chief.seat === null && chief.party === party && !chief.retired && chief.id !== s.youId && chief.rank >= 1 && !used.has(chief.id)) {
+      picks[i] = chief.id;
+      used.add(chief.id);
+    }
+  }
   for (const i of seats) {
     if (picks[i] !== undefined) continue;
     // Someone from the state first; an outsider only if nobody local is free.
@@ -274,6 +284,17 @@ export function closeNominations(s: GameState): { state: GameState; lines: Repor
       people = people.map((p) => (p.id === mp.id ? { ...p, loyalty } : p));
       lines.push({ text: `${mp.name} is bitter about losing the ticket in ${SEATS[i].name}.`, tone: "bad" });
     }
+  }
+  // Division chiefs passed over for their own seat sulk.
+  const snubbed = Object.keys(picks)
+    .map(Number)
+    .map((i) => ({ i, chief: divisionChief(s, i) }))
+    .filter(({ i, chief }) => chief && chief.seat === null && chief.id !== s.youId && picks[i] !== chief.id && pickedFor({ ...s, nominations: { ...n, picks } }, chief.id) === undefined);
+  if (snubbed.length) {
+    const ids = new Set(snubbed.map((x) => x.chief!.id));
+    people = people.map((p) => (ids.has(p.id) ? { ...p, loyalty: Math.max(0, p.loyalty + CAMPS.snub) } : p));
+    const first = snubbed[0];
+    lines.push({ text: snubbed.length === 1 ? `${first.chief!.name}, who runs the ${SEATS[first.i].name} division, wanted the seat and is sulking.` : `${snubbed.length} division chiefs passed over for their own seats are sulking.`, tone: "bad" });
   }
   lines.push({ text: `Nomination day: ${Object.keys(picks).length} candidates for ${party}. The campaign is on.`, tone: "info" });
   return { state: { ...s, people, seatOffsets, entries, nominations: { ...n, open: false, picks } }, lines };

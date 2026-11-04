@@ -8,13 +8,13 @@
 // - The government's cabinet is drawn from its parties' senior MPs, in proportion to each party's seats.
 // Real people start with neutral, game-only numbers; scandal cards never name them (see events.ts). All numbers TEMPORARY.
 
-import { PORTFOLIOS, ROSTERS, ROSTER_HOME, START_CABINET, type PortfolioId, type RosterEntry } from "../data/people";
+import { MP_BORN, PORTFOLIOS, ROSTERS, ROSTER_HOME, START_CABINET, type PortfolioId, type RosterEntry } from "../data/people";
 import { weekDate } from "../bases";
 import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
 import { GE15_RESULTS } from "../data/ge15";
 import { PARTIES, SEATS, regionOf, type CoalitionId } from "../world";
-import { blocOfName, makeName, recruitBloc } from "./names";
+import { blocOfName, makeManName, makeName, makeWomanName, recruitBloc } from "./names";
 
 export const RANKS = ["Branch chief", "Division chief", "Supreme Council", "Vice President", "Deputy President", "President"] as const;
 export const PRESIDENT_RANK = 5;
@@ -53,6 +53,8 @@ export interface Person {
   home?: string;
   /** Last week they went on a mission for you (posts.ts). */
   missionWeek?: number;
+  /** The patron whose camp they follow (camps.ts), or null when unaligned. */
+  camp?: number | null;
 }
 
 export const PEOPLE = {
@@ -97,6 +99,13 @@ export function makeChairman(p: Person, week: number): Person {
   return { ...p, rank: 3, chairman: true, since: week, loyalty: Math.max(p.loyalty, 80), influence: Math.max(p.influence, 85), retired: false };
 }
 
+/** Saves from before real birth years: known MPs get theirs; other real MPs are at least 45. */
+export function fixRealAges(people: Person[], week: number): Person[] {
+  const year = yearOf(week);
+  return people.map((p) => (!p.real ? p : MP_BORN[p.name] ? { ...p, born: MP_BORN[p.name] } : year - p.born < 45 && !ROSTER_NAMES.has(p.name) ? { ...p, born: year - 45 - Math.floor(r(0, "fixage", p.id) * 10) } : p));
+}
+const ROSTER_NAMES = new Set(Object.values(ROSTERS).flatMap((ro) => [ro.president, ro.deputy, ...(ro.vps ?? []), ...(ro.council ?? [])].filter((e): e is RosterEntry => !!e).map((e) => e[0])));
+
 /** Where someone is from: set when they enter the game, and kept for life (losing a seat doesn't move them). */
 export function homeOf(p: Pick<Person, "home" | "seat" | "name" | "party" | "id">): string {
   return p.home ?? (p.seat !== null ? regionOf(SEATS[p.seat].state) : guessHome(p));
@@ -136,12 +145,13 @@ function newPerson(id: number, name: string, party: string, rank: number, seed: 
  * A new branch chief: young, unknown, from a community the party recruits in. `at`: recruit from this seat (a local
  * candidate); otherwise from somewhere the party is strong. Their home state is the seat they come from.
  */
-export function recruitPerson(id: number, party: string, seed: number, week: number, s: Pick<GameState, "player" | "coalitions">, at?: number): Person {
+export function recruitPerson(id: number, party: string, seed: number, week: number, s: Pick<GameState, "player" | "coalitions">, at?: number, as: { woman?: boolean; man?: boolean; young?: boolean } = {}): Person {
   const seats = SEATS.filter((x) => x.ge15Party === party);
   const home = at !== undefined ? SEATS[at] : seats.length ? seats[Math.floor(r(seed, "home", id) * seats.length)] : SEATS[Math.floor(r(seed, "home2", id) * SEATS.length)];
   const bloc = recruitBloc(party, home.demo.ethnic, seed, id);
-  const name = makeName(bloc, seed, id, party);
-  return newPerson(id, name, party, 0, seed, week, yearOf(week) - 28 - Math.floor(r(seed, "age", id) * 12), false, s, null, regionOf(home.state));
+  const name = as.woman ? makeWomanName(bloc, seed, id, party) : as.man ? makeManName(bloc, seed, id, party) : makeName(bloc, seed, id, party);
+  const age = as.young ? 25 + Math.floor(r(seed, "age", id) * 8) : 28 + Math.floor(r(seed, "age", id) * 12);
+  return newPerson(id, name, party, 0, seed, week, yearOf(week) - age, false, s, null, regionOf(home.state));
 }
 
 export interface PeopleState {
@@ -161,7 +171,7 @@ export function initPeople(s: Pick<GameState, "seed" | "week" | "player" | "coal
   // MPs
   GE15_RESULTS.forEach(([, , , cands], i) => {
     const party = s.holderParties[i];
-    const p = newPerson(next++, cands[0][0], party, 1, seed, s.week, year - 40 - Math.floor(r(seed, "mpage", i) * 28), true, s, i);
+    const p = newPerson(next++, cands[0][0], party, 1, seed, s.week, MP_BORN[cands[0][0]] ?? year - 45 - Math.floor(r(seed, "mpage", i) * 27), true, s, i);
     // Bigger majorities, more standing.
     p.influence = Math.round(20 + Math.min(20, SEATS[i].ge15Majority / 1500));
     people.push(p);
