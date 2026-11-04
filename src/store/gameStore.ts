@@ -66,12 +66,12 @@ import {
   type OfferKind,
   type Target,
 } from "@/game/actions";
-import { advanceTurn, advanceWeeks } from "@/game/month";
+import { advanceTurn, advanceWeeks, mergeReports, needsYou } from "@/game/month";
 import { testBoost, testGeneralElection, testSitting } from "@/game/testTools";
 import { toggleOrder } from "@/game/systems/orders";
 import type { PrepMove } from "@/game/systems/dewan";
 import { renameCoalition, syncNames } from "@/game/systems/coalitions";
-import { migrateGame, newGame, SAVE_VERSION, type GameState, type NewGameOptions } from "@/game/state";
+import { migrateGame, newGame, SAVE_VERSION, weekLabel, type GameState, type NewGameOptions } from "@/game/state";
 import { recordTier } from "./meta";
 import type { AssetType, CeoKind } from "@/game/systems/business";
 import type { CoalitionId } from "@/game/world";
@@ -121,6 +121,9 @@ interface Store {
   /** Show the turn summary card after each turn (otherwise it waits on the docket). */
   summaryOn: boolean;
   setSummaryOn: (on: boolean) => void;
+  /** Ending a turn with nothing for you to do plays on until something is (up to 12 weeks). */
+  autoSkip: boolean;
+  setAutoSkip: (on: boolean) => void;
   /** Decision cards you put off ("decide later") until you open them again. */
   snoozed: number[];
   budgetSnoozed: boolean;
@@ -279,6 +282,8 @@ export const useGame = create<Store>()(
         reportOpen: false,
         summaryOn: true,
         setSummaryOn: (summaryOn) => set({ summaryOn }),
+        autoSkip: true,
+        setAutoSkip: (autoSkip) => set({ autoSkip }),
         snoozed: [],
         budgetSnoozed: false,
         voteSeen: [],
@@ -317,7 +322,17 @@ export const useGame = create<Store>()(
         skipWeek: () => {
           const g = get().game;
           if (g?.night || g?.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
-          if (g) moved(advanceTurn(g));
+          if (!g) return;
+          // Quiet turns play on by themselves (up to six turns, 12 weeks) until something needs you.
+          let next = advanceTurn(g);
+          const reports = [next.report!];
+          for (let i = 1; i < 6 && get().autoSkip && !needsYou(next); i++) {
+            next = advanceTurn(next);
+            reports.push(next.report!);
+          }
+          if (reports.length > 1) next = { ...next, report: mergeReports(reports) };
+          moved(next);
+          if (reports.length > 1) set({ toast: { id: ++toastId, text: `Quiet weeks: skipped to ${weekLabel(next.week)}.` } });
         },
         skipMonth: () => {
           const g = get().game;
@@ -332,8 +347,7 @@ export const useGame = create<Store>()(
           // Up to 12 weeks (six turns), stopping at anything that needs you.
           for (let i = 0; i < 6; i++) {
             g = advanceTurn(g);
-            const alarming = g.report!.lines.some((l) => /MACC|in debt|Couldn.t pay|state election|by-election|leadership|retires|Achievement|Objective complete/.test(l.text));
-            if (g.cards.length || g.budgetDue !== null || g.night || g.parliament.status === "campaign" || alarming) break;
+            if (needsYou(g)) break;
           }
           moved(g);
           set({ toast: { id: ++toastId, text: `Skipped ${g.week - start} week${g.week - start === 1 ? "" : "s"}.` } });
@@ -621,13 +635,13 @@ export const useGame = create<Store>()(
       name: "mpr-save",
       version: SAVE_VERSION,
       storage: safeStorage,
-      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound, music: s.music, volume: s.volume, testTools: s.testTools, summaryOn: s.summaryOn }),
+      partialize: (s) => ({ game: s.game, lens: s.lens, lang: s.lang, sound: s.sound, music: s.music, volume: s.volume, testTools: s.testTools, summaryOn: s.summaryOn, autoSkip: s.autoSkip }),
       // Saves from before the turn loop can't be upgraded: start fresh.
       migrate: (persisted, version) => (version < 2 ? { game: null, lens: "holder" } : persisted) as Store,
       // Every load fills fields added since the save was made (safe to repeat).
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<Store>;
-        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound, music: p.music ?? current.music, volume: p.volume ?? current.volume, testTools: p.testTools ?? current.testTools, summaryOn: p.summaryOn ?? current.summaryOn };
+        return { ...current, game: p.game ? migrateGame(p.game) : null, lens: p.lens ?? current.lens, lang: p.lang ?? current.lang, sound: p.sound ?? current.sound, music: p.music ?? current.music, volume: p.volume ?? current.volume, testTools: p.testTools ?? current.testTools, summaryOn: p.summaryOn ?? current.summaryOn, autoSkip: p.autoSkip ?? current.autoSkip };
       },
     },
   ),

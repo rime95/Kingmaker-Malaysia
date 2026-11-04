@@ -164,7 +164,7 @@ export interface GameState {
   /** Talks to form a government after a general election (null when none are under way). */
   formation: Formation | null;
   /** Election Night to show: the week it happened and who held the seats before. */
-  night: { week: number; prevHolders: CoalitionId[] } | null;
+  night: { week: number; prevHolders: CoalitionId[]; /** A majority of its own: no talks, straight to the verdict after the count. */ outright?: boolean } | null;
   /** Your result tier at each general election. */
   tiers: WinTier[];
   /** Your own career: rung, points, age, faction and successors. */

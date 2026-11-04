@@ -356,8 +356,18 @@ export function changeGovernmentMidTerm(input: GameState): GameState {
   if (lines.length) s = { ...s, report: s.report ? { ...s.report, lines: [...s.report.lines, ...lines] } : s.report };
   const counts = seatCounts(s.holders);
   const f: Formation = { ...startFormation(s, counts, counts[s.player]), midTerm: true };
-  if (isPresident(s.career)) return { ...s, formation: f };
+  if (isPresident(s.career) && !f.outright) return { ...s, formation: f };
   return autoResolveFormation({ ...s, formation: f }, true);
+}
+
+/** One coalition won a majority of its own: the Agong appoints its leader at once, with no talks. */
+export function outrightGovernment(s: GameState): GameState {
+  const c = s.formation?.outright;
+  if (!c) return s;
+  const line = { text: `${cshort(c)} won a majority outright (${s.formation!.seats[c]} seats). The Agong appoints its leader without talks.`, tone: "info" as const };
+  const marked = s.night ? { ...s, night: { ...s.night, outright: true } } : s;
+  const withLine = marked.report ? { ...marked, report: { ...marked.report, lines: [...marked.report.lines, line] } } : marked;
+  return autoResolveFormation(withLine);
 }
 
 /** Prime Minister's levers. */
@@ -1488,11 +1498,12 @@ export function goToAgong(s: GameState, midTerm = !!s.formation?.midTerm): Actio
   let f = s.formation;
   if (!f) return { ok: false, error: "No talks are under way." };
   // Below the presidency, your party leadership picks the side for you.
-  if (f.role === "kingmaker" && !f.committed[s.player] && !isPresident(s.career)) {
+  if (f.role === "kingmaker" && !f.committed[s.player] && !isPresident(s.career) && !f.outright) {
     const [x, y] = f.candidates;
     f = backCandidate(f, s.player, (AFFINITY[s.player][x] ?? 0) >= (AFFINITY[s.player][y] ?? 0) ? x : y, false);
   }
-  while (f.round <= OFFERS.rounds) f = endRound(f, s.player);
+  // A majority of its own governs alone: nobody else signs.
+  while (f.round <= OFFERS.rounds && !f.outright) f = endRound(f, s.player);
   const o = agongDecides(f, s.player);
   const me = cloneMe(s.me);
   const inGov = o.government.includes(s.player);

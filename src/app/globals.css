@@ -682,7 +682,41 @@ button.inset:active:not(:disabled),
 
 /* Hemicycle seats change colour in a wave when a division is shown. */
 .dewan-dot {
-  transition: fill 0.35s ease;
+  transition: fill 0.35s ease, opacity 0.2s ease, stroke 0.2s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.dewan-dot[data-dim="1"] {
+  opacity: 0.2;
+}
+.dewan-dot[data-on="1"] {
+  stroke: var(--brass-hi);
+  transform: scale(1.18);
+  transition: fill 0.35s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+/* The 2D chamber tilts back like a model on a table */
+.dewan-tilt {
+  perspective: 1400px;
+  perspective-origin: 50% 0%;
+  touch-action: pan-x;
+  user-select: none;
+}
+.dewan-tilt > svg {
+  transform-origin: 50% 100%;
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+.dewan-legend button[data-on="1"] {
+  background: rgb(227 194 122 / 0.16);
+  outline: 1px solid var(--brass-hi);
+}
+/* Chips over the 3D chamber: dark glass, unless pressed */
+.chip-glass:not([aria-pressed="true"]) {
+  background: rgb(10 17 32 / 0.78);
+  backdrop-filter: blur(4px);
+}
+.party-card {
+  background: color-mix(in oklch, var(--raised) 94%, black);
+  box-shadow: 0 12px 36px rgb(0 0 0 / 0.45);
 }
 
 /* Election Night: a TV broadcast */

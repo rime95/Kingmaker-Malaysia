@@ -7,7 +7,7 @@ import { CRISIS_SWAY } from "./systems/governing";
 import { ALLOC, fullAllocations, fundingWeek, partyIncome } from "./systems/funding";
 import { assembliesWeek, campaignStates, stateRulers, weeksToElection } from "./systems/assemblies";
 import { DUNS_BY_STATE } from "./systems/dun";
-import { autoResolveFormation, changeGovernmentMidTerm, govSeats, tableBudget } from "./actions";
+import { autoResolveFormation, changeGovernmentMidTerm, govSeats, outrightGovernment, tableBudget } from "./actions";
 import { careerAfterGE, careerWeek, goalsWeek } from "./progress";
 import { newBubbles } from "./systems/bubbles";
 import { pollsWeek } from "./systems/polls";
@@ -454,5 +454,7 @@ export function advanceWeek(input: GameState): GameState {
 
   next.report = { week: next.week, income, expenses, seatsBefore, seatsAfter, movers, lines };
   next.history = [...s.history, { week: next.week, funds: Math.round(me.funds), seats: seatsAfter }].slice(-HISTORY_LIMIT);
+  // A majority of its own: the Agong appoints its leader at once, with no talks.
+  if (next.formation?.outright) next = outrightGovernment(next);
   return next;
 }

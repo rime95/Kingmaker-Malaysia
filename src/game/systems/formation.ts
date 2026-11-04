@@ -76,6 +76,8 @@ export interface Formation {
   common?: Partial<Record<CoalitionId, number>>;
   /** The government fell between elections (no new cabinet screen, no result tier). */
   midTerm?: boolean;
+  /** One coalition won a majority of its own: it governs alone, and there are no talks. */
+  outright?: CoalitionId;
 }
 
 export const COMMON = {
@@ -169,6 +171,11 @@ export function willingness(f: Formation, joiner: CoalitionId, leader: Coalition
   return w;
 }
 
+/** The coalition holding a majority of the Dewan on its own, if any. */
+export function outright(seats: Partial<Record<CoalitionId, number>>): CoalitionId | null {
+  return COALITIONS.find((c) => (seats[c] ?? 0) >= MAJORITY) ?? null;
+}
+
 /** Talks open. `pactWith`: your pre-election pact partners (pacts end on polling day, so they're passed in). */
 export function startFormation(
   s: GameState,
@@ -178,7 +185,9 @@ export function startFormation(
   common: Partial<Record<CoalitionId, number>> = {},
 ): Formation {
   const pacts = pactWith.map((c) => [s.player, c] as [CoalitionId, CoalitionId]);
-  const candidates = pickCandidates(seats, s.government, pacts);
+  const won = outright(seats);
+  const picked = pickCandidates(seats, s.government, pacts);
+  const candidates: [CoalitionId, CoalitionId] = won ? [won, picked.find((c) => c !== won) ?? COALITIONS.find((c) => c !== won && c !== "OTHERS")!] : picked;
   const role = candidates.includes(s.player) ? "leader" : "kingmaker";
   const f: Formation = {
     week: s.week,
@@ -197,6 +206,8 @@ export function startFormation(
     common,
     log: [`${cshort(candidates[0])} (${seats[candidates[0]]} seats) and ${cshort(candidates[1])} (${seats[candidates[1]]}) are racing to ${MAJORITY}.`],
   };
+  // A majority of its own: it governs alone and nobody needs to sign anything.
+  if (won) return { ...f, outright: won, log: [`${cshort(won)} has ${seats[won]} seats, a majority of its own. No talks are needed.`] };
   // Natural partners sign straight away for the candidate they like most (never on your behalf); pact partners for you.
   for (const c of COALITIONS) {
     if (f.committed[c] || c === s.player || !seats[c]) continue;

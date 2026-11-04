@@ -7,20 +7,28 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 export type Shot = { pos: [number, number, number]; target: [number, number, number] };
 
+// The chamber: seats in a half circle of radius about 5 round the origin, on the -z side; the Speaker at +z.
 export const SHOTS = {
-  speaker: { pos: [0, 3.5, 2.3], target: [0, 0.6, -2.7] },
-  // Inside the room (the wall is about 5.6 from the Speaker): from the public gallery, and across the floor at each side.
-  gallery: { pos: [0, 4.3, -4.4], target: [0, 0.4, 0.4] },
-  government: { pos: [2.6, 2.4, -0.6], target: [-3.2, 0.5, -1.8] },
-  opposition: { pos: [-2.6, 2.4, -0.6], target: [3.2, 0.5, -1.8] },
+  overview: { pos: [0, 8.6, 6.4], target: [0, 0, -1.8] },
+  top: { pos: [0, 15.5, -0.6], target: [0, 0, -2.4] },
+  // The government sits on the left of the chart (-x); each view looks across the floor at one side.
+  government: { pos: [4.6, 4.2, 2.2], target: [-2.4, 0.3, -2.2] },
+  opposition: { pos: [-4.6, 4.2, 2.2], target: [2.4, 0.3, -2.2] },
 } satisfies Record<string, Shot>;
 
-/** Where the camera starts: high in the gallery, before gliding down to the Speaker's view. */
-const START: Shot = { pos: [0, 5.2, -4.8], target: [0, 0.5, -1.0] };
+/** Where the camera starts: high above, before gliding to the overview. */
+const START: Shot = { pos: [0, 15, 9], target: [0, 0, -2] };
+
+/** Keeps the camera's focus over the chamber floor. */
+const clampTarget = (t: THREE.Vector3) => {
+  t.x = THREE.MathUtils.clamp(t.x, -6, 6);
+  t.y = THREE.MathUtils.clamp(t.y, 0, 2);
+  t.z = THREE.MathUtils.clamp(t.z, -7, 2);
+};
 
 /**
  * Orbit controls plus a camera that glides between shots. Any drag by the player cancels the glide; `orbit` turns the
- * room slowly until they touch it.
+ * chamber slowly until they touch it.
  */
 export function CameraRig({ shot, nonce, orbit, onTouched }: { shot: Shot; nonce: number; orbit: boolean; onTouched: () => void }) {
   const { camera, gl } = useThree();
@@ -35,12 +43,15 @@ export function CameraRig({ shot, nonce, orbit, onTouched }: { shot: Shot; nonce
     camera.position.set(...START.pos);
     const c = new OrbitControls(camera, gl.domElement);
     c.enableDamping = true;
-    c.dampingFactor = 0.08;
+    c.dampingFactor = 0.09;
     c.target.set(...START.target);
-    c.minDistance = 1.6;
-    c.maxDistance = 7.5;
-    c.maxPolarAngle = Math.PI * 0.47;
-    c.autoRotateSpeed = 0.6;
+    c.minDistance = 2;
+    c.maxDistance = 17;
+    c.minPolarAngle = 0;
+    c.maxPolarAngle = Math.PI * 0.42;
+    c.autoRotateSpeed = 0.5;
+    c.zoomSpeed = 0.8;
+    c.screenSpacePanning = false;
     const stop = () => {
       goal.current = null;
       touched.current();
@@ -69,11 +80,12 @@ export function CameraRig({ shot, nonce, orbit, onTouched }: { shot: Shot; nonce
     const g = goal.current;
     if (g) {
       // Ease towards the shot: quick at first, settling gently.
-      const k = 1 - Math.pow(0.02, Math.min(dt, 0.05));
+      const k = 1 - Math.pow(0.015, Math.min(dt, 0.05));
       camera.position.lerp(g.pos, k);
       c.target.lerp(g.target, k);
       if (camera.position.distanceTo(g.pos) < 0.01 && c.target.distanceTo(g.target) < 0.01) goal.current = null;
     }
+    clampTarget(c.target);
     c.update();
   });
   return null;

@@ -44,7 +44,8 @@ export function ElectionNight() {
       </div>
     );
   if (!game?.night || !game.lastElection) return null;
-  if (!game.formation) {
+  // Talks are over (or there were none, after a majority of its own: then the count plays first).
+  if (!game.formation && !(game.night.outright && stage === "count")) {
     return <Verdict onClose={endNight} />;
   }
   return (
@@ -229,7 +230,7 @@ function Count({ onDone }: { onDone: () => void }) {
           )}
           {done && !big && (
             <button className="btn btn-ready" onClick={onDone}>
-              {t("toTalks")}
+              {game.formation ? t("toTalks") : t("toVerdict")}
             </button>
           )}
         </div>

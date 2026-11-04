@@ -251,7 +251,7 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
   next.night = { week: s.week, prevHolders: s.holders };
   next.formation = startFormation(next, result.totals, before[s.player] ?? 0, s.pacts.map((p) => p.with), commonGround(s));
   if (next.scorecard) next.scorecard = { ...next.scorecard, debateWeek: null };
-  lines.push({ text: "Talks to form the next government have begun. The Agong is waiting for statutory declarations.", tone: "info" });
+  if (!next.formation.outright) lines.push({ text: "Talks to form the next government have begun. The Agong is waiting for statutory declarations.", tone: "info" });
   return next;
 }
 

@@ -235,6 +235,8 @@ function Menu({ onSaves }: { onSaves: () => void }) {
     retire,
     summaryOn,
     setSummaryOn,
+    autoSkip,
+    setAutoSkip,
   } = useGame();
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -318,6 +320,11 @@ function Menu({ onSaves }: { onSaves: () => void }) {
             summaryOn ? "Turn summary: on" : "Turn summary: off",
             () => setSummaryOn(!summaryOn),
             "Show how each turn went in a card when it ends.",
+          )}
+          {item(
+            autoSkip ? "Skip quiet weeks: on" : "Skip quiet weeks: off",
+            () => setAutoSkip(!autoSkip),
+            "When a turn leaves nothing for you to do, time moves on by itself (up to 12 weeks) until something does.",
           )}
           {item("Your record & achievements", () => setRecordOpen(true))}
           {item(

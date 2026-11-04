@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { backForPm, callGeneralElection, dewanVote, goToAgong, makeOffer, nextTalksRound } from "./actions";
 import { isGovernment, newGame, type GameState } from "./state";
-import { OFFERS, agongDecides, blocSeats, pickCandidates, sdCount, startFormation, willingness } from "./systems/formation";
+import { OFFERS, agongDecides, outright, blocSeats, pickCandidates, sdCount, startFormation, willingness } from "./systems/formation";
 import { isHostile } from "./systems/rivals";
 import { advanceWeek } from "./week";
 import { COALITIONS, type CoalitionId } from "./world";
@@ -132,5 +132,21 @@ describe("forming a government", () => {
     const n = advanceWeek(g);
     expect(n.formation).toBeNull();
     expect(n.tiers.length).toBe(1);
+  });
+
+  it("a majority of its own needs no talks: it governs alone", () => {
+    const g = newGame("BN", 3);
+    const seats = seatsOf({ PH: 120, PN: 60, BN: 20, GPS: 22 });
+    expect(outright(seats)).toBe("PH");
+    expect(outright(seatsOf({ PH: 100, PN: 80, BN: 42 }))).toBeNull();
+    const f = startFormation(g, seats, 20);
+    expect(f.outright).toBe("PH");
+    expect(f.candidates[0]).toBe("PH");
+    const r = goToAgong({ ...g, formation: f });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.state.formation).toBeNull();
+    expect(r.state.parliament.pm).toBe("PH");
+    expect(r.state.government).toEqual(["PH"]);
   });
 });

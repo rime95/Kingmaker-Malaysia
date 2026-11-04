@@ -35,6 +35,7 @@ const STRINGS = {
   resume: { en: "Resume", ms: "Sambung" },
   speed: { en: "Speed", ms: "Kelajuan" },
   skipEnd: { en: "Skip to the end", ms: "Terus ke akhir" },
+  toVerdict: { en: "See the verdict", ms: "Lihat keputusan" },
   toTalks: { en: "Continue to coalition talks", ms: "Teruskan ke rundingan gabungan" },
   newTerm: { en: "Begin the new term", ms: "Mulakan penggal baharu" },
   verdict: { en: "General election verdict", ms: "Keputusan pilihan raya umum" },
