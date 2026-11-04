@@ -82,7 +82,7 @@ import { buyProperty, buyShares, cancelOrder, declareAssets, donate, payOffLoan,
 import type { StockOrder } from "@/game/systems/bursa";
 import type { MapFocus } from "@/components/map/MalaysiaMap";
 
-export type Lens = "holder" | "parties" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result" | "swing";
+export type Lens = "holder" | "parties" | "divisions" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result" | "swing";
 /** Side panels that open over the map. */
 export type Panel = "campaign" | "case" | "battle" | "party" | "people" | "leadership" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis" | "cabinet";
 
@@ -130,6 +130,15 @@ interface Store {
   /** Dewan votes you've seen the alert for. */
   voteSeen: number[];
   seeVote: (id: number) => void;
+  /** Results alerts already dismissed (recentVotes keys). */
+  resultSeen: string[];
+  seeResults: (keys: string[]) => void;
+  /** How the Dewan chart is coloured (set by "See the chamber"). */
+  dewanColor: "coalition" | "vote";
+  setDewanColor: (c: "coalition" | "vote") => void;
+  /** A person to open in the People panel (from the seat card); `n` changes on every request. */
+  personFocus: { id: number; n: number } | null;
+  focusPerson: (id: number) => void;
   lang: "en" | "ms";
   sound: boolean;
   /** The soundtrack, and the master volume (0–1). */
@@ -288,6 +297,12 @@ export const useGame = create<Store>()(
         budgetSnoozed: false,
         voteSeen: [],
         seeVote: (id) => set({ voteSeen: [...get().voteSeen.slice(-40), id] }),
+        resultSeen: [],
+        seeResults: (keys) => set({ resultSeen: [...get().resultSeen, ...keys].slice(-60) }),
+        dewanColor: "coalition",
+        setDewanColor: (dewanColor) => set({ dewanColor }),
+        personFocus: null,
+        focusPerson: (id) => set({ personFocus: { id, n: (get().personFocus?.n ?? 0) + 1 } }),
         lang: "en",
         sound: true,
         music: true,

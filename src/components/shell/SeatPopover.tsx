@@ -12,6 +12,8 @@ import { useGame } from "@/store/gameStore";
 import { contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/game/world";
 import { chiefKey, holderOf, regionName, regionOf } from "@/game/systems/posts";
 import { mbTitle } from "@/game/systems/stategov";
+import { campName, divisionChief } from "@/game/systems/camps";
+import { campColorOf, campColors } from "../campColors";
 import { ActionCard } from "../ActionCard";
 import { chancePct, fmtRM, pct, useReads } from "../common";
 import { SeatIssues } from "./SeatBits";
@@ -182,20 +184,52 @@ function StateLine({ seat }: { seat: number }) {
   const chief = holderOf(game, party, chiefKey(regionOf(st)));
   const g = game.stateGov[st];
   const mb = g ? game.people.find((p) => p.id === g.mb) : undefined;
-  if (!chief && !mb) return null;
   return (
-    <p className="text-[11px]" style={{ color: "var(--ink-2)" }}>
-      {chief && (
-        <>
-          Your {regionName(regionOf(st))} chief: <b>{chief.name}</b>
-        </>
+    <>
+      <BranchLine seat={seat} />
+      {(chief || mb) && (
+        <p className="text-[11px]" style={{ color: "var(--ink-2)" }}>
+          {chief && (
+            <>
+              Your {regionName(regionOf(st))} chief: <b>{chief.name}</b>
+            </>
+          )}
+          {chief && mb ? " · " : ""}
+          {mb && (
+            <>
+              {mbTitle(st)}: <b>{mb.name}</b> ({mb.party})
+            </>
+          )}
+        </p>
       )}
-      {chief && mb ? " · " : ""}
-      {mb && (
-        <>
-          {mbTitle(st)}: <b>{mb.name}</b> ({mb.party})
-        </>
-      )}
+    </>
+  );
+}
+
+/** Whether you have a branch here, and who runs your party's division (their camp and loyalty). */
+function BranchLine({ seat }: { seat: number }) {
+  const game = useGame((s) => s.game)!;
+  const party = game.coalitions[game.player].members[0];
+  const chief = divisionChief(game, seat);
+  if (!chief) {
+    const stands = contestingIn(SEATS[seat], game.entries).includes(game.player);
+    return (
+      <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+        {stands ? `Branch: a partner's (no ${party} division here)` : "No branch here: open one to stand"}
+      </p>
+    );
+  }
+  const patron = chief.camp != null ? game.people.find((p) => p.id === chief.camp) : undefined;
+  const you = chief.id === game.youId;
+  return (
+    <p className="text-[11px] flex items-center gap-1.5" style={{ color: "var(--ink-2)" }}>
+      <span className="w-2 h-2 rounded-full flex-none" style={{ background: campColorOf(campColors(game, party), chief) }} />
+      <span>
+        Division: {you ? <b>you lead it</b> : <b>{chief.name}</b>}
+        {you ? "" : chief.seat === seat ? " (MP)" : " (organiser)"} · {patron ? campName(patron) : "unaligned"}
+        {you ? "" : ` · ♥ ${Math.round(chief.loyalty)}`}
+        {!you && chief.loyalty < 35 && <span style={{ color: "var(--bad)" }}> · hostile</span>}
+      </span>
     </p>
   );
 }

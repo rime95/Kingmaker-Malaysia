@@ -9,10 +9,16 @@ import { partyColor } from "@/game/systems/coalitions";
 import type { Rating } from "@/game/voter";
 import { BLOC_LABEL, contestingIn, cshort, majorityBloc, SEATS, type CoalitionId } from "@/game/world";
 import type { Lens } from "@/store/gameStore";
+import { divisionChief } from "@/game/systems/camps";
+import { campColorOf, campColors, LEADER_CAMP, RIVAL_COLORS, UNALIGNED, YOUR_CAMP } from "../campColors";
+
+const PARTNER_BRANCH = "#4a6a8a";
+const yourParty = (game: GameState) => game.coalitions[game.player].members[0];
 
 export const LENSES: { id: Lens; label: string; short: string }[] = [
   { id: "holder", label: "Who holds each seat", short: "Holder" },
   { id: "parties", label: "Which party holds each seat", short: "Parties" },
+  { id: "divisions", label: "Your branches: your divisions by camp, a partner's, or none", short: "Branches" },
   { id: "projection", label: "Latest polls and branch reports", short: "Polls" },
   { id: "support", label: "Your polled vote share", short: "Support" },
   { id: "presence", label: "Your strongholds (service)", short: "Strongholds" },
@@ -63,6 +69,13 @@ export function lensFill(game: GameState, reads: SeatRead[], lens: Lens, i: numb
       return { fill: coalColor(game.holders[i]) };
     case "parties":
       return { fill: partyColor(game, game.holderParties[i]) };
+    case "divisions": {
+      // Your party's division: its chief's camp (solid where the MP leads it, lighter for an organiser; dashed if hostile).
+      const chief = divisionChief(game, i);
+      if (chief) return { fill: campColorOf(campColors(game, yourParty(game)), chief), opacity: chief.seat === i ? 1 : 0.6, flipped: chief.loyalty < 35 };
+      // A partner's branch, or none.
+      return contestingIn(seat, game.entries).includes(game.player) ? { fill: PARTNER_BRANCH, opacity: 0.55 } : { fill: "var(--land)" };
+    }
     case "projection": {
       const r = readRating(reads[i], game.week);
       return { fill: coalColor(r.leader), opacity: RATING_OPACITY[r.rating] * (reads[i].source === "estimate" ? 0.7 : 1), flipped: r.leader !== game.holders[i] };
@@ -103,6 +116,22 @@ export function lensLegend(game: GameState, lens: Lens): { items: LegendItem[]; 
     case "parties": {
       const parties = [...new Set(game.holderParties)].sort((a, b) => game.holderParties.filter((p) => p === b).length - game.holderParties.filter((p) => p === a).length);
       return { items: parties.map((p) => ({ color: partyColor(game, p), label: `${p} ${game.holderParties.filter((x) => x === p).length}` })), note: "Partners wear lighter or darker shades of their coalition's colour." };
+    }
+    case "divisions": {
+      const chiefs = Object.values(game.divisions ?? {}).map((id) => game.people.find((p) => p.id === id)!).filter(Boolean);
+      const mine = chiefs.filter((p) => p.camp === game.youId).length;
+      const hostile = chiefs.filter((p) => p.loyalty < 35).length;
+      const youLead = chiefs.some((p) => p.camp === game.youId) || game.career.rung >= 6;
+      return {
+        items: [
+          { color: youLead ? YOUR_CAMP : LEADER_CAMP, label: youLead ? "Your camp" : "Leader's camp" },
+          { color: RIVAL_COLORS[0], label: "Rival camp" },
+          { color: UNALIGNED, label: "Unaligned" },
+          { color: PARTNER_BRANCH, label: "Partner's branch", opacity: 0.55 },
+          { color: "var(--land)", label: "No branch" },
+        ],
+        note: `${chiefs.length} divisions of ${yourParty(game)} · ${mine} in your camp · ${hostile} hostile (dashed). Lighter: a local organiser, not an MP.`,
+      };
     }
     case "projection":
       return { items: (Object.keys(RATING_OPACITY) as Rating[]).map((r) => ({ color: "var(--ink-2)", label: RATING_LABEL[r], opacity: RATING_OPACITY[r] })), note: "Who leads in your polls. Faded = rough estimate only. Dashed = would change hands." };

@@ -8,7 +8,8 @@
 import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
 import { addSeg, type SegEffects } from "./segments";
-import { cshort, type CoalitionId } from "../world";
+import { SEATS, cshort, type CoalitionId } from "../world";
+import { TURN_WEEKS } from "../config";
 import { hoppingLaw, lawPassed } from "./laws";
 
 export type MotionKind = "bill" | "constitutional" | "royal" | "oppMotion";
@@ -411,5 +412,52 @@ export function tableMotion(s: GameState): { state: GameState; message: string }
 }
 
 /** Seats in a division, for the hemicycle: seat → vote. */
+/** A vote just decided: a division of the Dewan or a by-election, for the results alert. */
+export type RecentVote =
+  | {
+      kind: "division";
+      key: string;
+      id: number;
+      title: string;
+      week: number;
+      passed: boolean;
+      twoThirds: boolean;
+      ayes: number;
+      noes: number;
+      abstain: number;
+      absent: number;
+      /** How most of your MPs voted, and how many broke ranks. */
+      yours: Vote | null;
+      rebels: number;
+    }
+  | { kind: "byelection"; key: string; seat: number; week: number; winner: CoalitionId; party: string; majority: number; yoursWon: boolean };
+
+/** Everything voted on in the turn just played (the last TURN_WEEKS weeks): Dewan divisions and by-elections. */
+export function recentVotes(s: Pick<GameState, "week" | "dewan" | "seatResults" | "holders" | "player">): RecentVote[] {
+  const from = s.week - TURN_WEEKS;
+  const out: RecentVote[] = [];
+  const seen = new Set<number>();
+  for (const m of [...s.dewan.motions, ...s.dewan.history]) {
+    if (!m.result || seen.has(m.id) || m.voteWeek <= from) continue;
+    seen.add(m.id);
+    const r = m.result;
+    const mine = r.votes.filter((_, i) => s.holders[i] === s.player);
+    const tally = (v: Vote) => mine.filter((x) => x === v).length;
+    const yours = mine.length ? (["aye", "no", "abstain", "absent"] as Vote[]).reduce((a, b) => (tally(b) > tally(a) ? b : a)) : null;
+    const rebels = yours === "aye" || yours === "no" ? tally(yours === "aye" ? "no" : "aye") : 0;
+    out.push({ kind: "division", key: `m:${m.id}`, id: m.id, title: m.title, week: m.voteWeek, passed: r.passed, twoThirds: m.twoThirds, ayes: r.ayes, noes: r.noes, abstain: r.abstain, absent: r.absent, yours, rebels });
+  }
+  s.seatResults.forEach((rec, i) => {
+    if (!rec || rec.label !== "By-election" || rec.week <= from || rec.week > s.week) return;
+    const ranked = (Object.entries(rec.votes) as [CoalitionId, number][]).sort((a, b) => b[1] - a[1]);
+    const [winner, top] = ranked[0];
+    out.push({ kind: "byelection", key: `b:${i}:${rec.week}`, seat: i, week: rec.week, winner, party: rec.parties[winner] ?? winner, majority: top - (ranked[1]?.[1] ?? 0), yoursWon: winner === s.player });
+  });
+  return out.sort((a, b) => a.week - b.week);
+}
+
+/** Words for a by-election result. */
+export const byElectionLine = (v: Extract<RecentVote, { kind: "byelection" }>) => `${SEATS[v.seat].name} by-election: ${v.party} (${cshort(v.winner)}) wins by ${v.majority.toLocaleString("en-MY")} votes`;
+
 export const lastDivision = (s: GameState) => [...s.dewan.motions].reverse().find((m) => m.result) ?? s.dewan.history.find((m) => m.result);
 

@@ -40,9 +40,8 @@ const readTilt = () => {
  * and its whole party lights up, with a card on the party; click for the seat.
  */
 export function Dewan() {
-  const { game, selected, select, showPanel } = useGame();
+  const { game, selected, select, showPanel, dewanColor: colorBy, setDewanColor: setColorBy } = useGame();
   const [view, setView] = useState<"2d" | "3d">("2d");
-  const [colorBy, setColorBy] = useState<"coalition" | "vote">("coalition");
   const [hot, setHot] = useState<Hot | null>(null);
   const [tilt, setTiltState] = useState(() => (typeof window === "undefined" ? 0 : readTilt()));
   const [dragging, setDragging] = useState(false);

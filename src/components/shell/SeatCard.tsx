@@ -1,6 +1,8 @@
 "use client";
 
 import { serviceBase } from "@/game/bases";
+import { campName, divisionChief } from "@/game/systems/camps";
+import { campColorOf, campColors } from "../campColors";
 import { allyIn } from "@/game/actions";
 import { fortressLevel, weekLabel } from "@/game/state";
 import { BUBBLE_INFO } from "@/game/systems/bubbles";
@@ -84,6 +86,8 @@ export function SeatCard({ embedded = false }: { embedded?: boolean }) {
         )}
 
         {game.parliament.status === "campaign" && <Candidates seat={i} />}
+
+        <DivisionRow seat={i} />
 
         <LatestResult r={last} />
 
@@ -299,5 +303,49 @@ function Candidates({ seat }: { seat: number }) {
         </div>
       ))}
     </section>
+  );
+}
+
+/** Your branch here: your party's division and the chief who runs it (their camp, their loyalty), a partner's, or none. */
+function DivisionRow({ seat }: { seat: number }) {
+  const game = useGame((s) => s.game)!;
+  const { showPanel, focusPerson } = useGame();
+  const party = game.coalitions[game.player].members[0];
+  const chief = divisionChief(game, seat);
+  if (!chief) {
+    const stands = contestingIn(SEATS[seat], game.entries).includes(game.player);
+    return (
+      <p className="inset px-3 py-2 text-xs" style={{ color: "var(--ink-2)" }}>
+        {stands ? `No ${party} division here: a partner runs the branch.` : `No branch here: ${cshort(game.player)} doesn't stand in ${SEATS[seat].name}.`}
+      </p>
+    );
+  }
+  const colors = campColors(game, party);
+  const patron = chief.camp != null ? game.people.find((p) => p.id === chief.camp) : undefined;
+  const you = chief.id === game.youId;
+  return (
+    <button
+      className="inset px-3 py-2 text-left text-xs flex items-center gap-2"
+      style={{ borderLeft: `3px solid ${campColorOf(colors, chief)}` }}
+      onClick={() => {
+        focusPerson(chief.id);
+        showPanel("people");
+      }}
+    >
+      <span className="flex-1 min-w-0">
+        <span className="eyebrow block">Bahagian {SEATS[seat].name}</span>
+        <span className="block font-semibold text-sm truncate">
+          {you ? "You lead it" : chief.name}
+          <span className="font-normal" style={{ color: "var(--muted)" }}>
+            {you ? "" : chief.seat === seat ? " · the MP" : " · local organiser"}
+          </span>
+        </span>
+        <span className="block" style={{ color: "var(--ink-2)" }}>
+          {patron ? campName(patron) + (patron.id === game.youId ? " (your camp)" : "") : "Unaligned"}
+          {you ? "" : ` · loyalty ${Math.round(chief.loyalty)}${chief.loyalty < 35 ? " · hostile" : ""}`}
+        </span>
+      </span>
+      {!you && <span style={{ color: "var(--muted)" }}>Open ›</span>}
+    </button>
   );
 }

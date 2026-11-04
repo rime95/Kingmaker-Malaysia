@@ -16,25 +16,25 @@ import { mbTitle } from "@/game/systems/stategov";
 import { CAMPS, bringBlocked, campName, campsOf, divisionOf, patrons, replaceBlocked } from "@/game/systems/camps";
 import { regionName } from "@/game/systems/posts";
 import { regionOf } from "@/game/world";
-import type { GameState } from "@/game/state";
-
-// Camp colours: yours in brass, the leader's (when it isn't you) violet, rivals red and blue.
-const RIVAL_COLORS = ["#e0705c", "#5b9be0", "#58b58a"];
-/** Each patron's camp colour in a party. */
-function campColors(game: GameState, party: string): Map<number, string> {
-  const out = new Map<number, string>();
-  let k = 0;
-  for (const p of patrons(game, party)) out.set(p.id, p.id === game.youId ? "#e3c27a" : p.rank === 5 ? "#a58be0" : RIVAL_COLORS[k++ % RIVAL_COLORS.length]);
-  return out;
-}
-const UNALIGNED = "#5d6476";
+import { UNALIGNED, campColors } from "../campColors";
 
 /** Who's who: the cabinet, then any party's leadership from the President down to the branch chiefs. */
 export function PeoplePanel() {
   const game = useGame((s) => s.game)!;
   const mine = game.coalitions[game.player].members;
   const [party, setParty] = useState(mine[0]);
+  const personFocus = useGame((s) => s.personFocus);
   const [open, setOpen] = useState<number | null>(null);
+  // Opened on someone (from the seat card): show their party with their card open.
+  const [focusSeen, setFocusSeen] = useState(0);
+  if (personFocus && personFocus.n !== focusSeen) {
+    setFocusSeen(personFocus.n);
+    const p = game.people.find((x) => x.id === personFocus.id);
+    if (p) {
+      setParty(p.party);
+      setOpen(p.id);
+    }
+  }
   const [view, setView] = useState<"chart" | "list">("chart");
   const [q, setQ] = useState("");
   const parties = useMemo(

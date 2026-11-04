@@ -7,6 +7,7 @@ import { advanceWeek } from "./week";
 import { ACTION_BY_ID, applyAction, saturation } from "./actions";
 import { runOrders } from "./systems/orders";
 import { upcoming } from "./calendar";
+import { recentVotes } from "./systems/dewan";
 
 function mergeAmounts(lists: { label: string; amount: number }[][]): { label: string; amount: number }[] {
   const out = new Map<string, number>();
@@ -79,6 +80,7 @@ export function needsYou(s: GameState): boolean {
   if (s.parliament.status === "campaign" || s.nominations?.open) return true;
   if (Object.values(s.assemblies).some((a) => a.status === "campaign")) return true;
   if (upcoming(s).some((u) => u.urgent || u.weeks <= TURN_WEEKS)) return true;
+  if (recentVotes(s).length) return true;
   return !!s.report?.lines.some((l) => ALARM.test(l.text));
 }
 
