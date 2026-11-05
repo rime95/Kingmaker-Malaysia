@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { openPolls } from "@/game/systems/partypolls";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { TalkSeat } from "@/game/systems/seattalks";
 import {
@@ -149,7 +150,7 @@ interface Store {
   /** Play-test tools in the ⋯ menu. */
   testTools: boolean;
   setTestTools: (on: boolean) => void;
-  test: (kind: "ge" | "sitting" | "boost") => void;
+  test: (kind: "ge" | "sitting" | "boost" | "polls") => void;
   setLang: (lang: "en" | "ms") => void;
   setSound: (on: boolean) => void;
   start: (player: CoalitionId, opts?: NewGameOptions) => void;
@@ -314,6 +315,10 @@ export const useGame = create<Store>()(
         test: (kind) => {
           const g = get().game;
           if (!g || !get().testTools) return;
+          if (kind === "polls") {
+            if (g.partyPolls && !g.partyPolls.result) return set({ toast: { id: ++toastId, text: "The party polls are already open.", error: true } });
+            return set({ game: openPolls(g), panel: "leadership", toast: { id: ++toastId, text: "Party polls open: back your slate. The AGM votes in 4 weeks." } });
+          }
           if (kind === "ge") {
             if (g.night || g.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
             set({ game: testGeneralElection(g), reportOpen: false, panel: null });

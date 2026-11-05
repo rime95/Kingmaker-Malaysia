@@ -306,6 +306,11 @@ function Menu({ onSaves }: { onSaves: () => void }) {
                 "Call the Dewan into session if needed and take the next vote now.",
               )}
               {item("+10 AP, +RM 10M", () => test("boost"))}
+              {item(
+                "Open party polls now",
+                () => test("polls"),
+                "Start this term's party polls: the deputy, vice presidents and council are up in 4 weeks.",
+              )}
             </>
           )}
           <div className="h-px my-1" style={{ background: "var(--line)" }} />

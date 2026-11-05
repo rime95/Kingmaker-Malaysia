@@ -4,6 +4,8 @@
 import { ECONOMY, TURN_WEEKS } from "./config";
 import { bringIntoCamp, replaceChief } from "./systems/camps";
 import { courtPerson } from "./systems/tokoh";
+import { appointToCouncil, dropFromCouncil } from "./systems/council";
+import { setSlate, slateMove, type SlateMove } from "./systems/partypolls";
 import { chairmanCampaign } from "./systems/chairman";
 import { confirmCabinet, openNewTerm, resetDraft, setDraft } from "./systems/newterm";
 import { continueAfterEnding, retireNow } from "./systems/legacy";
@@ -948,6 +950,11 @@ export type DeepOp =
   | { kind: "autoGround"; on: boolean }
   | { kind: "bringCamp"; id: number }
   | { kind: "clearCalon"; seat: number }
+  | { kind: "appointCouncil"; id: number; drop?: number }
+  | { kind: "dropCouncil"; id: number }
+  | { kind: "slate"; post: "deputy" | "vp" | "council"; id: number; on: boolean }
+  | { kind: "slateMove"; move: SlateMove }
+  | { kind: "pollsSeen" }
   | { kind: "courtPerson"; id: number }
   | { kind: "placeMany"; moves: { id: number; seat: number }[] }
   | { kind: "replaceChief"; seat: number };
@@ -991,6 +998,16 @@ export function deepMove(s: GameState, op: DeepOp): ActionResult {
       return wrap(bringIntoCamp(s, op.id));
     case "clearCalon":
       return wrap(clearCandidate(s, op.seat));
+    case "appointCouncil":
+      return wrap(appointToCouncil(s, op.id, op.drop));
+    case "dropCouncil":
+      return wrap(dropFromCouncil(s, op.id));
+    case "slate":
+      return wrap(setSlate(s, op.post, op.id, op.on));
+    case "slateMove":
+      return wrap(slateMove(s, op.move));
+    case "pollsSeen":
+      return s.partyPolls?.result ? { ok: true, state: { ...s, partyPolls: null }, message: "The new leadership takes office." } : { ok: false, error: "No results to close." };
     case "courtPerson":
       return wrap(courtPerson(s, op.id));
     case "placeMany": {

@@ -5,7 +5,7 @@
 
 import type { GameState } from "@/game/state";
 
-export type Overlay = "saves" | "record" | "night" | "statenight" | "legacy" | "analysis" | "newterm" | "statetalks" | "stateterm" | "naming" | "race" | "summary" | "alert";
+export type Overlay = "saves" | "record" | "night" | "statenight" | "legacy" | "analysis" | "newterm" | "statetalks" | "stateterm" | "naming" | "race" | "polls" | "summary" | "alert";
 
 export function activeOverlay(g: GameState, ui: { savesOpen: boolean; recordOpen: boolean; analysisOpen: boolean; summary?: boolean }): Overlay {
   if (ui.savesOpen) return "saves";
@@ -19,6 +19,7 @@ export function activeOverlay(g: GameState, ui: { savesOpen: boolean; recordOpen
   if (g.stateTerms?.length) return "stateterm";
   if (g.namePending) return "naming";
   if (g.race?.result) return "race";
+  if (g.partyPolls?.result) return "polls";
   if (ui.summary && g.report) return "summary";
   return "alert";
 }

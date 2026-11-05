@@ -17,6 +17,8 @@ import type { Ending } from "./systems/legacy";
 import { autoPosts, migrateHomes, postSeatEffects, pullTable, type Posts } from "./systems/posts";
 import { initCamps, syncDivisions, type Divisions } from "./systems/camps";
 import { makeTokoh } from "./systems/tokoh";
+import { growCouncils, mergeDuplicates } from "./systems/council";
+import type { PartyPolls } from "./systems/partypolls";
 import { syncStateGov, type StateGov, type StateNight, type StateTalks, type StateTerm } from "./systems/stategov";
 import type { Laws } from "./systems/laws";
 import type { PortfolioId } from "./data/people";
@@ -48,7 +50,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 25;
+export const SAVE_VERSION = 26;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -258,6 +260,10 @@ export interface GameState {
   divisions: Divisions;
   /** Candidates you have named ahead of the election (calon): seat → person (nominations.ts). */
   calon: Partial<Record<number, number>>;
+  /** Weeks you dropped someone from your council (a purge is three in a year). */
+  councilDrops?: number[];
+  /** This term's party polls (partypolls.ts), from the window opening until the next. */
+  partyPolls: PartyPolls | null;
   /** Each post's pull when the game started: effects count from here. */
   postBase: Record<string, number>;
   /** Every state government: ruler, MB, exco and (yours) treasury. */
@@ -383,6 +389,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     posts: {},
     divisions: {},
     calon: {},
+    partyPolls: null,
     postBase: {},
     stateGov: {},
     stateTerms: [],
@@ -545,6 +552,9 @@ export function migrateGame(g: GameState): GameState {
   // Saves before version 24: divisions and camps.
   migrated.divisions = g.divisions ?? {};
   migrated.calon = g.calon ?? {};
+  migrated.partyPolls = g.partyPolls ?? null;
+  // Saves before version 26: councils grow to each party's own structure.
+  if ((g.version ?? 0) < 26 && migrated.people.length) Object.assign(migrated, growCouncils(mergeDuplicates(migrated)));
   if ((g.version ?? 0) < 24 && migrated.people.length) Object.assign(migrated, initCamps(syncDivisions(migrated)));
   if (!g.posts || !g.stateGov) {
     Object.assign(migrated, syncStateGov(autoPosts(migrated)));

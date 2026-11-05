@@ -6,6 +6,7 @@ import { hash01 } from "../rng";
 import type { GameState } from "../state";
 import { byId, postOf } from "./people";
 import { COUNCIL_ITEMS, councilAgenda } from "./partyorg";
+import { councilTally } from "./council";
 import { PORTFOLIOS } from "../data/people";
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
@@ -18,9 +19,19 @@ export const COUNCIL_CARD: CardDef = {
   title: "Supreme Council meeting",
   text: (s, c) => {
     const it = COUNCIL_ITEMS[councilAgenda(s.seed, c.week)];
-    return `${it.title}. ${it.text}`;
+    const t = councilTally(s);
+    return `${it.title}. ${it.text} ${t.carries ? `With you: ${t.yours} of ${t.total}, against ${t.against}: the council follows your lead.` : `Only ${t.yours} of ${t.total} are with you and ${t.against} against: going against the room will cost you.`}`;
   },
+  // Without a majority on the council, any call but the default is a fight (more unity lost).
   choices: (s, c) => {
+    const t = councilTally(s);
+    const opts = councilChoices(s, c);
+    return t.carries ? opts : opts.map((o, i) => (i === COUNCIL_CARD.defaultChoice ? o : { ...o, effect: { ...o.effect, unity: (o.effect.unity ?? 0) - 3 }, note: `${o.note ? o.note + " · " : ""}The council resists: unity −3` }));
+  },
+  defaultChoice: 1,
+};
+
+function councilChoices(s: GameState, c: { week: number }): ReturnType<CardDef["choices"]> {
     switch (councilAgenda(s.seed, c.week)) {
       case 0:
         return [
@@ -49,9 +60,7 @@ export const COUNCIL_CARD: CardDef = {
           { label: "Ignore it", effect: { scandal: 4 } },
         ];
     }
-  },
-  defaultChoice: 1,
-};
+}
 
 /** One of your ministers in trouble (you're the Prime Minister). */
 export const MINISTER_SCANDAL_CARD: CardDef = {

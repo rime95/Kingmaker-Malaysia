@@ -23,6 +23,7 @@ import { courtedBy, hoppingLaw } from "./systems/laws";
 import { afterStatePolls, resolveStatePending, stateGovWeek } from "./systems/stategov";
 import { celebritySeat, divisionDemand } from "./systems/nomcards";
 import { raceOnOffer, raceOpens, raceWeek } from "./systems/partyrace";
+import { partyPollsWeek } from "./systems/partypolls";
 import { CONTEST_POINTS } from "./systems/career";
 import { economyScore, nationWeek, projectSeats } from "./systems/nation";
 import { projectOpened, wealthWeek } from "./systems/wealth";
@@ -369,6 +370,10 @@ export function advanceWeek(input: GameState): GameState {
 
   // Party elections: the race opens in mid-May; rivals campaign; the vote is at the AGM
   if (next.race?.result && next.week > next.race.voteWeek) next = { ...next, race: null };
+  // Every party's polls, once a term.
+  const pp = partyPollsWeek(next);
+  next = pp.state;
+  lines.push(...pp.lines);
   const race = raceWeek(next);
   next = race.state;
   lines.push(...race.lines);

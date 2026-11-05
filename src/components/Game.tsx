@@ -28,6 +28,7 @@ import { TurnSummary } from "./shell/TurnSummary";
 import { AlertModal } from "./shell/AlertModal";
 import { NameCoalition } from "./shell/NameCoalition";
 import { PartyRaceCount } from "./PartyRace";
+import { PartyPollsResult } from "./panels/Council";
 import { useSoundtrack } from "./SoundControls";
 
 const noop = () => () => {};
@@ -148,6 +149,7 @@ function Main() {
       {overlay === "record" && <RecordModal />}
       {overlay === "analysis" && <ElectionAnalysisModal />}
       {overlay === "race" && <PartyRaceCount />}
+      {overlay === "polls" && <PartyPollsResult />}
       {overlay === "summary" && <TurnSummary />}
       {overlay === "newterm" && <NewTerm />}
       {overlay === "statenight" && <StateNight />}

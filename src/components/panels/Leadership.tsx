@@ -31,6 +31,7 @@ import { COALITIONS, PARTIES, STATE_BY_ID } from "@/game/world";
 import { fmtRM } from "../common";
 import { PartyFlag } from "../flags";
 import { Term } from "../Term";
+import { CouncilSection } from "./Council";
 
 /** Your lieutenants (national posts) and generals (state chiefs), and any rival party's. */
 export function Leadership() {
@@ -70,6 +71,8 @@ export function Leadership() {
             : `${PARTIES[party]?.name}'s leadership. Their state chiefs pull votes for them, just as yours do for you.`}
         </p>
       </section>
+
+      <CouncilSection party={party} yours={yours} />
 
       <section>
         <h3 className="eyebrow mb-1.5">Lieutenants · national posts</h3>

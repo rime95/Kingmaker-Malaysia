@@ -20,7 +20,7 @@ describe("naming candidates before the election", () => {
     const g = rich(newGame("PH", 4));
     const seat = mpSeat(g);
     const mp = mpOf(g, seat);
-    const vp = g.people.find((p) => p.party === yourParty(g) && p.rank === 3 && p.seat === null && !p.chairman)!;
+    const vp = g.people.filter((p) => p.party === yourParty(g) && p.rank >= 2 && p.seat === null && !p.chairman && p.id !== g.youId && !p.retired).sort((a, b) => b.rank - a.rank)[0];
     expect(vp).toBeTruthy();
     const s = ok(nameCandidate(g, seat, vp.id));
     expect(lineup(s)[seat]).toBe(vp.id);
@@ -56,7 +56,7 @@ describe("naming candidates before the election", () => {
   it("a calon who leaves the party is dropped", () => {
     const g = rich(newGame("PH", 4));
     const seat = mpSeat(g);
-    const vp = g.people.find((p) => p.party === yourParty(g) && p.rank === 3 && p.seat === null && !p.chairman)!;
+    const vp = g.people.filter((p) => p.party === yourParty(g) && p.rank >= 2 && p.seat === null && !p.chairman && p.id !== g.youId && !p.retired).sort((a, b) => b.rank - a.rank)[0];
     const s = ok(nameCandidate(g, seat, vp.id));
     const left = { ...s, people: s.people.map((p) => (p.id === vp.id ? { ...p, party: "IND" } : p)) };
     const r = syncCalon(left);

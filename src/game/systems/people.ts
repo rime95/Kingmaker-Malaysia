@@ -9,6 +9,7 @@
 // Real people start with neutral, game-only numbers; scandal cards never name them (see events.ts). All numbers TEMPORARY.
 
 import { MP_BORN, PORTFOLIOS, ROSTERS, ROSTER_HOME, START_CABINET, type PortfolioId, type RosterEntry } from "../data/people";
+import { structureOf } from "../data/structures";
 import { weekDate } from "../bases";
 import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
@@ -59,6 +60,8 @@ export interface Person {
   warmth?: number;
   /** Last week you courted them. */
   courtWeek?: number;
+  /** A Supreme Council member's seat: won at the party polls, or filled by the president. */
+  council?: "elected" | "appointed";
   /** The patron whose camp they follow (camps.ts), or null when unaligned. */
   camp?: number | null;
 }
@@ -82,9 +85,14 @@ export const PEOPLE = {
 const START_INFLUENCE = [10, 25, 45, 60, 75, 90];
 
 export function slotsFor(party: string): number[] {
-  const seats = SEATS.filter((s) => s.ge15Party === party).length;
-  return seats >= 10 ? PEOPLE.slotsBig : seats >= 3 ? PEOPLE.slotsMid : PEOPLE.slotsSmall;
+  const st = structure(party);
+  const base = SEATS.filter((s) => s.ge15Party === party).length >= 10 ? PEOPLE.slotsBig : SEATS.filter((s) => s.ge15Party === party).length >= 3 ? PEOPLE.slotsMid : PEOPLE.slotsSmall;
+  // The top table follows the party's own structure (data/structures.ts): its council, its vice presidents.
+  return [base[0], 0, st.elected + st.appointed, st.vps, 1, 1];
 }
+
+/** A party's structure: its council's name and size, its vice presidents, its poll cycle. */
+export const structure = (party: string) => structureOf(party, SEATS.filter((s) => s.ge15Party === party).length);
 
 /** Parties with a leadership (independents have none). */
 export const HIERARCHY_PARTIES = Object.keys(PARTIES).filter((p) => p !== "IND");
@@ -110,6 +118,21 @@ export function realRetireAge(p: Pick<Person, "id" | "born" | "retireAge">, year
   const age = year - p.born;
   if (age >= 85) return Math.max(p.retireAge, age + 3 + Math.floor(r(seed, "stay", p.id) * 4));
   return Math.max(p.retireAge, age + 5 + Math.floor(r(seed, "stay", p.id) * 10), 82 + Math.floor(r(seed, "stay2", p.id) * 6));
+}
+
+/** Who on a council sits by election and who by appointment: the strongest hold the elected seats. */
+export function markCouncil(people: Person[], party: string) {
+  const st = structure(party);
+  const members = people.filter((p) => p.party === party && p.rank === 2 && !p.retired).sort((a, b) => b.influence - a.influence);
+  const elected = members.filter((p) => p.council === "elected").length;
+  let open = st.elected - elected;
+  for (const p of members) {
+    if (p.council) continue;
+    if (open > 0) {
+      p.council = "elected";
+      open--;
+    } else p.council = "appointed";
+  }
 }
 
 /** Saves from before real birth years: known MPs get theirs; other real MPs are at least 45. */
@@ -193,7 +216,7 @@ export function initPeople(s: Pick<GameState, "seed" | "week" | "player" | "coal
   const place = (party: string, e: RosterEntry, rank: number) => {
     const [name, code, born] = e;
     const seat = code ? SEATS.findIndex((x) => x.code === code) : -1;
-    const mp = seat >= 0 ? people.find((p) => p.seat === seat) : undefined;
+    const mp = seat >= 0 ? people.find((p) => p.seat === seat) : people.find((p) => p.real && p.name === name && p.seat !== null);
     if (mp) {
       Object.assign(mp, { name, party, rank, born, influence: START_INFLUENCE[rank] + Math.round((r(seed, "linf", name) - 0.5) * 8) });
       return;
@@ -228,6 +251,7 @@ export function initPeople(s: Pick<GameState, "seed" | "week" | "player" | "coal
       }
     }
     for (let k = 0; k < slots[0]; k++) people.push(recruitPerson(next++, party, seed, s.week, s));
+    markCouncil(people, party);
   }
   // Leader mode: you are your party's president.
   const lead = s.coalitions[s.player].members[0];
@@ -296,6 +320,8 @@ function fill(m: Mutable, party: string, rank: number, seed: number, week: numbe
   const from = best.rank;
   best.rank = rank;
   best.since = week;
+  // Into the council: the seat it was elected to (a casual vacancy is filled the same way); out of it: no council seat.
+  best.council = rank === 2 ? (m.people.filter((p) => p.party === party && p.rank === 2 && p.council === "elected").length < structure(party).elected ? "elected" : "appointed") : undefined;
   best.influence = Math.min(100, best.influence + 5);
   if (rank >= 3) lines.push({ text: `${best.name} becomes ${RANKS[rank]} of ${party}.`, tone: "info" });
   fill(m, party, from, seed, week, s, lines);
@@ -341,6 +367,7 @@ export function promoteTo(s: GameState, id: number, rank: number, lines: ReportL
   const from = p.rank;
   p.rank = rank;
   p.since = s.week;
+  p.council = rank === 2 ? (p.council ?? "elected") : undefined;
   if (from >= 1) fill(m, p.party, from, s.seed, s.week, s, lines);
   return { ...s, ...m };
 }
