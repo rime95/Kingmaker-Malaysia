@@ -3,6 +3,7 @@
 
 import { ECONOMY, TURN_WEEKS } from "./config";
 import { bringIntoCamp, replaceChief } from "./systems/camps";
+import { courtPerson } from "./systems/tokoh";
 import { chairmanCampaign } from "./systems/chairman";
 import { confirmCabinet, openNewTerm, resetDraft, setDraft } from "./systems/newterm";
 import { continueAfterEnding, retireNow } from "./systems/legacy";
@@ -26,7 +27,7 @@ import { raceMove, type RaceMove } from "./systems/partyrace";
 import { fire, headhunt, hire, pollError, raise, setAuto, teamAp } from "./systems/team";
 import { NATION, PROJECT_BY_ID, type Nation } from "./systems/nation";
 import { insiderCheck, policySector } from "./systems/wealth";
-import { nominate } from "./systems/nominations";
+import { nameCandidate, clearCandidate, nominate } from "./systems/nominations";
 import { UNDERDOG, recruitParty, underdog } from "./systems/growth";
 import { ISSUE, openIssues } from "./systems/issues";
 import { collection, toggleMou } from "./systems/funding";
@@ -946,6 +947,9 @@ export type DeepOp =
   | ({ kind: "case" } & CaseMove)
   | { kind: "autoGround"; on: boolean }
   | { kind: "bringCamp"; id: number }
+  | { kind: "clearCalon"; seat: number }
+  | { kind: "courtPerson"; id: number }
+  | { kind: "placeMany"; moves: { id: number; seat: number }[] }
   | { kind: "replaceChief"; seat: number };
 
 export function deepMove(s: GameState, op: DeepOp): ActionResult {
@@ -985,6 +989,23 @@ export function deepMove(s: GameState, op: DeepOp): ActionResult {
       return wrap(toggleMou(s));
     case "bringCamp":
       return wrap(bringIntoCamp(s, op.id));
+    case "clearCalon":
+      return wrap(clearCandidate(s, op.seat));
+    case "courtPerson":
+      return wrap(courtPerson(s, op.id));
+    case "placeMany": {
+      // A suggested line-up, accepted: each move in turn (one that no longer applies is skipped).
+      let state = s;
+      let done = 0;
+      for (const m of op.moves) {
+        const r = s.nominations ? nominate(state, m.seat, m.id) : nameCandidate(state, m.seat, m.id);
+        if ("state" in r) {
+          state = r.state;
+          done++;
+        }
+      }
+      return done ? { ok: true, state, message: `${done} candidate${done === 1 ? "" : "s"} placed.` } : { ok: false, error: "None of those moves can be made now." };
+    }
     case "replaceChief":
       return wrap(replaceChief(s, op.seat));
     case "recruit": {
@@ -1063,7 +1084,7 @@ export const claimTalkSeat = (s: GameState, r: TalkSeat): ActionResult => teamRe
 export const concedeTalkSeat = (s: GameState, r: TalkSeat): ActionResult => teamResult(concedeSeat(s, r));
 
 export function nominateCandidate(s: GameState, seat: number, person: number | "newface" | "local"): ActionResult {
-  const r = nominate(s, seat, person);
+  const r = !s.nominations && typeof person === "number" ? nameCandidate(s, seat, person) : nominate(s, seat, person);
   return "error" in r ? { ok: false, error: r.error } : { ok: true, state: r.state, message: r.message };
 }
 

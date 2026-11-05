@@ -18,6 +18,7 @@ import { confirmCabinet } from "./systems/newterm";
 import { continueAfterEnding } from "./systems/legacy";
 import { postsWeek, treasurerIncome, wingDemand } from "./systems/posts";
 import { campsMonth, divisionMachinery, syncDivisions } from "./systems/camps";
+import { tokohMonth } from "./systems/tokoh";
 import { courtedBy, hoppingLaw } from "./systems/laws";
 import { afterStatePolls, resolveStatePending, stateGovWeek } from "./systems/stategov";
 import { celebritySeat, divisionDemand } from "./systems/nomcards";
@@ -337,6 +338,10 @@ export function advanceWeek(input: GameState): GameState {
   const cm = campsMonth(next);
   next = divisionMachinery(cm.state);
   lines.push(...cm.lines);
+  // Rival parties court the tokoh too.
+  const tk = tokohMonth(next);
+  next = tk.state;
+  lines.push(...tk.lines);
   if (pw.rift !== null && next.career.rung >= 6) addCard("lieutenantRift", undefined, pw.rift);
   const wd = wingDemand(next);
   if (wd && next.career.rung >= 6) addCard("wingDemand", undefined, wd.person);

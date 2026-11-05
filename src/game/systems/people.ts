@@ -53,6 +53,12 @@ export interface Person {
   home?: string;
   /** Last week they went on a mission for you (posts.ts). */
   missionWeek?: number;
+  /** A well-known figure with no party (tokoh.ts), waiting to be courted. */
+  tokoh?: boolean;
+  /** How warm they are to joining you, from your courting (tokoh.ts). */
+  warmth?: number;
+  /** Last week you courted them. */
+  courtWeek?: number;
   /** The patron whose camp they follow (camps.ts), or null when unaligned. */
   camp?: number | null;
 }
@@ -97,6 +103,13 @@ function baseLoyalty(party: string, s: Pick<GameState, "player" | "coalitions">,
 /** Turns a party's president into its chairman: they hand you the top job and stay on as your partner at the helm. */
 export function makeChairman(p: Person, week: number): Person {
   return { ...p, rank: 3, chairman: true, since: week, loyalty: Math.max(p.loyalty, 80), influence: Math.max(p.influence, 85), retired: false };
+}
+
+/** When a real politician retires: at least five more years and into their eighties; past 85, a few more years. */
+export function realRetireAge(p: Pick<Person, "id" | "born" | "retireAge">, year: number, seed: number): number {
+  const age = year - p.born;
+  if (age >= 85) return Math.max(p.retireAge, age + 3 + Math.floor(r(seed, "stay", p.id) * 4));
+  return Math.max(p.retireAge, age + 5 + Math.floor(r(seed, "stay", p.id) * 10), 82 + Math.floor(r(seed, "stay2", p.id) * 6));
 }
 
 /** Saves from before real birth years: known MPs get theirs; other real MPs are at least 45. */
@@ -194,8 +207,8 @@ export function initPeople(s: Pick<GameState, "seed" | "week" | "player" | "coal
     roster.vps?.forEach((e) => place(party, e, 3));
     roster.council?.forEach((e) => place(party, e, 2));
   }
-  // Today's veterans don't all bow out at once: each real person serves at least a couple more years.
-  for (const p of people) if (p.real) p.retireAge = Math.max(p.retireAge, year - p.born + 2 + Math.floor(r(seed, "stay", p.id) * 9));
+  // Real politicians stay on: well into their eighties, and at least five more years (the very old, a few).
+  for (const p of people) if (p.real) p.retireAge = realRetireAge(p, year, seed);
   // Fill the pyramid from the top down with the party's most senior MPs, then generated members.
   for (const party of HIERARCHY_PARTIES) {
     const slots = slotsFor(party);

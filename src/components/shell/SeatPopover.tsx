@@ -13,6 +13,7 @@ import { contestingIn, cshort, SEATS, STATE_BY_ID, type CoalitionId } from "@/ga
 import { chiefKey, holderOf, regionName, regionOf } from "@/game/systems/posts";
 import { mbTitle } from "@/game/systems/stategov";
 import { campName, divisionChief } from "@/game/systems/camps";
+import { lineup, partySeats } from "@/game/systems/nominations";
 import { campColorOf, campColors } from "../campColors";
 import { ActionCard } from "../ActionCard";
 import { chancePct, fmtRM, pct, useReads } from "../common";
@@ -187,6 +188,7 @@ function StateLine({ seat }: { seat: number }) {
   return (
     <>
       <BranchLine seat={seat} />
+      <CandidateLine seat={seat} />
       {(chief || mb) && (
         <p className="text-[11px]" style={{ color: "var(--ink-2)" }}>
           {chief && (
@@ -203,6 +205,28 @@ function StateLine({ seat }: { seat: number }) {
         </p>
       )}
     </>
+  );
+}
+
+/** Who stands for your party here at the next election, and a way to change it. */
+function CandidateLine({ seat }: { seat: number }) {
+  const game = useGame((s) => s.game)!;
+  const showPanel = useGame((s) => s.showPanel);
+  if (!partySeats(game).includes(seat)) return null;
+  const id = lineup(game)[seat];
+  const p = id !== undefined ? game.people.find((x) => x.id === id) : undefined;
+  const why = !p ? "no name yet" : p.id === game.youId ? "you" : p.seat === seat ? "sitting MP" : game.calon?.[seat] === p.id ? "named by you" : p.seat !== null ? "moving here" : divisionChief(game, seat)?.id === p.id ? "division chief" : "default";
+  return (
+    <p className="text-[11px] flex items-center gap-1.5" style={{ color: "var(--ink-2)" }}>
+      <span>
+        Candidate: <b>{p ? (p.id === game.youId ? "You" : p.name) : "—"}</b> ({why})
+      </span>
+      {game.career.rung >= 6 && !(game.nominations && !game.nominations.open) && (
+        <button className="underline-offset-2 hover:underline" style={{ color: "var(--primary-a)" }} onClick={() => showPanel("nominations")}>
+          Change
+        </button>
+      )}
+    </p>
   );
 }
 

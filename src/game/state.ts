@@ -1,6 +1,6 @@
 // The saved game state. Plain data only, so it can be saved and reloaded exactly.
 
-import { machineryBase, serviceBase } from "./bases";
+import { machineryBase, serviceBase, weekDate } from "./bases";
 import { MIN_START_FUNDS, edgeOf, standing, TURN_WEEKS, AP_PER_WEEK, AUTO_DISSOLUTION, DIFFICULTY, ECONOMY_REST, EFFECT, FORTRESS, START, type Difficulty, type ScenarioId } from "./config";
 import { initAssemblies, initParliament, type Assembly, type Parliament } from "./systems/assemblies";
 import { DUN_START } from "./systems/dun";
@@ -10,12 +10,13 @@ import { newObjectives, type Objective } from "./systems/goals";
 import { newBubbles, type Bubble } from "./systems/bubbles";
 import { initPolls, type Polls } from "./systems/polls";
 import { initCoalitions, initPartySat, type Coalitions } from "./systems/coalitions";
-import { fillVacantSeats, fixRealAges, initPeople, makeChairman, syncYou, type Person } from "./systems/people";
+import { fillVacantSeats, fixRealAges, initPeople, realRetireAge, makeChairman, syncYou, type Person } from "./systems/people";
 import { restoreChairman } from "./systems/chairman";
 import type { NewTerm } from "./systems/newterm";
 import type { Ending } from "./systems/legacy";
 import { autoPosts, migrateHomes, postSeatEffects, pullTable, type Posts } from "./systems/posts";
 import { initCamps, syncDivisions, type Divisions } from "./systems/camps";
+import { makeTokoh } from "./systems/tokoh";
 import { syncStateGov, type StateGov, type StateNight, type StateTalks, type StateTerm } from "./systems/stategov";
 import type { Laws } from "./systems/laws";
 import type { PortfolioId } from "./data/people";
@@ -47,7 +48,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 24;
+export const SAVE_VERSION = 25;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -255,6 +256,8 @@ export interface GameState {
   posts: Posts;
   /** Your party's divisions: seat → division chief (camps.ts). */
   divisions: Divisions;
+  /** Candidates you have named ahead of the election (calon): seat → person (nominations.ts). */
+  calon: Partial<Record<number, number>>;
   /** Each post's pull when the game started: effects count from here. */
   postBase: Record<string, number>;
   /** Every state government: ruler, MB, exco and (yours) treasury. */
@@ -379,6 +382,7 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     ending: null,
     posts: {},
     divisions: {},
+    calon: {},
     postBase: {},
     stateGov: {},
     stateTerms: [],
@@ -408,6 +412,12 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
   }
   Object.assign(state, syncStateGov(autoPosts(state)));
   Object.assign(state, initCamps(syncDivisions(state)));
+  // Well-known figures with no party, waiting to be courted.
+  {
+    const tokoh = makeTokoh(state, state.nextPersonId);
+    state.people = [...state.people, ...tokoh];
+    state.nextPersonId += tokoh.length;
+  }
   state.postBase = pullTable(state);
   state.scorecard = initScorecard(state);
   state.history.push({ week: 0, funds: state.me.funds, seats: projectedSeats(state) });
@@ -524,8 +534,17 @@ export function migrateGame(g: GameState): GameState {
     migrated.people = fixRealAges(migrated.people, migrated.week);
     Object.assign(migrated, autoPosts(migrated));
   }
+  // Saves before version 25: real politicians stay on longer, and the tokoh arrive.
+  if ((g.version ?? 0) < 25 && migrated.people.length) {
+    const year = weekDate(migrated.week).getFullYear();
+    migrated.people = migrated.people.map((p) => (p.real ? { ...p, retireAge: realRetireAge(p, year, migrated.seed) } : p));
+    const tokoh = makeTokoh(migrated, migrated.nextPersonId);
+    migrated.people = [...migrated.people, ...tokoh];
+    migrated.nextPersonId += tokoh.length;
+  }
   // Saves before version 24: divisions and camps.
   migrated.divisions = g.divisions ?? {};
+  migrated.calon = g.calon ?? {};
   if ((g.version ?? 0) < 24 && migrated.people.length) Object.assign(migrated, initCamps(syncDivisions(migrated)));
   if (!g.posts || !g.stateGov) {
     Object.assign(migrated, syncStateGov(autoPosts(migrated)));

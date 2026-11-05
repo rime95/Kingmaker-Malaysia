@@ -17,6 +17,7 @@ import { CAMPS, bringBlocked, campName, campsOf, divisionOf, patrons, replaceBlo
 import { regionName } from "@/game/systems/posts";
 import { regionOf } from "@/game/world";
 import { UNALIGNED, campColors } from "../campColors";
+import { courtBlocked, courtChance, courtCost, tokohEntry } from "@/game/systems/tokoh";
 
 /** Who's who: the cabinet, then any party's leadership from the President down to the branch chiefs. */
 export function PeoplePanel() {
@@ -98,6 +99,7 @@ export function PeoplePanel() {
         </section>
       )}
 
+      <TokohList />
       {!q && <CampsBar party={party} />}
       {view === "chart" && <OrgChart roster={roster} open={open} onOpen={setOpen} />}
 
@@ -248,6 +250,79 @@ function PersonRow({ p, open, onToggle }: { p: Person; open: boolean; onToggle: 
       </button>
       {open && <PersonCard p={p} />}
     </div>
+  );
+}
+
+/** Court someone over to your party: the cost, their odds this time, and why not when you can't. */
+function CourtButton({ p, label }: { p: Person; label: string }) {
+  const game = useGame((s) => s.game)!;
+  const { deep } = useGame();
+  const why = courtBlocked(game, p.id);
+  const c = courtCost(p);
+  const partner = game.coalitions[game.player].members.includes(p.party);
+  const odds = Math.round(courtChance(game, p, Math.min(100, (p.warmth ?? 0) + c.warmth)) * 100);
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <button
+        className="chip !py-1 text-xs"
+        disabled={!!why}
+        title={why ?? `${c.ap} AP, ${fmtRM(c.cost)}, ${c.capital} capital · about ${odds}% they say yes${partner ? " · your partners will notice" : ""}`}
+        onClick={() => deep({ kind: "courtPerson", id: p.id })}
+      >
+        {label} · {c.ap} AP · {fmtRM(c.cost)}
+      </button>
+      <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+        {why ?? `~${odds}% this time${p.warmth ? ` · warmth ${Math.round(p.warmth)}` : ""}${partner ? " · a partner's member" : ""}`}
+      </span>
+    </div>
+  );
+}
+
+/** Well-known figures with no party: court them before your rivals do. */
+function TokohList() {
+  const game = useGame((s) => s.game)!;
+  const all = game.people.filter((p) => p.tokoh && !p.retired);
+  if (!all.length) return null;
+  const free = all.filter((p) => p.party === "IND");
+  const taken = all.filter((p) => p.party !== "IND");
+  return (
+    <details className="inset px-3 py-2" open={free.length > 0}>
+      <summary className="cursor-pointer text-xs font-semibold" style={{ color: "var(--ink-2)" }}>
+        Tokoh: big names without a party ({free.length} free{taken.length ? `, ${taken.length} signed` : ""})
+      </summary>
+      <p className="text-[11px] mt-1.5" style={{ color: "var(--muted)" }}>
+        Win one over and they join your Supreme Council, bring a wave of buzz (most in their home state) and can stand anywhere you choose. Rival parties court them too.
+      </p>
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {free.map((p) => {
+          const t = tokohEntry(p);
+          return (
+            <li key={p.id} className="inset px-2.5 py-2 text-xs flex flex-col gap-1">
+              <div className="flex items-baseline gap-2">
+                <b className="text-sm">{p.name}</b>
+                <span style={{ color: "var(--muted)" }}>
+                  {ageOf(p, game.week)} · {regionName(p.home ?? "WP")}
+                </span>
+                <span className="ml-auto tabular-nums" style={{ color: "var(--brass-hi)" }} title="Appeal with voters">
+                  ★ {Math.round(p.influence)}
+                </span>
+              </div>
+              {t && (
+                <div style={{ color: "var(--ink-2)" }}>
+                  {t.was}. {t.blurb}
+                </div>
+              )}
+              <CourtButton p={p} label="Court" />
+            </li>
+          );
+        })}
+        {taken.map((p) => (
+          <li key={p.id} className="text-xs px-1" style={{ color: "var(--muted)" }}>
+            {p.name}: signed with {p.party}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -428,6 +503,7 @@ function PersonCard({ p }: { p: Person }) {
           </button>
         </div>
       )}
+      {!you && !own && p.seat === null && p.party !== "IND" && <CourtButton p={p} label="Invite to join" />}
       {!you && !own && p.seat !== null && hoppingLaw(game) === "none" && (
         <div className="flex flex-wrap gap-1.5">
           <button

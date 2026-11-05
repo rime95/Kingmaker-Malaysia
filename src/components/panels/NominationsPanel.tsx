@@ -45,6 +45,8 @@ import {
 import { chancePct, useReads } from "../common";
 import { projectAllFor } from "@/game/state";
 import { CoalitionFlag, PartyFlag } from "../flags";
+import { CandidateBoard } from "./CandidateBoard";
+import { lineup } from "@/game/systems/nominations";
 
 const initials = (name: string) =>
   name
@@ -65,7 +67,9 @@ export function NominationsPanel() {
   return (
     <div className="flex flex-col gap-4">
       {hasPartners && <SeatTalks />}
-      {!n ? (
+      {president ? (
+        <PresidentBoard />
+      ) : !n ? (
         <div
           className="flex flex-col gap-3 text-sm"
           style={{ color: "var(--ink-2)" }}
@@ -91,6 +95,17 @@ export function NominationsPanel() {
         <Candidates />
       )}
     </div>
+  );
+}
+
+/** The president's candidates board, with the seat drawer for a closer look. */
+function PresidentBoard() {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <>
+      <CandidateBoard onOpenSeat={setOpen} />
+      {open !== null && <Drawer seat={open} onClose={() => setOpen(null)} />}
+    </>
   );
 }
 
@@ -661,9 +676,11 @@ function Drawer({ seat, onClose }: { seat: number; onClose: () => void }) {
   const game = useGame((s) => s.game)!;
   const nominate = useGame((s) => s.nominate);
   const reads = useReads();
-  const n = game.nominations!;
+  const n = game.nominations;
   const president = game.career.rung >= 6;
-  const pick = byId(game, n.picks[seat]);
+  const picks = lineup(game);
+  const pick = byId(game, picks[seat]);
+  const canEdit = president && (!n || n.open);
   const mp = mpOf(game, seat);
   const chance = reads.length
     ? winChance(reads[seat], game.player, game.week)
@@ -727,12 +744,12 @@ function Drawer({ seat, onClose }: { seat: number; onClose: () => void }) {
             p={p}
             seat={seat}
             current={p.id === pick?.id}
-            onPick={president && n.open ? () => choose(p.id) : undefined}
+            onPick={canEdit ? () => choose(p.id) : undefined}
           />
         ))}
-        {president && n.open && (
+        {canEdit && (
           <>
-            <div className="flex flex-wrap gap-1.5">
+            {n && <div className="flex flex-wrap gap-1.5">
               <button
                 className="btn btn-ghost"
                 onClick={() => nominate(seat, "newface")}
@@ -745,7 +762,7 @@ function Drawer({ seat, onClose }: { seat: number; onClose: () => void }) {
               >
                 + Poach a local figure (RM 500k)
               </button>
-            </div>
+            </div>}
             {others.length > 0 && (
               <select
                 value=""

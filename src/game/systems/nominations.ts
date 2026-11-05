@@ -29,6 +29,10 @@ export const NOMINATION = {
   /** Weeks from dissolution to nomination day. */
   window: 2,
   incumbent: 0.1,
+  /** A candidate from another state ("parachuted"), standing outside their own seat. */
+  outsider: 0.03,
+  /** Naming a candidate before Parliament is dissolved (calon), and what it costs the people it passes over. */
+  name: { capital: 2, mpLoyalty: -8, otherLoyalty: -3 },
   /** Personal vote per point of standing above 40. */
   perInfluence: 1 / 250,
   /** Poaching a popular local figure (a doctor, a headman, a footballer) to stand for you. */
@@ -59,25 +63,26 @@ export function partySeats(s: GameState): number[] {
 }
 
 /**
- * Whether someone could stand in a seat: its sitting MP, or a member of your party without a seat. You yourself only
- * ever stand in your own home seat (one MP, one seat).
+ * Whether someone could stand in a seat: any member of your party who has made division chief (sitting MPs included:
+ * they can move seat). As party president you can stand anywhere too; below that, only in your home seat. One person,
+ * one seat: naming someone elsewhere moves them.
  */
 export function canStand(s: GameState, seat: number, p: Person): boolean {
   if (p.party !== yourParty(s) || p.retired) return false;
-  if (p.id === s.youId) return seat === s.career.homeSeat;
-  return p.seat === seat || (p.seat === null && p.rank >= 1);
+  if (p.id === s.youId) return s.career.rung >= 6 || seat === s.career.homeSeat;
+  return p.seat === seat || p.rank >= 1;
 }
 
 /** The seat someone is already picked for (other than this one). */
 export function pickedFor(s: GameState, id: number, except?: number): number | undefined {
-  const e = Object.entries(s.nominations?.picks ?? {}).find(([k, v]) => v === id && Number(k) !== except);
+  const e = Object.entries(s.nominations?.picks ?? lineup(s)).find(([k, v]) => v === id && Number(k) !== except);
   return e ? Number(e[0]) : undefined;
 }
 
 /** Who you, the president, can put up in a seat and who is still free: its sitting MP and members of your party without a seat. */
 export function eligible(s: GameState, seat: number): Person[] {
   const taken = new Set(
-    Object.entries(s.nominations?.picks ?? {})
+    Object.entries(s.nominations?.picks ?? lineup(s))
       .filter(([k]) => Number(k) !== seat)
       .map(([, v]) => v),
   );
@@ -91,15 +96,27 @@ export function standable(s: GameState, seat: number): Person[] {
   return s.people.filter((p) => canStand(s, seat, p));
 }
 
-/** The default line-up: sitting MPs stand again; elsewhere the most senior members without a seat; then new faces. */
-function defaultPicks(s: GameState): { state: GameState; picks: Record<number, number> } {
+/**
+ * The default line-up: your named calon first; then sitting MPs stand again; then the division chief; elsewhere the
+ * most senior local members without a seat; then new faces (only when `recruit`, otherwise the seat is left open).
+ */
+function defaultPicks(s: GameState, recruit = true): { state: GameState; picks: Record<number, number> } {
   const party = yourParty(s);
   const seats = partySeats(s);
   const picks: Record<number, number> = {};
   const used = new Set<number>();
+  for (const [k, id] of Object.entries(s.calon ?? {})) {
+    const i = Number(k);
+    const p = id !== undefined ? s.people.find((x) => x.id === id) : undefined;
+    if (p && seats.includes(i) && canStand(s, i, p) && !used.has(p.id)) {
+      picks[i] = p.id;
+      used.add(p.id);
+    }
+  }
   for (const i of seats) {
+    if (picks[i] !== undefined) continue;
     const mp = mpOf(s, i);
-    if (mp && mp.party === party && !mp.retired) {
+    if (mp && mp.party === party && !mp.retired && !used.has(mp.id)) {
       picks[i] = mp.id;
       used.add(mp.id);
     }
@@ -132,6 +149,7 @@ function defaultPicks(s: GameState): { state: GameState; picks: Record<number, n
       used.add(p.id);
       continue;
     }
+    if (!recruit) continue;
     const fresh = { ...recruitPerson(next++, party, s.seed, s.week, s, i), rank: 1 };
     people = [...people, fresh];
     picks[i] = fresh.id;
@@ -165,6 +183,84 @@ export function openNominations(s: GameState): { state: GameState; lines: Report
       ? `Nominations are open: name your candidates before nomination day in ${NOMINATION.window} weeks (Nominations panel).`
       : `Nominations are open. Your party president is drawing up the list (nomination day in ${NOMINATION.window} weeks).`;
   return { state, lines: [{ text, tone: "info" }] };
+}
+
+/** Your line-up today: the nominations once the window is open; before that, your named calon and the defaults. */
+export function lineup(s: GameState): Record<number, number> {
+  return s.nominations ? s.nominations.picks : defaultPicks(s, false).picks;
+}
+
+/** Why you can't name this person for this seat (null when you can). */
+export function nameBlocked(s: GameState, seat: number, id: number): string | null {
+  if (s.nominations?.open) return pickBlocked(s, seat, id);
+  if (s.nominations) return "Names are locked until the next election.";
+  if (s.career.rung < 6) return "Your party president names the candidates.";
+  if (!partySeats(s).includes(seat)) return "Your party doesn't put up the candidate here.";
+  const p = s.people.find((x) => x.id === id);
+  if (!p || !canStand(s, seat, p)) return "They can't stand here.";
+  if (lineup(s)[seat] === id) return "They're already your pick here.";
+  if (s.me.capital < NOMINATION.name.capital) return `Needs ${NOMINATION.name.capital} political capital.`;
+  return null;
+}
+
+/**
+ * Name a candidate for a seat: before dissolution it sets your calon (they become the pick when nominations open); in
+ * the window it nominates them. Anyone passed over notices now: a sitting MP most of all.
+ */
+export function nameCandidate(s: GameState, seat: number, id: number): { state: GameState; message: string } | { error: string } {
+  if (s.nominations?.open) return nominate(s, seat, id);
+  const why = nameBlocked(s, seat, id);
+  if (why) return { error: why };
+  const before = lineup(s);
+  const calon = { ...(s.calon ?? {}) };
+  for (const [k, v] of Object.entries(calon)) if (v === id) delete calon[Number(k)];
+  calon[seat] = id;
+  let state: GameState = { ...s, calon, me: { ...s.me, capital: s.me.capital - NOMINATION.name.capital } };
+  const after = lineup(state);
+  const standing = new Set(Object.values(after));
+  // Whoever was standing and now isn't.
+  const lost = Object.values(before).filter((x) => !standing.has(x) && x !== s.youId);
+  const byIdMap = new Map(s.people.map((p) => [p.id, p]));
+  state = {
+    ...state,
+    people: state.people.map((p) => (lost.includes(p.id) ? { ...p, loyalty: Math.max(0, p.loyalty + (p.seat !== null ? NOMINATION.name.mpLoyalty : divisionChief(s, Object.keys(before).map(Number).find((k) => before[k] === p.id) ?? -1)?.id === p.id ? CAMPS.snub : NOMINATION.name.otherLoyalty)) } : p)),
+  };
+  const p = byIdMap.get(id)!;
+  const from = Object.keys(before).map(Number).find((k) => before[k] === id && k !== seat);
+  const parts = [`${p.id === s.youId ? "You" : p.name} will stand in ${SEATS[seat].name}.`];
+  if (from !== undefined) {
+    const next = after[from] !== undefined ? byIdMap.get(after[from]) : undefined;
+    parts.push(`${SEATS[from].name} falls to ${next ? next.name : "a new face"}.`);
+  }
+  const hurt = lost.map((x) => byIdMap.get(x)).filter((x): x is Person => !!x);
+  if (hurt.length) parts.push(`${hurt.map((x) => x.name).join(" and ")} ${hurt.length === 1 ? "is" : "are"} passed over${hurt.some((x) => x.seat !== null) ? ": a dropped MP may stand as an independent" : ""}.`);
+  return { state, message: parts.join(" ") };
+}
+
+/** Take back a calon you named: the seat goes back to its default. */
+export function clearCandidate(s: GameState, seat: number): { state: GameState; message: string } | { error: string } {
+  if (s.calon?.[seat] === undefined) return { error: "You haven't named anyone here." };
+  const calon = { ...s.calon };
+  delete calon[seat];
+  const state = { ...s, calon };
+  const next = lineup(state)[seat];
+  const p = next !== undefined ? state.people.find((x) => x.id === next) : undefined;
+  return { state, message: `${SEATS[seat].name} goes back to its default: ${p ? p.name : "a new face"}.` };
+}
+
+/** Weekly: a calon who has left the party, retired, or can no longer stand there is dropped. */
+export function syncCalon(s: GameState): { state: GameState; lines: ReportLine[] } {
+  const lines: ReportLine[] = [];
+  if (!s.calon || !Object.keys(s.calon).length) return { state: s, lines };
+  const seats = new Set(partySeats(s));
+  const calon: Partial<Record<number, number>> = {};
+  for (const [k, id] of Object.entries(s.calon)) {
+    const i = Number(k);
+    const p = id !== undefined ? s.people.find((x) => x.id === id) : undefined;
+    if (p && seats.has(i) && canStand(s, i, p)) calon[i] = id;
+    else lines.push({ text: `${p?.name ?? "Your candidate"} is no longer your candidate for ${SEATS[i].name}.`, tone: "info" });
+  }
+  return { state: lines.length ? { ...s, calon } : s, lines };
 }
 
 export function pickBlocked(s: GameState, seat: number, personId: number | "newface" | "local"): string | null {
@@ -218,6 +314,7 @@ export function candidateStrength(s: Pick<GameState, "week" | "youId">, seat: nu
   let v = (p.influence - 40) * NOMINATION.perInfluence;
   if (v < 0) v *= 0.4;
   if (p.seat === seat) v += NOMINATION.incumbent;
+  else if (homeOf(p) !== regionOf(SEATS[seat].state)) v -= NOMINATION.outsider;
   if (ageOf(p, s.week) < 36 && p.seat === null && SEATS[seat].demo.youth > NOMINATION.newFaceYouth) v += NOMINATION.newFace;
   // Who they are: an ustaz in a rural Malay seat, a technocrat in the city, a local son or daughter at home.
   if (p.id !== s.youId) v += traitVote(p, seat);
@@ -230,6 +327,7 @@ export function strengthParts(s: Pick<GameState, "week" | "youId">, seat: number
   if (standing < 0) standing *= 0.4;
   const rows = [{ label: `Standing ${Math.round(p.influence)}`, value: standing }];
   if (p.seat === seat) rows.push({ label: "Sitting MP", value: NOMINATION.incumbent });
+  else if (homeOf(p) !== regionOf(SEATS[seat].state)) rows.push({ label: "From another state", value: -NOMINATION.outsider });
   if (ageOf(p, s.week) < 36 && p.seat === null && SEATS[seat].demo.youth > NOMINATION.newFaceYouth) rows.push({ label: "A fresh young face", value: NOMINATION.newFace });
   if (p.id !== s.youId) for (const t of traitVotes(p, seat)) rows.push({ label: TRAITS[t.trait].name, value: t.v });
   return rows;
@@ -252,7 +350,7 @@ export function seatStatus(s: GameState, seat: number): SeatStatus {
   const pick = id === undefined ? undefined : s.people.find((p) => p.id === id);
   const mp = mpOf(s, seat);
   if (pick?.id === s.youId) return "you";
-  if (mp && mp.party === yourParty(s) && !mp.retired && mp.id !== pick?.id && mp.id !== s.youId) return "dropped";
+  if (mp && mp.party === yourParty(s) && !mp.retired && mp.id !== pick?.id && mp.id !== s.youId && !Object.values(s.nominations?.picks ?? {}).includes(mp.id)) return "dropped";
   if (!pick) return "none";
   if (pick.seat === seat) return "kept";
   return candidateStrength(s, seat, pick) < 0 ? "weak" : "named";
@@ -272,7 +370,8 @@ export function closeNominations(s: GameState): { state: GameState; lines: Repor
   // Sitting MPs who were dropped.
   for (const i of Object.keys(picks).map(Number)) {
     const mp = mpOf(s, i);
-    if (!mp || mp.party !== party || picks[i] === mp.id || mp.retired || mp.id === s.youId) continue;
+    // An MP standing somewhere else moved; only one left off the list was dropped.
+    if (!mp || mp.party !== party || picks[i] === mp.id || mp.retired || mp.id === s.youId || Object.values(picks).includes(mp.id)) continue;
     const loyalty = Math.max(0, mp.loyalty - NOMINATION.snubLoyalty);
     if (loyalty < NOMINATION.rebelBelow && hash01("rebel", s.seed, s.week, i) < NOMINATION.rebelChance) {
       people = people.map((p) => (p.id === mp.id ? { ...p, party: "IND", rank: 1, loyalty } : p));
@@ -297,12 +396,15 @@ export function closeNominations(s: GameState): { state: GameState; lines: Repor
     lines.push({ text: snubbed.length === 1 ? `${first.chief!.name}, who runs the ${SEATS[first.i].name} division, wanted the seat and is sulking.` : `${snubbed.length} division chiefs passed over for their own seats are sulking.`, tone: "bad" });
   }
   lines.push({ text: `Nomination day: ${Object.keys(picks).length} candidates for ${party}. The campaign is on.`, tone: "info" });
-  return { state: { ...s, people, seatOffsets, entries, nominations: { ...n, open: false, picks } }, lines };
+  const yourSeat = s.career.rung >= 6 ? Object.keys(picks).map(Number).find((k) => picks[k] === s.youId) : undefined;
+  const nextCareer = yourSeat !== undefined && yourSeat !== s.career.homeSeat ? { ...s.career, homeSeat: yourSeat } : s.career;
+  if (nextCareer !== s.career) lines.push({ text: `You stand in ${SEATS[yourSeat!].name} this time.`, tone: "info" });
+  return { state: { ...s, people, seatOffsets, entries, career: nextCareer, calon: {}, nominations: { ...n, open: false, picks } }, lines };
 }
 
 /** Weekly: open the window when Parliament is dissolved, close it on nomination day. */
 export function nominationsWeek(s: GameState): { state: GameState; lines: ReportLine[] } {
-  if (s.parliament.status === "campaign" && !s.nominations) return openNominations(s);
+  if (s.parliament.status === "campaign" && !s.nominations) return openNominations(syncCalon(s).state);
   if (s.nominations?.open && s.week >= s.nominations.closesWeek) return closeNominations(s);
   return { state: s, lines: [] };
 }
@@ -326,7 +428,7 @@ export function autoPick(s: GameState): { state: GameState; message: string } | 
     const cur = state.people.find((p) => p.id === state.nominations!.picks[seat]);
     // Never drop a sitting MP or yourself: that is a choice you make by hand.
     if (cur && (cur.seat === seat || cur.id === s.youId)) continue;
-    const best = shortlist(state, seat, 1)[0];
+    const best = shortlist(state, seat, 4).find((p) => p.seat === null || p.seat === seat);
     if (!best || best.id === cur?.id || candidateStrength(state, seat, best) <= candidateStrength(state, seat, cur)) continue;
     const r = nominate(state, seat, best.id);
     if ("state" in r) {
