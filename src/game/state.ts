@@ -1,6 +1,7 @@
 // The saved game state. Plain data only, so it can be saved and reloaded exactly.
 
 import { machineryBase, serviceBase, weekDate } from "./bases";
+import { developmentSwing } from "./systems/wawasan";
 import { MIN_START_FUNDS, edgeOf, standing, TURN_WEEKS, AP_PER_WEEK, AUTO_DISSOLUTION, DIFFICULTY, ECONOMY_REST, EFFECT, FORTRESS, START, type Difficulty, type ScenarioId } from "./config";
 import { initAssemblies, initParliament, type Assembly, type Parliament } from "./systems/assemblies";
 import { DUN_START } from "./systems/dun";
@@ -581,6 +582,8 @@ export function playerNationalEffect(state: GameState): number {
   v += (state.economy - ECONOMY_REST) * (isGovernment(state) ? EFFECT.economyGov : -EFFECT.economyOpp);
   // The government's approval: yours to keep in power, theirs to lose in opposition.
   if (state.nation) v += (state.nation.approval - 50) * (isGovernment(state) ? NATION.approvalSwingGov : -NATION.approvalSwingOpp);
+  // Nation-building: the Quality of Life your government delivered.
+  v += developmentSwing(state);
   // A wave: momentum lifts you everywhere.
   v += (me.momentum ?? 0) * EFFECT.momentum;
   // Star power: you are the protagonist.

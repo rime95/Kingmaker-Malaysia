@@ -32,6 +32,7 @@ import { nominationsWeek } from "./systems/nominations";
 import { naturalSupport } from "./voter";
 import { ROLES, pollError, teamDonations, teamRaidMult, teamSalaries, teamUpkeepMult, teamWeek } from "./systems/team";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
+import { taxTargets } from "./systems/wawasan";
 import { CARD_BY_KIND, cardsWeek, makeRoom } from "./systems/events";
 import { rivalsWeek } from "./systems/rivals";
 import { decaySeg } from "./systems/segments";
@@ -175,6 +176,11 @@ export function advanceWeek(input: GameState): GameState {
   // The country: indicators drift toward where policy, ministers, projects and crises push them
   const nw = nationWeek(s);
   lines.push(...nw.lines);
+  // Wawasan milestones: the nation celebrates, and so does your government.
+  for (const m of nw.reached) {
+    me.capital = clamp(me.capital + m.capital, 0, 200);
+    nw.nation.approval = clamp(nw.nation.approval + m.approval, 5, 95);
+  }
   const economy = economyScore(nw.nation);
   const fiscal = clamp(s.fiscal + (50 - s.fiscal) * ECONOMY_DRIFT.fiscal + nw.fiscal);
   // A project opening: the government that built it gets the credit in the seats it serves.
@@ -208,7 +214,7 @@ export function advanceWeek(input: GameState): GameState {
   const year = weekDate(next.week).getFullYear();
   if (next.budgetDue !== null && next.week - next.budgetDue >= BUDGET.window) {
     if (gov) {
-      const r = tableBudget(next, defaultAllocation(budgetEnvelope(next.fiscal)), true);
+      const r = tableBudget(next, defaultAllocation(budgetEnvelope(next.fiscal, taxTargets(next).envelope)), true);
       if (r.ok) {
         next = r.state;
         lines.push({ text: r.message, tone: "info" });

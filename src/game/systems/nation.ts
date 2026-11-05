@@ -18,6 +18,7 @@ import type { GameState, ReportLine } from "../state";
 import { SEATS, STATE_BY_ID } from "../world";
 import { byId } from "./people";
 import { edgeOf } from "../config";
+import { QOL_START, WAWASAN, budgetCol, incomeUsd, pillarAvg, potentialBoost, qualityOfLife, taxTargets, wawasanWeek, wz, youBuild, type Milestone, type Wawasan } from "./wawasan";
 
 export interface Nation {
   /** Real GDP growth, % a year. */
@@ -45,7 +46,9 @@ export interface Nation {
   projects: Project[];
   crisis: Crisis | null;
   /** Every four weeks. */
-  history: { week: number; gdp: number; inflation: number; unemployment: number; approval: number; ringgit: number; debt: number }[];
+  history: { week: number; gdp: number; inflation: number; unemployment: number; approval: number; ringgit: number; debt: number; income?: number; qol?: number }[];
+  /** Nation-building (wawasan.ts); old saves start fresh. */
+  wawasan?: Wawasan;
 }
 
 export const START_NATION: Omit<Nation, "projects" | "crisis" | "history"> = {
@@ -202,19 +205,22 @@ function targets(s: GameState) {
   const sum = (k: keyof ProjectDef["done"]) => finished.reduce((t, d) => t + (d[k] ?? 0), 0);
   const building = n.projects.filter((p) => !p.done).length;
   const w = stewardship(s);
+  const wv = wz(s);
+  const boost = potentialBoost(wv);
+  const tx = taxTargets(s, wv);
 
-  const gdp = 4.2 + m("economy") * 0.4 + (n.fdi - 60) * 0.02 + sum("gdp") + building * 0.08 + (n.stimulus > 0 ? 0.8 : 0) - (n.opr - 2.75) * 0.4 + (pol("infra") === 1 ? 0.3 : 0) + (pol("wage") === 1 ? -0.15 : 0);
+  const gdp = 4.2 + m("economy") * 0.4 + (n.fdi - 60) * 0.02 + sum("gdp") + building * 0.08 + (n.stimulus > 0 ? 0.8 : 0) - (n.opr - 2.75) * 0.4 + (pol("infra") === 1 ? 0.3 : 0) + (pol("wage") === 1 ? -0.15 : 0) + boost + tx.growth;
   const fuel = pol("fuel");
   const tax = pol("tax");
   const inflation =
-    2.0 + (n.gdp - 4.4) * 0.25 - (n.opr - 2.75) * 0.7 + (n.ringgit - 4.2) * 1.2 + (fuel === 1 ? 0.6 : fuel === 2 ? 1.4 : 0) + (tax === 1 ? 0.3 : tax === 2 ? 0.8 : tax === 3 ? -0.3 : 0) + (pol("wage") === 1 ? 0.2 : 0);
+    2.0 + (n.gdp - 4.4 - Math.max(0, boost)) * 0.25 - (n.opr - 2.75) * 0.7 + (n.ringgit - 4.2) * 1.2 + (fuel === 1 ? 0.6 : fuel === 2 ? 1.4 : 0) + (tax === 1 ? 0.3 : tax === 2 ? 0.8 : tax === 3 ? -0.3 : 0) + (pol("wage") === 1 ? 0.2 : 0);
   const unemployment = 3.2 - (n.gdp - 4.4) * 0.3 + (pol("wage") === 1 ? 0.2 : 0) - building * 0.05;
-  const ringgit = 4.2 + (n.debt - 64) * 0.01 - (n.opr - 2.75) * 0.2 - (n.fdi - 60) * 0.004;
-  const col = 50 + (n.inflation - 2) * 10 + (fuel === 1 ? 6 : fuel === 2 ? 14 : 0) - (pol("cashaid") === 1 ? 6 : pol("cashaid") === 2 ? -6 : 0) - (pol("wage") === 1 ? 4 : 0) - m("housing") * 3 + sum("col");
+  const ringgit = 4.2 + (pillarAvg(wv) - 45) * WAWASAN.ringgitPerPoint + (n.debt - 64) * 0.01 - (n.opr - 2.75) * 0.2 - (n.fdi - 60) * 0.004;
+  const col = 50 + (n.inflation - 2) * 10 + (fuel === 1 ? 6 : fuel === 2 ? 14 : 0) - (pol("cashaid") === 1 ? 6 : pol("cashaid") === 2 ? -6 : 0) - (pol("wage") === 1 ? 4 : 0) - m("housing") * 3 + sum("col") + (youBuild(s) ? budgetCol(wv) : 0);
   const fdi = 55 + m("trade") * 10 + sum("fdi") + (s.me.integrity - 60) * 0.1 - (n.ringgit > 4.6 ? 5 : 0);
   const pay = n.civilPay === "raise" ? 3 : n.civilPay === "freeze" ? -3 : 0;
   const approval =
-    50 + (n.gdp - 4.4) * 3 - (n.inflation - 2) * 3 - (n.unemployment - 3.2) * 4 - (n.col - 50) * 0.35 + sum("approval") + pay + (m("health") + m("education") + m("communications")) * 1.5 + m("rural") * 1;
+    50 + (n.gdp - 4.4) * 3 - (n.inflation - 2) * 3 - (n.unemployment - 3.2) * 4 - (n.col - 50) * 0.35 + sum("approval") + pay + (m("health") + m("education") + m("communications")) * 1.5 + m("rural") * 1 + tx.approval + (qualityOfLife(s, wv) - QOL_START) * WAWASAN.approvalPerQol;
   return {
     gdp: gdp + w * STEWARD.gdp,
     inflation: inflation + w * STEWARD.inflation,
@@ -237,6 +243,8 @@ export interface NationWeek {
   opened: ProjectDef[];
   /** A crisis ended: how the government came through it (positive = well). */
   ended: { title: string; score: number } | null;
+  /** Wawasan milestones reached this week. */
+  reached: Milestone[];
 }
 
 /** One week of the national economy. */
@@ -318,9 +326,14 @@ export function nationWeek(s: GameState): NationWeek {
   if (n.civilPay === "raise") fiscal -= 0.15;
   if (n.civilPay === "freeze") fiscal += 0.1;
   fiscal += ministerEffect(s, "finance") * 0.05;
+  // Nation-building: the pillars, income per head and the milestones; tax revenue into fiscal space.
+  const ww = wawasanWeek(s, n.gdp, opened.map((d) => d.id));
+  n.wawasan = ww.wawasan;
+  lines.push(...ww.lines);
+  fiscal += taxTargets(s, ww.wawasan).fiscal;
   n.debt = clamp(n.debt + ((50 - s.fiscal) / 50) * 0.04 - (n.gdp - 4) * 0.004 - (n.inflation - 2) * 0.003, 30, 100);
-  if (s.week % 4 === 0) n.history = [...n.history, { week: s.week, gdp: n.gdp, inflation: n.inflation, unemployment: n.unemployment, approval: n.approval, ringgit: n.ringgit, debt: n.debt }].slice(-130);
-  return { nation: n, fiscal, lines, crisis, opened, ended };
+  if (s.week % 4 === 0) n.history = [...n.history, { week: s.week, gdp: n.gdp, inflation: n.inflation, unemployment: n.unemployment, approval: n.approval, ringgit: n.ringgit, debt: n.debt, income: Math.round(incomeUsd({ nation: n })), qol: Math.round(qualityOfLife({ nation: n }) * 10) / 10 }].slice(-130);
+  return { nation: n, fiscal, lines, crisis, opened, ended, reached: ww.reached };
 }
 
 /** The old 0–100 economy score, derived from the indicators. */

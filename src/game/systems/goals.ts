@@ -1,6 +1,7 @@
 // Term objectives (three per term, with rewards) and achievements (permanent, checked every week).
 
 import { hash01 } from "../rng";
+import { MILESTONES, wz } from "./wawasan";
 import type { GameState } from "../state";
 import { COALITION_INFO, SEATS, STATE_BY_ID } from "../world";
 import { ASSEMBLY_STATES, stateRule, stateRulers } from "./assemblies";
@@ -102,6 +103,7 @@ export const LEGACY: LegacyGoal[] = [
     text: "Keep every promise of a full term.",
     progress: (s) => (pm(s) && s.agenda?.by === s.player && s.agenda.items.length ? s.agenda.items.filter((it) => itemMet(s, it)).length / s.agenda.items.length : 0),
   },
+  ...MILESTONES.map((m) => ({ id: `wawasan-${m.id}`, name: m.name, text: m.text, progress: (s: GameState) => (wz(s).reached.includes(m.id) ? 1 : Math.min(0.99, m.progress(s, wz(s)))) })),
   { id: "mandate", name: "Mandate Renewed", text: "Win re-election as Prime Minister.", progress: (s) => Math.min(1, terms(s) / 2) },
   { id: "era", name: "An Era", text: "Lead the country through three terms.", progress: (s) => Math.min(1, terms(s) / 3) },
 ];

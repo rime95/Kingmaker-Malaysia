@@ -51,6 +51,7 @@ export const SECTIONS: Section[] = [
     sub: "Run the country, or hold it to account: the numbers, policy and the Budget, the cabinet, the Dewan and the states",
     tabs: [
       { id: "nation", label: () => "Dashboard" },
+      { id: "wawasan", label: () => "Wawasan" },
       { id: "policy", label: () => "Policy & Budget" },
       { id: "cabinet", label: (g) => (isGovernment(g) ? "Cabinet" : "Shadow cabinet") },
       { id: "parliament", label: () => "Dewan" },

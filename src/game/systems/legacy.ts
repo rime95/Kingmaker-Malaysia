@@ -3,6 +3,7 @@
 // with your protégé (or, if you were ousted, you can fight on from the back benches), or you start a new game.
 
 import type { GameState } from "../state";
+import { wz } from "./wawasan";
 import { cshort } from "../world";
 import { ACHIEVEMENTS, LEGACY } from "./goals";
 import { RUNGS, succession } from "./career";
@@ -61,8 +62,12 @@ export function legacyOf(s: GameState): Legacy {
   const bestSeats = Math.max(s.holders.filter((h) => h === s.player).length, ...fought.map((t) => t.seats));
   const yearsAsPm = Math.round((c.pmWeeks / 52) * 10) / 10;
   const timeAsPm = c.pmWeeks < 52 ? `${c.pmWeeks} week${c.pmWeeks === 1 ? "" : "s"}` : `${yearsAsPm} years`;
-  const title =
-    twoThirds >= 2
+  const built = wz(s).reached;
+  const title = built.includes("superpower")
+    ? "Bapa Malaysia Raya · Architect of a Superpower"
+    : built.includes("developed")
+      ? "Bapa Wawasan · The leader who made Malaysia developed"
+      : twoThirds >= 2
       ? "Bapa Pembangunan · Father of Development"
       : twoThirds === 1
         ? "Negarawan · Statesman"

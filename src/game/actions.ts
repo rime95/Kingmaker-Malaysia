@@ -17,6 +17,7 @@ import { standsAside } from "./systems/pacts";
 import { TALKS, claimSeat, concedeSeat, type TalkSeat } from "./systems/seattalks";
 import { POLLS, commissionedRead } from "./systems/polls";
 import { BUDGET, BUDGET_LINES, budgetEnvelope } from "./systems/budget";
+import { WAWASAN, taxTargets, wz, youBuild } from "./systems/wawasan";
 import { holdByElection, resolveCard } from "./systems/events";
 import { MULTIRACIAL, PLEDGE_WEIGHT, POLICY_BY_ID, POLICY_COST, UNFUNDED_INTEGRITY_PER_FISCAL } from "./systems/policies";
 import { addSeg, type SegEffects } from "./systems/segments";
@@ -404,6 +405,23 @@ export function setCivilPay(s: GameState, stance: Nation["civilPay"]): ActionRes
     ok: true,
     state: { ...s, nation: { ...s.nation, civilPay: stance }, me: { ...s.me, capital: s.me.capital - 5, mood: addSeg(s.me.mood, mood) } },
     message: stance === "raise" ? "Civil servants get a pay rise." : stance === "freeze" ? "Civil service pay is frozen." : "Civil service pay rises with inflation.",
+  };
+}
+
+/** Set the tax take (% of GDP). */
+export function setTax(s: GameState, rate: number): ActionResult {
+  const why = leverBlocked(s);
+  if (why) return { ok: false, error: why };
+  const T = WAWASAN.tax;
+  const r = Math.round(rate);
+  if (r < T.min || r > T.max) return { ok: false, error: `Between ${T.min}% and ${T.max}% of GDP.` };
+  const w = wz(s);
+  if (w.tax === r) return { ok: false, error: "Already your tax take." };
+  if (s.me.capital < T.capital) return { ok: false, error: `Needs ${T.capital} political capital.` };
+  return {
+    ok: true,
+    state: { ...s, nation: { ...s.nation, wawasan: { ...w, tax: r } }, me: { ...s.me, capital: s.me.capital - T.capital } },
+    message: r > w.tax ? `Taxes rise: revenue to ${r}% of GDP. More to build with; business and voters grumble.` : `Taxes fall: revenue to ${r}% of GDP. Growth and voters cheer; the Treasury has less.`,
   };
 }
 
@@ -1334,7 +1352,7 @@ export function tableBudget(s: GameState, alloc: Record<string, number>, auto = 
   if (Object.values(alloc).some((v) => v < 0)) return { ok: false, error: "Allocations can't be negative." };
   if (!auto && !isPresident(s.career)) return { ok: false, error: LEADERSHIP_ONLY };
   const gov = isGovernment(s);
-  const envelope = budgetEnvelope(s.fiscal);
+  const envelope = budgetEnvelope(s.fiscal, taxTargets(s).envelope);
   const total = Object.values(alloc).reduce((a, b) => a + b, 0);
   if (total > envelope + BUDGET.overspendMax) return { ok: false, error: `At most ${envelope + BUDGET.overspendMax} points.` };
   const me = cloneMe(s.me);
@@ -1356,9 +1374,12 @@ export function tableBudget(s: GameState, alloc: Record<string, number>, auto = 
   const { voters, economy } = budgetVoters(alloc, 1);
   me.budget = addSeg(me.budget, voters);
   const over = Math.max(0, total - envelope);
+  // Your Budget builds the nation all year (wawasan.ts); anyone else's doesn't.
+  const nation = youBuild(s) ? { ...s.nation, wawasan: { ...wz(s), alloc: { ...alloc } } } : s.nation;
   const state = {
     ...done,
     me,
+    nation,
     economy: clamp(s.economy + economy - over * BUDGET.overspendEconomy),
     fiscal: clamp(s.fiscal - over * BUDGET.overspendFiscal),
   };

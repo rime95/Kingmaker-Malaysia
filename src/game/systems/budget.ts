@@ -18,7 +18,9 @@ export const BUDGET_LINES: BudgetLine[] = [
   { id: "cash", label: "Cash aid & subsidies", blurb: "Money straight to poorer households.", voters: { b40: 0.01 } },
   { id: "rural", label: "Rural development", blurb: "Roads, water, FELDA and kampung grants.", voters: { rural: 0.009 } },
   { id: "urban", label: "Transit & housing", blurb: "MRT lines, affordable homes, flood mitigation in cities.", voters: { urban: 0.009 } },
-  { id: "youth", label: "Education & youth", blurb: "PTPTN relief, TVET, gig-worker protection.", voters: { youth: 0.009 } },
+  { id: "youth", label: "Education & youth", blurb: "Schools, universities, PTPTN relief, TVET.", voters: { youth: 0.009 } },
+  { id: "health", label: "Health", blurb: "Hospitals, clinics, doctors and nurses.", voters: { all: 0.002, b40: 0.004 } },
+  { id: "rnd", label: "R&D & industry", blurb: "Chips, AI, green tech, research grants and industrial parks.", voters: { urban: 0.004, youth: 0.004 } },
   { id: "borneo", label: "Sabah & Sarawak", blurb: "Pan Borneo, rural power and water, MA63 grants.", voters: { sabah: 0.016, sarawak: 0.016 } },
   { id: "civil", label: "Civil service pay", blurb: "1.7 million civil servants, many of them Malay voters.", voters: { malay: 0.007, all: 0.0013 } },
   { id: "tax", label: "Tax relief", blurb: "Income tax cuts and reliefs. Helps everyone a little and boosts the economy.", voters: { all: 0.004, urban: 0.002 }, economy: 0.5 },
@@ -37,9 +39,9 @@ export const BUDGET = {
   defeat: { capital: 30, unity: 10, scandal: 20 },
 };
 
-/** Points to spend this year, from fiscal space (0–100). */
-export function budgetEnvelope(fiscal: number): number {
-  return Math.max(4, Math.round(8 + fiscal / 10));
+/** Points to spend this year, from fiscal space (0–100) and the tax take (extra points from wawasan.ts taxTargets). */
+export function budgetEnvelope(fiscal: number, tax = 0): number {
+  return Math.max(4, Math.round(8 + fiscal / 10 + tax));
 }
 
 /** Officials' default: spread evenly across every line. */

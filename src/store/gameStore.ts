@@ -40,7 +40,7 @@ import {
   fireStaff,
   headhuntStaff,
   launchStimulus,
-  setCivilPay,
+  setCivilPay, setTax,
   startProject,
   hireStaff,
   raceAct,
@@ -85,7 +85,7 @@ import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "divisions" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result" | "swing";
 /** Side panels that open over the map. */
-export type Panel = "campaign" | "case" | "battle" | "party" | "people" | "leadership" | "team" | "nation" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis" | "cabinet";
+export type Panel = "campaign" | "case" | "battle" | "party" | "people" | "leadership" | "team" | "nation" | "wawasan" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis" | "cabinet";
 
 export interface Toast {
   id: number;
@@ -200,7 +200,7 @@ interface Store {
       | { kind: "declare" }
       | { kind: "payTeam"; on: boolean },
   ) => void;
-  lever: (l: { kind: "pay"; stance: "freeze" | "normal" | "raise" } | { kind: "stimulus" } | { kind: "project"; id: string }) => void;
+  lever: (l: { kind: "pay"; stance: "freeze" | "normal" | "raise" } | { kind: "stimulus" } | { kind: "project"; id: string } | { kind: "tax"; rate: number }) => void;
   hireStaff: (id: number) => void;
   fireStaff: (id: number) => void;
   raiseStaff: (id: number) => void;
@@ -426,7 +426,7 @@ export const useGame = create<Store>()(
         lever: (l) => {
           const g = get().game;
           if (!g) return;
-          result(l.kind === "pay" ? setCivilPay(g, l.stance) : l.kind === "stimulus" ? launchStimulus(g) : startProject(g, l.id));
+          result(l.kind === "pay" ? setCivilPay(g, l.stance) : l.kind === "stimulus" ? launchStimulus(g) : l.kind === "tax" ? setTax(g, l.rate) : startProject(g, l.id));
         },
         money: (op) => {
           const g = get().game;

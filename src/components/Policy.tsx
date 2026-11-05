@@ -5,6 +5,7 @@ import { budgetVoters, dewanVote, policyBlocked, previewPolicy } from "@/game/ac
 import { ECONOMY_REST } from "@/game/config";
 import { isGovernment, weekDate } from "@/game/state";
 import { BUDGET, BUDGET_LINES, budgetEnvelope } from "@/game/systems/budget";
+import { BUILDS, WAWASAN, taxTargets } from "@/game/systems/wawasan";
 import { MULTIRACIAL, PLEDGE_WEIGHT, POLICIES, POLICY_COST, POLICY_SCALE, UNFUNDED_INTEGRITY_PER_FISCAL, type Policy as PolicyDef } from "@/game/systems/policies";
 import { describeSeg } from "@/game/systems/segments";
 import { useGame } from "@/store/gameStore";
@@ -19,7 +20,7 @@ export function Policy() {
     <div className="flex flex-col gap-4">
       <div className="grid gap-2 @md:grid-cols-3">
         <Gauge label="Economy" value={game.economy} note={gov ? "Your government gets the credit and the blame" : "Hard times help the opposition a little"} rest={ECONOMY_REST} />
-        <Gauge label="Fiscal space" value={game.fiscal} note={`Sets the Budget envelope: ${budgetEnvelope(game.fiscal)} points`} rest={50} />
+        <Gauge label="Fiscal space" value={game.fiscal} note={`Sets the Budget envelope: ${budgetEnvelope(game.fiscal, taxTargets(game).envelope)} points`} rest={50} />
         <div className="panel p-3">
           <div className="text-xs" style={{ color: "var(--muted)" }}>
             {gov ? "Dewan vote if held today" : "Your role"}
@@ -135,7 +136,7 @@ function BudgetPanel() {
   const game = useGame((s) => s.game)!;
   const submit = useGame((s) => s.budget);
   const gov = isGovernment(game);
-  const envelope = budgetEnvelope(game.fiscal);
+  const envelope = budgetEnvelope(game.fiscal, taxTargets(game).envelope);
   const max = envelope + BUDGET.overspendMax;
   const [alloc, setAlloc] = useState<Record<string, number>>(() => Object.fromEntries(BUDGET_LINES.map((l) => [l.id, 0])));
   const total = Object.values(alloc).reduce((a, b) => a + b, 0);
@@ -169,6 +170,11 @@ function BudgetPanel() {
               <div className="text-xs truncate" style={{ color: "var(--muted)" }} title={l.blurb}>
                 {describeSeg(l.voters, weight)} per point
               </div>
+              {gov && BUILDS[l.id]?.pillar && (
+                <div className="text-xs truncate" style={{ color: "var(--brass-hi)" }}>
+                  Builds {BUILDS[l.id].label} +{((BUILDS[l.id].gain ?? 0) * WAWASAN.buildMult).toFixed(1)}/yr per point
+                </div>
+              )}
             </div>
             <button className="chip" aria-label={`Less ${l.label}`} onClick={() => set(l.id, -1)}>
               −
