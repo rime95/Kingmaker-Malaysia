@@ -63,6 +63,22 @@ body {
   font-family: var(--font-ui);
 }
 
+/* Dropdowns: the open list is drawn by the system, so its options need the game's colours too (else light text on a
+   white list). */
+select {
+  color-scheme: dark;
+  background-color: var(--surface-2);
+  color: var(--ink);
+}
+select option,
+select optgroup {
+  background-color: var(--raised);
+  color: var(--ink);
+}
+select option:disabled {
+  color: var(--muted);
+}
+
 body {
   background:
     radial-gradient(1100px 700px at 65% 0%, rgb(201 162 74 / 0.06), transparent 60%),
