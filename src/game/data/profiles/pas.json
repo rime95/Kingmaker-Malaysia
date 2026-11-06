@@ -9,8 +9,16 @@
   "wants": "PAS to lead Perikatan Nasional into the next general election",
   "sources": [
    "https://www.thestar.com.my/news/nation/2026/01/23/pas-to-continue-leading-perikatan-says-hadi",
-   "https://www.malaymail.com/news/malaysia/2026/01/23/pas-will-lead-perikatan-after-muhyiddins-resignation-hadi-says-citing-party-resolution/206497"
-  ]
+   "https://www.malaymail.com/news/malaysia/2026/01/23/pas-will-lead-perikatan-after-muhyiddins-resignation-hadi-says-citing-party-resolution/206497",
+   "https://www.freemalaysiatoday.com/category/nation/2026/03/01/samsuri-not-his-own-man-as-pn-chairman-say-analysts",
+   "https://www.freemalaysiatoday.com/category/nation/2026/02/23/pas-ulama-faction-backing-samsuri-as-pn-chairman-says-veep"
+  ],
+  "allies": [
+   "Tuan Ibrahim Tuan Man",
+   "Takiyuddin Hassan",
+   "Ahmad Samsuri Mokhtar"
+  ],
+  "faction": "PAS ulama"
  },
  {
   "name": "Ahmad Samsuri Mokhtar",
@@ -24,8 +32,15 @@
   "sources": [
    "https://en.wikipedia.org/wiki/Ahmad_Samsuri_Mokhtar",
    "https://www.thevibes.com/articles/news/123031/ahmad-samsuri-named-new-opposition-leader",
-   "https://www.nst.com.my/amp/news/nation/2026/02/1382875/who-ahmad-samsuri-new-pn-chairman"
-  ]
+   "https://www.nst.com.my/amp/news/nation/2026/02/1382875/who-ahmad-samsuri-new-pn-chairman",
+   "https://www.freemalaysiatoday.com/category/nation/2026/02/23/pas-ulama-faction-backing-samsuri-as-pn-chairman-says-veep"
+  ],
+  "allies": [
+   "Abdul Hadi Awang",
+   "Idris Ahmad"
+  ],
+  "faction": "PAS professionals (backed by ulama leadership)",
+  "patron": "Abdul Hadi Awang"
  },
  {
   "name": "Takiyuddin Hassan",
@@ -38,8 +53,15 @@
   "changed": "Became PN secretary-general in March 2026, with Azmin Ali moved to deputy.",
   "sources": [
    "https://www.malaymail.com/news/malaysia/2026/03/14/perikatan-leadership-shake-up-takiyuddin-now-sec-gen-azmin-demoted-to-deputy/212646",
-   "https://www.nst.com.my/amp/news/nation/2026/09/1523349/pas-confirms-receiving-invitation-umno-general-assembly"
-  ]
+   "https://www.nst.com.my/amp/news/nation/2026/09/1523349/pas-confirms-receiving-invitation-umno-general-assembly",
+   "https://www.utusan.com.my/berita/2026/01/samsuri-tuan-ibrahim-atau-muhyiddin-kembali/"
+  ],
+  "allies": [
+   "Abdul Hadi Awang",
+   "Tuan Ibrahim Tuan Man"
+  ],
+  "faction": "PAS ulama",
+  "patron": "Abdul Hadi Awang"
  },
  {
   "name": "Tuan Ibrahim Tuan Man",
@@ -52,8 +74,14 @@
   "wants": "PAS to lead Perikatan Nasional; widely mentioned as a possible future PAS president",
   "sources": [
    "https://newswav.com/article/uX6HHiib7C",
-   "https://www.thestar.com.my/news/nation/2026/01/10/pas-yet-to-finalise-its-pick-for-perikatan-chairman-says-tuan-ibrahim"
-  ]
+   "https://www.thestar.com.my/news/nation/2026/01/10/pas-yet-to-finalise-its-pick-for-perikatan-chairman-says-tuan-ibrahim",
+   "https://www.freemalaysiatoday.com/category/nation/2026/03/01/samsuri-not-his-own-man-as-pn-chairman-say-analysts"
+  ],
+  "allies": [
+   "Abdul Hadi Awang",
+   "Takiyuddin Hassan"
+  ],
+  "faction": "PAS ulama"
  },
  {
   "name": "Idris Ahmad",
@@ -64,8 +92,14 @@
   "stance": "islamist",
   "sources": [
    "https://en.wikipedia.org/wiki/Idris_Ahmad_(Perak_politician)",
-   "https://www.thestar.com.my/news/nation/2025/09/18/razman-steps-down-as-perak-pas-commissioner"
-  ]
+   "https://www.thestar.com.my/news/nation/2025/09/18/razman-steps-down-as-perak-pas-commissioner",
+   "https://www.freemalaysiatoday.com/category/nation/2026/03/01/samsuri-not-his-own-man-as-pn-chairman-say-analysts"
+  ],
+  "allies": [
+   "Abdul Hadi Awang",
+   "Ahmad Samsuri Mokhtar"
+  ],
+  "faction": "PAS ulama"
  },
  {
   "name": "Shahidan Kassim",
@@ -265,6 +299,244 @@
   "stance": "islamist",
   "sources": [
    "https://en.wikipedia.org/wiki/Nik_Muhammad_Zawawi_Salleh"
+  ]
+ },
+ {
+  "name": "Ab Latiff Ab Rahman",
+  "party": "PAS",
+  "status": "active",
+  "post": "Kuala Krai MP",
+  "background": "PAS lawmaker who has represented Kuala Krai in Parliament since 2018, after serving in the Kelantan assembly.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Abdul_Latiff_Abdul_Rahman"
+  ]
+ },
+ {
+  "name": "Che Mohamad Zulkifly Jusoh",
+  "party": "PAS",
+  "status": "active",
+  "post": "Besut MP",
+  "background": "Former UMNO member who joined PAS in 2018 and has held the Besut seat since the 2022 general election.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Che_Mohamad_Zulkifly_Jusoh"
+  ]
+ },
+ {
+  "name": "Shaharizukirnain Abd. Kadir",
+  "party": "PAS",
+  "status": "active",
+  "post": "Setiu MP",
+  "background": "PAS politician who has held the Setiu parliamentary seat since 2018 and was re-elected in 2022.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Shaharizukirnain_Abdul_Kadir",
+   "https://en.wikipedia.org/wiki/Setiu_(federal_constituency)"
+  ]
+ },
+ {
+  "name": "Alias Razak",
+  "party": "PAS",
+  "status": "active",
+  "post": "Kuala Nerus MP",
+  "background": "Former Terengganu state assemblyman for Bukit Tunggal who won Kuala Nerus federal seat in 2022.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Alias_Razak",
+   "https://en.wikipedia.org/wiki/Kuala_Nerus_(federal_constituency)"
+  ]
+ },
+ {
+  "name": "Ahmad Amzad Mohamed @ Hashim",
+  "party": "PAS",
+  "status": "active",
+  "post": "Kuala Terengganu MP",
+  "background": "PAS MP for Kuala Terengganu who regained the seat in a 2023 by-election after the 2022 result was annulled.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Ahmad_Amzad_Hashim",
+   "https://www.thestar.com.my/news/nation/2026/07/07/kuala-terengganu-mp-admitted-to-ijn-following-health-issues-in-parliament"
+  ]
+ },
+ {
+  "name": "Wan Hassan Mohd Ramli",
+  "party": "PAS",
+  "status": "active",
+  "post": "Dungun MP",
+  "background": "PAS politician who has represented Dungun since 2013 and was re-elected in 2022.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Wan_Hassan_Mohd_Ramli",
+   "https://en.wikipedia.org/wiki/Dungun_(federal_constituency)"
+  ]
+ },
+ {
+  "name": "Che Alias Hamid",
+  "party": "PAS",
+  "status": "active",
+  "post": "Senator (Dewan Negara, Terengganu)",
+  "background": "PAS figure from Terengganu who is no longer Kemaman MP and was later named a senator.",
+  "changed": "No longer Kemaman MP; seat now held by Ahmad Samsuri Mokhtar after a by-election. Reported as a Terengganu senator.",
+  "sources": [
+   "https://thesun.my/local/kemaman-by-election-straight-fight-between-bn-and-pas-OB11761942",
+   "https://www.kosmo.com.my/?p=526697"
+  ]
+ },
+ {
+  "name": "Siti Mastura Mohamad",
+  "party": "PAS",
+  "status": "active",
+  "post": "Kepala Batas MP",
+  "background": "PAS MP who has held the Kepala Batas seat in Penang since the 2022 general election.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Siti_Mastura_Muhammad",
+   "https://en.wikipedia.org/wiki/Kepala_Batas_(federal_constituency)"
+  ]
+ },
+ {
+  "name": "Muhammad Fawwaz Mat Jan",
+  "party": "PAS",
+  "status": "active",
+  "post": "Permatang Pauh MP",
+  "background": "PAS MP who won Permatang Pauh in Penang in 2022 and leads PAS Youth in the state.",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2022/11/20/ge15-nurul-izzah-suffers-shock-loss-as-pas-takes-permatang-pauh"
+  ]
+ },
+ {
+  "name": "Mohd Misbahul Munir Masduki",
+  "party": "PAS",
+  "status": "active",
+  "post": "Parit Buntar MP; PAS central committee member",
+  "background": "PAS MP who took Parit Buntar from Amanah in 2022 and sits on the party central committee.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Mohd_Misbahul_Munir_Masduki",
+   "https://www.sinardaily.my/article/732680/focus/politics/why-didnt-bersatu-expel-five-perlis-assemblymen-ndash-misbahul"
+  ]
+ },
+ {
+  "name": "Muhamamd Ismi Mat Taib",
+  "party": "PAS",
+  "status": "active",
+  "post": "Parit MP",
+  "background": "PAS politician listed as Member of Parliament for Parit, Perak.",
+  "sources": [
+   "https://wiki.krisyotam.com/content/wikipedia_en_all_nopic_2026-03/Perikatan_Nasional"
+  ]
+ },
+ {
+  "name": "Jamaluddin Yahya",
+  "party": "PAS",
+  "status": "active",
+  "post": "Pasir Salak MP",
+  "background": "PAS politician who won the Pasir Salak seat in Perak in 2022.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Jamaludin_Yahya",
+   "https://mymp.org.my/p/jamaludin-yahya?locale=en"
+  ]
+ },
+ {
+  "name": "Khairil Nizam Khirudin",
+  "party": "PAS",
+  "status": "active",
+  "post": "Jerantut MP",
+  "background": "Former PAS Youth chief and ex-senator who won Jerantut in 2022 and joined opposition MPs' meetings in 2026.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Khairil_Nizam_Khirudin",
+   "https://www.malaymail.com/amp/news/malaysia/2026/06/18/hamzah-zainudin-attends-pas-hosted-opposition-mps-meeting-in-kuala-lumpur/224206"
+  ]
+ },
+ {
+  "name": "Wan Razali Wan Nor",
+  "party": "PAS",
+  "status": "active",
+  "post": "Kuantan MP",
+  "background": "PAS politician who unseated the incumbent to win Kuantan in Pahang in 2022.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Wan_Razali_Wan_Nor",
+   "https://www.thestar.com.my/news/nation/2022/11/20/ge15-an-emotional-wan-razali-says-he-did-not-expect-to-win-kuantan"
+  ]
+ },
+ {
+  "name": "Ismail Abdul Muttalib",
+  "party": "PAS",
+  "status": "active",
+  "post": "Maran MP",
+  "background": "Former UMNO MP who joined PAS in 2022 and defended Maran under the Perikatan ticket.",
+  "changed": "Left UMNO for PAS in 2022; no longer a deputy minister.",
+  "sources": [
+   "https://www.freemalaysiatoday.com/category/nation/2022/11/05/bn-discard-ismail-joins-pas-to-contest-his-old-seat",
+   "https://en.wikipedia.org/wiki/Ismail_Muttalib"
+  ]
+ },
+ {
+  "name": "Kamal Ashaari",
+  "party": "PAS",
+  "status": "active",
+  "post": "Kuala Krau MP",
+  "background": "PAS politician listed as the Kuala Krau MP in Pahang since the 2022 election.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Kamal_Ashaari"
+  ]
+ },
+ {
+  "name": "Salamiah Mohd Nor",
+  "party": "PAS",
+  "status": "active",
+  "post": "Temerloh MP; PAS Muslimat vice chief",
+  "background": "PAS politician who has held the Temerloh seat in Pahang since 2022.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Salamiah_Mohd_Nor",
+   "https://thesun.my/news/malaysia-news/afnan-hamimi-is-new-pas-youth-chief-nuridah-remains-muslimat-chief-nc11648566/"
+  ]
+ },
+ {
+  "name": "Mohd Hasnizan Harun",
+  "party": "PAS",
+  "status": "active",
+  "post": "Hulu Selangor MP; PAS commissioner for the area",
+  "background": "PAS MP who won Hulu Selangor in 2022 and is widely expected to defend the seat.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Mohd_Hasnizan_Harun",
+   "https://www.malaysiakini.com/news/774952"
+  ]
+ },
+ {
+  "name": "Halimah Ali",
+  "party": "PAS",
+  "status": "active",
+  "post": "Kapar MP; PAS central committee member",
+  "background": "Doctor-turned-politician who has held Kapar in Selangor since 2022 and sits on the PAS central committee.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Halimah_Ali",
+   "https://mymp.org.my/p/halimah-binti-ali?locale=en"
+  ]
+ },
+ {
+  "name": "Ahmad Yunus Hairi",
+  "party": "PAS",
+  "status": "active",
+  "post": "Kuala Langat MP; Sijangkang assemblyman; PAS central committee member",
+  "background": "Selangor PAS leader who has held Kuala Langat since 2022 and also sits in the state assembly.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Ahmad_Yunus_Hairi",
+   "https://en.wikipedia.org/wiki/Kuala_Langat_(federal_constituency)"
+  ]
+ },
+ {
+  "name": "Bakri Jamaluddin",
+  "party": "PAS",
+  "status": "active",
+  "post": "Tangga Batu MP",
+  "background": "PAS politician who won the Tangga Batu seat in Melaka in 2022.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Bakri_Jamaluddin"
+  ]
+ },
+ {
+  "name": "Zulkifli Ismail",
+  "party": "PAS",
+  "status": "active",
+  "post": "Jasin MP; PAS Melaka commissioner; Melaka Ulama Council chief",
+  "background": "PAS Melaka leader who has been Jasin MP since 2022 and is reportedly eyeing a state seat.",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/10/15/pas-poised-to-contest-merlimau-says-insider",
+   "https://en.wikipedia.org/wiki/Zulkifli_Ismail"
   ]
  }
 ]

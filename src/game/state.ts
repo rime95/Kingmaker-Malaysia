@@ -55,7 +55,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 27;
+export const SAVE_VERSION = 29;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -570,6 +570,12 @@ export function migrateGame(g: GameState): GameState {
   if ((g.version ?? 0) < 25 && migrated.people.length) {
     const year = weekDate(migrated.week).getFullYear();
     migrated.people = migrated.people.map((p) => (p.real ? { ...p, retireAge: realRetireAge(p, year, migrated.seed) } : p));
+    const tokoh = makeTokoh(migrated, migrated.nextPersonId);
+    migrated.people = [...migrated.people, ...tokoh];
+    migrated.nextPersonId += tokoh.length;
+  }
+  // Saves before version 29: the newly researched figures join the free tokoh; nobody already in the game changes.
+  if ((g.version ?? 0) < 29 && migrated.people.length) {
     const tokoh = makeTokoh(migrated, migrated.nextPersonId);
     migrated.people = [...migrated.people, ...tokoh];
     migrated.nextPersonId += tokoh.length;

@@ -17,8 +17,11 @@
   "wants": "to keep the Bersatu presidency and hold the party together",
   "sources": [
    "https://www.nst.com.my/amp/news/nation/2026/01/1348996/updated-muhyiddin-im-still-bersatu-president-party-loyal-pn",
-   "https://www.thevibes.com/articles/news/119481/senior-bersatu-mps-call-for-muhyiddin-yassin-to-step-down-as-party-president"
-  ]
+   "https://www.thevibes.com/articles/news/119481/senior-bersatu-mps-call-for-muhyiddin-yassin-to-step-down-as-party-president",
+   "https://www.freemalaysiatoday.com/category/nation/2026/02/22/kiandee-dropped-as-bersatu-rep-in-pn-supreme-council",
+   "https://www.sinardaily.my/article/734678/focus/politics/hamzah-rules-out-return-to-muhyiddin-camp-as-he-asserts-majority-support"
+  ],
+  "faction": "Bersatu mainstream"
  },
  {
   "name": "Hamzah Zainudin",
@@ -32,7 +35,8 @@
    "Rais Yatim",
    "Saifuddin Abdullah",
    "Wan Ahmad Fayhsal Wan Ahmad Kamal",
-   "Wan Saifulruddin Wan Jan"
+   "Wan Saifulruddin Wan Jan",
+   "Ronald Kiandee"
   ],
   "rivals": [
    "Muhyiddin Yassin"
@@ -41,7 +45,9 @@
   "changed": "Expelled from Bersatu Feb 2026; now president of Wawasan",
   "sources": [
    "https://www.thevibes.com/articles/news/119484/hamzah-zainudin-sacked-from-bersatu-can-appeal-within-14-days",
-   "https://www.thevibes.com/articles/news/124186/wawasan-unveils-leadership-lineup-featuring-prominent-defected-parliamentarians-and-veterans"
+   "https://www.thevibes.com/articles/news/124186/wawasan-unveils-leadership-lineup-featuring-prominent-defected-parliamentarians-and-veterans",
+   "https://www.sinardaily.my/article/734678/focus/politics/hamzah-rules-out-return-to-muhyiddin-camp-as-he-asserts-majority-support",
+   "https://www.malaymail.com/amp/news/malaysia/2026/07/26/former-pm-muhyiddin-says-it-should-be-pas-exiting-perikatan-not-bersatu/229019"
   ]
  },
  {
@@ -60,8 +66,11 @@
   ],
   "sources": [
    "https://www.thestar.com.my/news/nation/2026/03/10/bersatu-vp-ronald-kiandee-suspended-for-two-terms-refuses-to-appeal",
-   "https://www.thestar.com.my/news/nation/2026/02/10/step-down-as-bersatu-president-for-good-of-the-party-kiandee-urges-muhyiddin"
-  ]
+   "https://www.thestar.com.my/news/nation/2026/02/10/step-down-as-bersatu-president-for-good-of-the-party-kiandee-urges-muhyiddin",
+   "https://www.freemalaysiatoday.com/category/nation/2026/02/22/kiandee-dropped-as-bersatu-rep-in-pn-supreme-council",
+   "https://testastro.malaysiakini.com/news/767739"
+  ],
+  "patron": "Hamzah Zainudin"
  },
  {
   "name": "Radzi Md Jidin",
@@ -80,8 +89,11 @@
   "changed": "Acting deputy president duties since Feb 2026; dropped from PN election role Jun 2026",
   "sources": [
    "https://www.malaymail.com/news/malaysia/2026/02/14/bersatu-tasks-radzi-ahmad-faizal-to-carry-out-deputy-president-duties/209202",
-   "https://www.thestar.com.my/news/nation/2026/02/25/radzi-jidin-is-melaka-bersatu039s-new-chief"
-  ]
+   "https://www.thestar.com.my/news/nation/2026/02/25/radzi-jidin-is-melaka-bersatu039s-new-chief",
+   "https://www.freemalaysiatoday.com/category/nation/2026/02/22/kiandee-dropped-as-bersatu-rep-in-pn-supreme-council"
+  ],
+  "faction": "Muhyiddin camp",
+  "patron": "Muhyiddin Yassin"
  },
  {
   "name": "Ahmad Faizal Azumu",
@@ -98,8 +110,11 @@
    "Hamzah Zainudin"
   ],
   "sources": [
-   "https://www.malaymail.com/news/malaysia/2026/02/14/bersatu-tasks-radzi-ahmad-faizal-to-carry-out-deputy-president-duties/209202"
-  ]
+   "https://www.malaymail.com/news/malaysia/2026/02/14/bersatu-tasks-radzi-ahmad-faizal-to-carry-out-deputy-president-duties/209202",
+   "https://www.freemalaysiatoday.com/category/nation/2026/02/22/kiandee-dropped-as-bersatu-rep-in-pn-supreme-council"
+  ],
+  "faction": "Muhyiddin camp",
+  "patron": "Muhyiddin Yassin"
  },
  {
   "name": "Mas Ermieyati Samsudin",
@@ -498,8 +513,13 @@
   "name": "Ali Biju",
   "status": "active",
   "sources": [
+   "https://www.sarawaktribune.com/?p=275426",
    "https://www.thevibes.com/articles/news/119276/hamzah-zainudin-faces-mounting-pressure-as-bersatu-disciplinary-probe-raises-stakes-for-opposition"
-  ]
+  ],
+  "post": "Bersatu Sarawak figure",
+  "background": "Former Saratok MP who joined Bersatu in 2020; reported to be staying with the party until the next general election.",
+  "stance": "regionalist",
+  "wants": "Stay with Bersatu through the next general election"
  },
  {
   "name": "Dominic Lau Hoe Chai",

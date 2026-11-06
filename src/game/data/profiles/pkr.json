@@ -20,7 +20,9 @@
   "background": "Won the PKR deputy presidency in 2025; in 2026 the party granted her leave to pursue studies instead of accepting her resignation.",
   "stance": "reformist",
   "allies": [
-   "Anwar Ibrahim"
+   "Anwar Ibrahim",
+   "Amirudin Shari",
+   "Ramanan Ramakrishnan"
   ],
   "rivals": [
    "Rafizi Ramli"
@@ -28,8 +30,12 @@
   "changed": "Leave from deputy president duties; Saifuddin Nasution Ismail shoulders them; gave up joint election director role in May 2026",
   "sources": [
    "https://www.thevibes.com/articles/news/125968/pkr-rejects-nurul-izzahs-resignation-saifuddin-to-shoulder-deputy-presidents-duties",
-   "https://www.thevibes.com/index.php/articles/news/126168/pkr-allows-nurul-izzah-open-ended-leave-to-pursue-phd-keeps-door-open-for-return"
-  ]
+   "https://www.thevibes.com/index.php/articles/news/126168/pkr-allows-nurul-izzah-open-ended-leave-to-pursue-phd-keeps-door-open-for-return",
+   "https://www.malaymail.com/news/malaysia/2026/05/26/pkr-replaces-nurul-izzah-as-co-election-director-with-amirudin-shari/221440",
+   "https://www.freemalaysiatoday.com/category/nation/2025/05/06/more-pkr-leaders-set-to-rally-behind-nurul-izzah"
+  ],
+  "faction": "Anwar camp / Nurul Izzah camp",
+  "patron": "Anwar Ibrahim"
  },
  {
   "name": "Saifuddin Nasution Ismail",
@@ -69,7 +75,9 @@
   "changed": "Left PKR and resigned as Pandan MP in May 2026; now heads BERSAMA",
   "sources": [
    "https://www.freemalaysiatoday.com/category/nation/2026/05/17/rafizi-nik-nazmi-take-over-bersama-malaysia-party",
-   "https://www.theborneopost.com/2026/05/17/rafizi-says-new-party-bersama-to-go-solo-in-next-polls-vows-no-coalition-deals/"
+   "https://www.theborneopost.com/2026/05/17/rafizi-says-new-party-bersama-to-go-solo-in-next-polls-vows-no-coalition-deals/",
+   "https://www.thestar.com.my/news/nation/2026/05/17/rafizi-nik-nazmi-to-lead-parti-bersama-malaysia",
+   "https://www.freemalaysiatoday.com/category/nation/2025/05/08/no-winner-if-nurul-izzah-rafizi-clash-for-pkr-no-2-says-party-insider"
   ]
  },
  {
@@ -86,8 +94,10 @@
   "changed": "Left PKR and resigned as Setiawangsa MP in May 2026; now in BERSAMA",
   "sources": [
    "https://www.malaymail.com/news/malaysia/2026/05/18/making-it-official-rafizi-nik-nazmi-confirm-vacating-seats-in-statement/220422",
-   "https://www.thestar.com.my/news/nation/2026/05/18/rafizi-and-nik-nazmi-make-bold-exit-for-parti-bersama-malaysia"
-  ]
+   "https://www.thestar.com.my/news/nation/2026/05/18/rafizi-and-nik-nazmi-make-bold-exit-for-parti-bersama-malaysia",
+   "https://www.thestar.com.my/news/nation/2026/05/17/rafizi-nik-nazmi-to-lead-parti-bersama-malaysia"
+  ],
+  "patron": "Rafizi Ramli"
  },
  {
   "name": "Wong Chen",
@@ -230,13 +240,16 @@
   "stance": "moderate",
   "patron": "Anwar Ibrahim",
   "allies": [
-   "Saifuddin Nasution Ismail"
+   "Saifuddin Nasution Ismail",
+   "Nurul Izzah Anwar"
   ],
   "wants": "Stay Selangor MB until term ends; lead PKR's GE16 machinery",
   "sources": [
    "https://www.thestar.com.my/news/nation/2026/05/26/pkr-restructures-election-machinery-amirudin-appointed-joint-polls-director",
-   "https://www.nst.com.my/amp/news/nation/2026/08/1512514/anwar-announces-amirudin-pkr-election-director-tengku-zafrul-pmo"
-  ]
+   "https://www.nst.com.my/amp/news/nation/2026/08/1512514/anwar-announces-amirudin-pkr-election-director-tengku-zafrul-pmo",
+   "https://www.malaymail.com/news/malaysia/2026/05/26/pkr-replaces-nurul-izzah-as-co-election-director-with-amirudin-shari/221440"
+  ],
+  "faction": "Anwar camp"
  },
  {
   "name": "Aminuddin Harun",
@@ -245,11 +258,15 @@
   "post": "PKR vice-president",
   "background": "Negeri Sembilan Menteri Besar since 2018, elected PKR vice-president in 2025.",
   "stance": "moderate",
-  "changed": "Possible loss of the Menteri Besar post around 2 Aug 2026 (only one unverified source says Ismail Lasim succeeded him); state election held mid-2026, result unconfirmed",
   "sources": [
    "https://www.malaymail.com/amp/news/malaysia/2026/07/24/only-tok-min-loke-says-aminuddin-is-phs-sole-negeri-sembilan-mb-candidate/228786",
-   "https://thesun.my/malaysia-news/pkr-election-amirudin-ramanan-aminuddin-chang-lih-kang-elected-as-vice-presidents-EG14125188"
-  ]
+   "https://thesun.my/malaysia-news/pkr-election-amirudin-ramanan-aminuddin-chang-lih-kang-elected-as-vice-presidents-EG14125188",
+   "https://www.freemalaysiatoday.com/category/nation/2025/05/08/no-winner-if-nurul-izzah-rafizi-clash-for-pkr-no-2-says-party-insider"
+  ],
+  "allies": [
+   "Rafizi Ramli"
+  ],
+  "faction": "Rafizi camp"
  },
  {
   "name": "Zaliha Mustafa",
@@ -258,7 +275,7 @@
   "post": "Sekijang MP",
   "background": "Former Federal Territories minister, dropped from the cabinet in a reshuffle and replaced by Hannah Yeoh.",
   "stance": "moderate",
-  "changed": "No longer Federal Territories Minister; removed from cabinet, Hannah Yeoh succeeded her (reshuffle date unconfirmed)",
+  "changed": "No longer Federal Territories Minister.",
   "sources": [
    "https://www.thestar.com.my/news/nation/2026/09/27/dr-zaliha-denies-officiating-groundbreaking-ceremonies-for-myanmar-refugee-settlements",
    "https://thesun.my/news/malaysia-news/politics/zaliha-pledges-continued-support-for-madani-agenda-after-cabinet-exit"
@@ -325,8 +342,14 @@
   "wants": "Defend Sungai Buloh at GE16",
   "sources": [
    "https://thesun.my/malaysia-news/pkr-election-amirudin-ramanan-aminuddin-chang-lih-kang-elected-as-vice-presidents-EG14125188",
-   "https://www.utusan.com.my/nasional/politik/2026/05/fokus-ramanan-beri-khidmat-terbaik-kepada-penduduk-sungai-buloh/"
-  ]
+   "https://www.utusan.com.my/nasional/politik/2026/05/fokus-ramanan-beri-khidmat-terbaik-kepada-penduduk-sungai-buloh/",
+   "https://www.freemalaysiatoday.com/category/nation/2025/05/06/more-pkr-leaders-set-to-rally-behind-nurul-izzah"
+  ],
+  "allies": [
+   "Nurul Izzah Anwar"
+  ],
+  "faction": "Anwar camp",
+  "patron": "Anwar Ibrahim"
  },
  {
   "name": "Wan Azizah Wan Ismail",
@@ -374,7 +397,7 @@
   "post": "Batu Pahat MP",
   "background": "Batu Pahat MP who stood as the Pakatan Harapan candidate for the Senggarang state seat in the July 2026 Johor election.",
   "stance": "moderate",
-  "changed": "Contested Senggarang (N24) in the 2026 Johor state election; result not confirmed",
+  "changed": "Contested Senggarang (N24) in the 2026 Johor state election.",
   "sources": [
    "https://theedgemalaysia.com/node/810265",
    "https://en.wikipedia.org/wiki/Onn_Abu_Bakar"
@@ -430,30 +453,68 @@
   "name": "Jimmy Puah Wee Tse",
   "party": "PKR",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://www.freemalaysiatoday.com/category/nation/2026/03/15/ph-must-strengthen-core-base-before-election-talks-says-pkr-mp",
+   "https://en.wikipedia.org/wiki/Jimmy_Puah_Wee_Tse"
+  ],
+  "post": "Tebrau MP",
+  "background": "Lawyer and Tebrau MP since 2022 who has urged Pakatan to shore up its urban and M40 support base ahead of GE16.",
+  "stance": "moderate",
+  "wants": "Stronger Pakatan core-voter base before GE16 seat talks"
  },
  {
   "name": "Hassan Abdul Karim",
   "party": "PKR",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://www.malaymail.com/news/malaysia/2025/03/09/i-am-old-let-others-take-over-pkrs-hassan-karim-confirms-wont-defend-pasir-gudang-seat-in-ge16/169074",
+   "https://www.thestar.com.my/news/nation/2026/02/22/pkr-vet-says-he039ll-continue-supporting-pakatan-despite-not-defending-his-seat"
+  ],
+  "post": "Pasir Gudang MP",
+  "background": "Veteran PKR MP for Pasir Gudang who has said he will not defend the seat in GE16, making way for younger leaders.",
+  "stance": "reformist",
+  "wants": "Make way for younger leaders; keep backing Pakatan",
+  "changed": "Not defending Pasir Gudang in GE16"
  },
  {
   "name": "Akmal Nasrullah Mohd Nasir",
   "party": "PKR",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://www.malaymail.com/amp/news/malaysia/2025/12/16/akmal-nasrullah-succeeds-rafizi-ramli-as-malaysias-new-economy-minister/202156",
+   "https://en.wikipedia.org/wiki/Akmal_Nasir"
+  ],
+  "post": "Minister of Economy; Johor Bahru MP",
+  "background": "Johor Bahru MP who moved up from deputy minister to Economy Minister in December 2025, succeeding Rafizi Ramli.",
+  "stance": "moderate",
+  "wants": "Deliver the economy portfolio and hold Johor Bahru",
+  "changed": "Became Economy Minister on 17 December 2025"
  },
  {
   "name": "Mustapha @ Mohd Yunus Sakmud",
   "party": "PKR",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/02/15/pkrs-mustapha-sakmud-takes-over-as-sabah-pakatan-chief",
+   "https://www.malaymail.com/amp/news/malaysia/2026/06/07/we-must-be-ready-for-ge-sabah-pakatan-revamps-line-up-after-agm/222883"
+  ],
+  "post": "Sepanggar MP; PKR Sabah chief; Sabah Pakatan chairman",
+  "background": "Sepanggar MP who leads PKR in Sabah and took over as Sabah Pakatan Harapan chairman in February 2026.",
+  "stance": "moderate",
+  "wants": "Prepare Sabah Pakatan for the next general election",
+  "changed": "Sabah PH chairman since February 2026, replacing Ewon Benedick"
  },
  {
   "name": "Chiew Choon Man",
   "party": "PKR",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://en.wikipedia.org/wiki/Chiew_Choon_Man",
+   "https://dayakdaily.com/miri-mp-chiew-announces-bid-for-pkr-branch-chief-in-2025-party-elections"
+  ],
+  "post": "Miri MP",
+  "background": "PKR Miri MP since 2022, who succeeded Michael Teo and has pushed affordable housing for his constituency.",
+  "stance": "moderate",
+  "wants": "Hold Miri; affordable housing for the constituency"
  }
 ]

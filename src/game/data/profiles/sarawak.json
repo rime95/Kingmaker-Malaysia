@@ -9,8 +9,13 @@
   "wants": "Hand over leadership to a younger generation around 2030; keep GPS dominant in the next state election",
   "sources": [
    "https://www.thevibes.com/articles/news/127944/sarawak-premier-says-stepping-down-after-2030-is-natural-process-driven-by-age-health",
-   "https://www.thestar.com.my/news/nation/2026/07/13/abang-jo-in-no-rush-to-call-sarawak-polls"
-  ]
+   "https://www.thestar.com.my/news/nation/2026/07/13/abang-jo-in-no-rush-to-call-sarawak-polls",
+   "https://dayakdaily.com/premier-agree-with-pdp-chief-trust-key-to-gps-strength-warns-against-cakap-lain-belakang-lain/"
+  ],
+  "allies": [
+   "Tiong King Sing"
+  ],
+  "faction": "GPS"
  },
  {
   "name": "Douglas Uggah Embas",
@@ -154,7 +159,7 @@
   "post": "Mukah MP; deputy minister",
   "background": "Mukah MP who has served as a deputy minister in the unity government; reportedly moved to the health ministry in the December 2025 reshuffle.",
   "stance": "moderate",
-  "changed": "Deputy minister portfolio reportedly changed in the December 2025 reshuffle (Economy to Health); not confirmed from an official list.",
+  "changed": "Deputy minister portfolio reportedly changed in the December 2025 reshuffle (Economy to Health).",
   "sources": [
    "https://en.wikipedia.org/wiki/Hanifah_Hajar_Taib",
    "https://ground.news/article/from-economy-to-health-mukah-mp-hanifah-keeps-constituents-in-focus"
@@ -231,7 +236,6 @@
   "post": "Sarikei MP; deputy minister; SUPP Sarikei branch chairman",
   "background": "Sarikei MP and SUPP figure who also sits in the state assembly for Repok; sources differ on his deputy ministry.",
   "stance": "moderate",
-  "changed": "Deputy minister portfolio unclear (Plantation and Commodities vs Natural Resources and Environmental Sustainability in different reports).",
   "sources": [
    "https://en.wikipedia.org/wiki/Huang_Tiong_Sii",
    "https://en.wikipedia.org/wiki/Sarikei_(federal_constituency)"
@@ -345,8 +349,14 @@
   "wants": "Defend all eight PDP seats at the next Sarawak state election; keep PDP presidency uncontested",
   "sources": [
    "https://www.malaymail.com/news/malaysia/2026/05/16/pdp-to-defend-all-eight-seats-in-next-sarawak-state-polls-says-tiong-king-sing/220217",
-   "https://www.theborneopost.com/2026/03/29/call-for-full-support-for-pdp-president-to-retain-top-post-uncontested/"
-  ]
+   "https://www.theborneopost.com/2026/03/29/call-for-full-support-for-pdp-president-to-retain-top-post-uncontested/",
+   "https://dayakdaily.com/premier-agree-with-pdp-chief-trust-key-to-gps-strength-warns-against-cakap-lain-belakang-lain/"
+  ],
+  "allies": [
+   "Abang Johari Openg"
+  ],
+  "faction": "GPS (PDP)",
+  "patron": "Abang Johari Openg"
  },
  {
   "name": "Anyi Ngau",

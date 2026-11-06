@@ -142,8 +142,13 @@
   "party": "DAP",
   "status": "active",
   "sources": [
-   "https://en.wikipedia.org/wiki/2025_Democratic_Action_Party_National_Congress"
-  ]
+   "https://en.wikipedia.org/wiki/Chong_Zhemin",
+   "https://newswav.com/article/kampar-mp-tells-mca-dissolve-and-join-dap-for-malaysia-s-future-A2505_1HtFvS"
+  ],
+  "post": "Kampar MP",
+  "background": "Accountant and DAP MP for Kampar since 2022; has urged MCA to dissolve and merge into DAP.",
+  "stance": "reformist",
+  "wants": "Hold Kampar; a stronger DAP in Perak"
  },
  {
   "name": "Nga Kor Ming",
@@ -154,8 +159,14 @@
   "sources": [
    "https://en.wikipedia.org/wiki/Anwar_Ibrahim_cabinet",
    "https://en.wikipedia.org/wiki/Democratic_Action_Party_(Malaysia)",
-   "https://en.wikipedia.org/wiki/2025_Democratic_Action_Party_National_Congress"
-  ]
+   "https://en.wikipedia.org/wiki/2025_Democratic_Action_Party_National_Congress",
+   "https://www.malaymail.com/news/malaysia/2025/03/16/gobind-named-dap-chairman-nga-kor-ming-as-deputy-guan-eng-becomes-national-advisor/169839"
+  ],
+  "allies": [
+   "Gobind Singh Deo",
+   "Anthony Loke Siew Fook"
+  ],
+  "faction": "DAP leadership"
  },
  {
   "name": "Chow Yu Hui",
@@ -213,8 +224,14 @@
   "sources": [
    "https://en.wikipedia.org/wiki/2025_Democratic_Action_Party_National_Congress",
    "https://en.wikipedia.org/wiki/Anwar_Ibrahim_cabinet",
-   "https://en.wikipedia.org/wiki/Democratic_Action_Party_(Malaysia)"
-  ]
+   "https://en.wikipedia.org/wiki/Democratic_Action_Party_(Malaysia)",
+   "https://www.malaymail.com/news/malaysia/2025/03/16/gobind-named-dap-chairman-nga-kor-ming-as-deputy-guan-eng-becomes-national-advisor/169839"
+  ],
+  "allies": [
+   "Anthony Loke Siew Fook",
+   "Nga Kor Ming"
+  ],
+  "faction": "DAP leadership"
  },
  {
   "name": "Ganabatirau Veraman",
@@ -293,16 +310,26 @@
   "sources": [
    "https://www.thestar.com.my/news/nation/2026/08/17/dap-to-stay-in-govt-until-term-ends",
    "https://en.wikipedia.org/wiki/Anwar_Ibrahim_cabinet",
-   "https://en.wikipedia.org/wiki/Democratic_Action_Party_(Malaysia)"
-  ]
+   "https://en.wikipedia.org/wiki/Democratic_Action_Party_(Malaysia)",
+   "https://www.malaymail.com/news/malaysia/2025/03/16/gobind-named-dap-chairman-nga-kor-ming-as-deputy-guan-eng-becomes-national-advisor/169839"
+  ],
+  "allies": [
+   "Gobind Singh Deo",
+   "Nga Kor Ming"
+  ],
+  "faction": "DAP leadership"
  },
  {
   "name": "Cha Kee Chin",
   "party": "DAP",
   "status": "active",
   "sources": [
-   "https://en.wikipedia.org/wiki/Democratic_Action_Party_(Malaysia)"
-  ]
+   "https://en.wikipedia.org/wiki/Cha_Kee_Chin"
+  ],
+  "post": "Rasah MP; DAP Negeri Sembilan secretary",
+  "background": "DAP MP for Rasah since 2018 and the party's Negeri Sembilan state secretary.",
+  "stance": "reformist",
+  "wants": "Hold Rasah"
  },
  {
   "name": "Khoo Poay Tiong",
@@ -320,8 +347,14 @@
   "party": "DAP",
   "status": "active",
   "sources": [
-   "https://en.wikipedia.org/wiki/Democratic_Action_Party_(Malaysia)"
-  ]
+   "https://www.malaymail.com/amp/news/malaysia/2026/06/19/dap-names-newcomer-chu-poh-yee-as-first-johor-polls-candidate-rest-to-be-named-by-monday/224335",
+   "https://www.bernama.com/tv/news.php?id=2570223"
+  ],
+  "post": "Labis MP",
+  "background": "DAP MP for Labis since 2018 who has said he will not defend the seat at the next election.",
+  "stance": "reformist",
+  "wants": "Retire from contesting Labis",
+  "changed": "Not defending Labis"
  },
  {
   "name": "Tan Hong Pin",
@@ -438,7 +471,12 @@
   "party": "DAP",
   "status": "active",
   "sources": [
-   "https://en.wikipedia.org/wiki/Democratic_Action_Party_(Malaysia)"
-  ]
+   "https://www.theborneopost.com/2026/03/01/oscar-ling-voters-can-expect-fresh-candidates-from-dap-in-coming-state-polls/",
+   "https://malaymail.com/news/malaysia/2026/03/01/sarawak-dap-veep-confirms-party-to-field-new-faces-plans-to-contest-gps-held-seats-including-pelawan-and-bukit-assek/210866"
+  ],
+  "post": "Sibu MP; DAP Sarawak vice chairman",
+  "background": "DAP MP for Sibu since 2013 and Sarawak DAP vice chairman, who says the party will field new faces in state polls.",
+  "stance": "reformist",
+  "wants": "Fresh DAP candidates and GPS-held seats in the Sarawak state election"
  }
 ]

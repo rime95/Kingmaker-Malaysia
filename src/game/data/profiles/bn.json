@@ -8,8 +8,14 @@
   "wants": "Keep UMNO in the unity government and see GE16 held sooner",
   "sources": [
    "https://theedgemalaysia.com/node/817713",
-   "https://www.malaymail.com/amp/news/malaysia/2026/04/22/ahmad-zahid-umnos-80-years-more-than-just-a-number-its-a-legacy/217215"
-  ]
+   "https://www.malaymail.com/amp/news/malaysia/2026/04/22/ahmad-zahid-umnos-80-years-more-than-just-a-number-its-a-legacy/217215",
+   "https://www.thestar.com.my/news/nation/2026/09/12/tok-mat-dismisses-rumours-of-rift-with-zahid",
+   "https://www.thevibes.com/articles/news/122503/we-stand-united-mat-hasan-says-against-claims-of-internal-factionalism-with-umno-president"
+  ],
+  "allies": [
+   "Mohamad Hasan"
+  ],
+  "faction": "UMNO leadership"
  },
  {
   "name": "Mohamad Hasan",
@@ -23,8 +29,10 @@
   "wants": "UMNO to reform its approach after the Sabah polls and have a say in government policy",
   "sources": [
    "https://www.thestar.com.my/news/nation/2026/01/17/no-govt-policies-without-umno039s-consent-says-tok-mat",
-   "https://www.freemalaysiatoday.com/category/nation/2026/05/02/some-tried-to-pit-me-against-zahid-says-tok-mat"
-  ]
+   "https://www.freemalaysiatoday.com/category/nation/2026/05/02/some-tried-to-pit-me-against-zahid-says-tok-mat",
+   "https://www.thestar.com.my/news/nation/2026/09/12/tok-mat-dismisses-rumours-of-rift-with-zahid"
+  ],
+  "faction": "UMNO leadership"
  },
  {
   "name": "Ismail Sabri Yaakob",

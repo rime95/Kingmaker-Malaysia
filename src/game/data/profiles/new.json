@@ -138,5 +138,855 @@
    "https://www.thestar.com.my/news/nation/2026/01/16/zahid-conveys-najib039s-greetings-to-umno-delegates-says-support-for-ex-pm-has-never-wavered",
    "https://www.malaymail.com/amp/news/malaysia/2026/09/11/zahid-says-umno-still-hopes-for-favourable-outcome-after-najib-clemency-deferred/234812"
   ]
+ },
+ {
+  "name": "Reezal Merican Naina Merican",
+  "party": "UMNO",
+  "status": "active",
+  "post": "UMNO Supreme Council member; MATRADE chairman",
+  "background": "Former housing and local government minister and Kepala Batas MP, close to the family circle of the late Abdullah Badawi.",
+  "stance": "moderate",
+  "patron": "Abdullah Badawi",
+  "allies": [
+   "Khairy Jamaluddin"
+  ],
+  "wants": "Kepala Batas seat and an UMNO leadership role; wants UMNO polls held this year",
+  "gender": "m",
+  "home": "PNG",
+  "bloc": "malay",
+  "sources": [
+   "https://www.malaymail.com/amp/news/malaysia/2026/04/11/khairy-says-focus-is-on-umno-return-calls-talk-of-ge16-seat-premature/215869",
+   "https://www.bernama.com/en/news.php?id=2543566"
+  ]
+ },
+ {
+  "name": "Isham Jalil",
+  "party": "PAS",
+  "status": "active",
+  "post": "PAS member",
+  "background": "Former UMNO Supreme Council member who applied to join PAS in July 2026 after years outside UMNO.",
+  "stance": "islamist",
+  "rivals": [
+   "Ahmad Zahid Hamidi"
+  ],
+  "wants": "PAS-UMNO cooperation in Negeri Sembilan and Melaka",
+  "changed": "Left UMNO (sacked Dec 2023); applied to join PAS 11 July 2026",
+  "gender": "m",
+  "bloc": "malay",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Isham_Jalil",
+   "https://www.malaysiakini.com/news/779451"
+  ]
+ },
+ {
+  "name": "Akmal Saleh",
+  "party": "UMNO",
+  "status": "active",
+  "post": "UMNO Youth chief; Merlimau assemblyman",
+  "background": "Melaka UMNO Youth leader who defends the Merlimau state seat; Melaka state election is set for 14 November.",
+  "stance": "nationalist",
+  "faction": "UMNO Youth",
+  "rivals": [
+   "Lokman Noor Adam"
+  ],
+  "wants": "Defend Merlimau; earlier said he would stand aside if BN and PH formed a pact",
+  "gender": "m",
+  "home": "MLK",
+  "bloc": "malay",
+  "sources": [
+   "https://www.thevibes.com/articles/news/128800/akmal-says-pending-court-case-will-not-derail-melaka-election-preparations",
+   "https://www.malaymail.com/amp/news/malaysia/2026/02/04/after-unity-government-clash-umnos-dr-akmal-saleh-remains-melaka-exco-as-cm-says-no-final-call-yet/208038"
+  ]
+ },
+ {
+  "name": "Mohd Puad Zarkashi",
+  "party": "IND",
+  "status": "active",
+  "post": "none (quit UMNO)",
+  "background": "Veteran Johor UMNO figure who announced his exit from the party on 25 June 2026, citing loss of Johor UMNO autonomy.",
+  "stance": "moderate",
+  "allies": [
+   "Anwar Ibrahim"
+  ],
+  "rivals": [
+   "Akmal Saleh",
+   "Onn Hafiz Ghazi"
+  ],
+  "wants": "A say in Johor politics outside UMNO",
+  "changed": "Left UMNO June 2026; appeared at a Pakatan Harapan event 5 July",
+  "gender": "m",
+  "home": "JHR",
+  "bloc": "malay",
+  "sources": [
+   "https://www.nst.com.my/amp/news/nation/2026/06/1472186/puad-zarkashi-quits-umno-watch",
+   "https://www.nst.com.my/amp/news/nation/2026/07/1481133/umno-unfazed-after-puad-speaks-ph-event-says-ahmad-maslan"
+  ]
+ },
+ {
+  "name": "Lokman Noor Adam",
+  "party": "UMNO",
+  "status": "active",
+  "post": "UMNO Supreme Council member (reported)",
+  "background": "Outspoken UMNO supreme council member who publicly clashed with the UMNO Youth chief over party directives.",
+  "stance": "conservative",
+  "rivals": [
+   "Akmal Saleh"
+  ],
+  "wants": "A checks-and-balances role in the party leadership",
+  "gender": "m",
+  "bloc": "malay",
+  "sources": [
+   "https://www.sinarharian.com.my/article/249794/berita/politik/lokman-pertahan-jawatan-mkt-kerana-mahu-semak-imbang-parti",
+   "https://en.wikipedia.org/wiki/Lokman_Noor_Adam"
+  ]
+ },
+ {
+  "name": "Mohamed Nazri Abdul Aziz",
+  "party": "UMNO",
+  "status": "active",
+  "post": "Former UMNO Supreme Council member; former ambassador to the US",
+  "background": "Former minister and long-time Padang Rengas MP who has hinted he may return to contest GE16 if UMNO needs him.",
+  "stance": "moderate",
+  "wants": "Possible GE16 comeback; cautions against a pre-election pact with PAS",
+  "gender": "m",
+  "home": "PRK",
+  "bloc": "malay",
+  "sources": [
+   "https://www.malaymail.com/news/malaysia/2026/01/27/nazri-aziz-hints-at-political-comeback-for-ge16-cautions-against-pre-election-pact-with-pas/206918"
+  ]
+ },
+ {
+  "name": "Shamsul Iskandar Akin",
+  "party": "PKR",
+  "status": "inactive",
+  "sources": [
+   "https://www.therakyatpost.com/news/2025/11/26/anwars-political-secretary-shamsul-iskandar-resigns-amid-corruption-claims-heres-what-we-know-so-far/"
+  ]
+ },
+ {
+  "name": "Latheefa Koya",
+  "party": "IND",
+  "status": "inactive",
+  "stance": "reformist",
+  "gender": "f",
+  "bloc": "other",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Latheefa_Koya"
+  ]
+ },
+ {
+  "name": "Sivarasa Rasiah",
+  "party": "PKR",
+  "status": "inactive",
+  "post": "former PKR vice-president",
+  "background": "Rights lawyer and SUARAM co-founder, former Subang and Sungai Buloh MP, not fielded in GE15.",
+  "stance": "reformist",
+  "gender": "m",
+  "home": "SGR",
+  "bloc": "indian",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Sivarasa_Rasiah"
+  ]
+ },
+ {
+  "name": "Zairil Khir Johari",
+  "party": "DAP",
+  "status": "active",
+  "post": "Penang state exco (infrastructure and transport); DAP assistant national publicity secretary",
+  "background": "Penang DAP vice-chairman who argues DAP should not compete with Malay parties for Malay votes.",
+  "stance": "reformist",
+  "patron": "Lim Guan Eng",
+  "wants": "Continue in Penang state leadership",
+  "gender": "m",
+  "home": "PNG",
+  "bloc": "chinese",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Zairil_Khir_Johari",
+   "https://penanginstitute.org/aboutus/distinguished-adjunct-researchers/yb-zairil-khir-johari/"
+  ]
+ },
+ {
+  "name": "P. Ramasamy",
+  "party": "URIMAI",
+  "status": "active",
+  "post": "Urimai chairman",
+  "background": "Former Penang deputy chief minister who quit DAP in August 2023 and formed an Indian-focused party, Urimai.",
+  "stance": "reformist",
+  "rivals": [
+   "Chow Kon Yeow"
+  ],
+  "changed": "Left DAP 2023; founded Urimai",
+  "gender": "m",
+  "home": "PNG",
+  "bloc": "indian",
+  "sources": [
+   "https://www.malaymail.com/news/malaysia/2023/11/27/former-penang-deputy-chief-minister-p-ramasamy-forms-indian-based-party-urimai/104435",
+   "https://www.freemalaysiatoday.com/category/nation/2025/07/31/mipp-slams-urimai-says-ramasamy-has-no-credibility-among-indians"
+  ]
+ },
+ {
+  "name": "Mahfuz Omar",
+  "party": "AMANAH",
+  "status": "active",
+  "post": "Amanah vice-president",
+  "background": "Former Pokok Sena MP and Amanah vice-president since January 2024, a frequent critic of UMNO stance on DAP.",
+  "stance": "reformist",
+  "patron": "Mohamad Sabu",
+  "rivals": [
+   "Ahmad Zahid Hamidi"
+  ],
+  "wants": "Keep Pakatan cooperation with BN ahead of Melaka polls and GE16",
+  "gender": "m",
+  "home": "KDH",
+  "bloc": "malay",
+  "sources": [
+   "https://www.malaymail.com/amp/news/malaysia/2026/09/08/pakatan-says-no-hard-feelings-after-umno-leaves-it-off-2026-annual-assembly-guest-list/234358",
+   "https://www.malaymail.com/news/malaysia/2024/01/07/mahfuz-omar-dr-hatta-ramli-appointed-amanah-vice-presidents/111110"
+  ]
+ },
+ {
+  "name": "Mohamed Hanipa Maidin",
+  "party": "AMANAH",
+  "status": "active",
+  "post": "Amanah member; former Sepang MP",
+  "background": "Former deputy law minister dropped for GE15, known for criticising his own coalition.",
+  "stance": "reformist",
+  "wants": "Cautious line towards PAS",
+  "gender": "m",
+  "home": "SGR",
+  "bloc": "malay",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Mohamed_Hanipa_Maidin",
+   "https://www.malaysiakini.com/news/764820"
+  ]
+ },
+ {
+  "name": "Husam Musa",
+  "party": "PKR",
+  "status": "inactive",
+  "background": "Former PAS leader who joined Amanah in 2016, resigned as vice-president in 2020, and was later named a PKR candidate.",
+  "stance": "moderate",
+  "changed": "Amanah to PKR",
+  "gender": "m",
+  "home": "KTN",
+  "bloc": "malay",
+  "sources": [
+   "https://www.freemalaysiatoday.com/category/nation/2020/09/14/husam-has-resigned-as-amanah-veep-party-confirms"
+  ]
+ },
+ {
+  "name": "Ti Lian Ker",
+  "party": "MCA",
+  "status": "active",
+  "post": "former MCA vice-president and senator",
+  "background": "Former MCA vice-president and senator who regularly criticises DAP and favours BN contesting Melaka alone.",
+  "stance": "conservative",
+  "rivals": [
+   "Anthony Loke Siew Fook"
+  ],
+  "wants": "BN to contest Melaka polls on its own",
+  "gender": "m",
+  "bloc": "chinese",
+  "sources": [
+   "https://newswav.com/article/bn-should-contest-in-malacca-polls-on-its-own-former-mca-veep-A2606_HuUJWP",
+   "https://fmtv5.freemalaysiatoday.com/category/nation/2025/08/25/dap-doesnt-need-mca-its-become-mca-2-0-says-ti"
+  ]
+ },
+ {
+  "name": "Chua Tee Yong",
+  "party": "MCA",
+  "status": "active",
+  "background": "Former Labis MP and deputy trade minister who lost Labis in 2022.",
+  "stance": "moderate",
+  "gender": "m",
+  "home": "JHR",
+  "bloc": "chinese",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Chua_Tee_Yong"
+  ]
+ },
+ {
+  "name": "Vell Paari",
+  "party": "MIC",
+  "status": "active",
+  "post": "Senator (per Wikipedia)",
+  "background": "MIC member and senator, son of former MIC president Samy Vellu.",
+  "stance": "moderate",
+  "gender": "m",
+  "bloc": "indian",
+  "sources": [
+   "https://www.wikipedia.com/wiki/Vell_Paari_Samy_Vellu"
+  ]
+ },
+ {
+  "name": "Noh Omar",
+  "party": "UMNO",
+  "status": "active",
+  "post": "UMNO member (rejoined)",
+  "background": "Former minister who left Bersatu and rejoined UMNO on 8 June 2026 at the Johor BN launch.",
+  "stance": "conservative",
+  "allies": [
+   "Onn Hafiz Ghazi"
+  ],
+  "changed": "Bersatu back to UMNO, June 2026",
+  "gender": "m",
+  "bloc": "malay",
+  "sources": [
+   "https://www.malaymail.com/news/malaysia/2026/06/08/noh-omar-rejoins-umno-after-leaving-bersatu-praises-johor-leaderships-resolve/222920",
+   "https://www.thestar.com.my/news/nation/2026/06/08/noh-omar-rejoins-umno"
+  ]
+ },
+ {
+  "name": "Liow Tiong Lai",
+  "party": "MCA",
+  "status": "active",
+  "post": "former MCA president",
+  "background": "Former MCA president and transport minister who lost Bentong in GE15.",
+  "stance": "moderate",
+  "gender": "m",
+  "home": "PHG",
+  "bloc": "chinese",
+  "sources": [
+   "https://www.malaysiakini.com/news/640135"
+  ]
+ },
+ {
+  "name": "Annuar Musa",
+  "party": "PAS",
+  "status": "active",
+  "post": "PAS leader; Johor election director; PN information chief",
+  "background": "Former communications minister and UMNO secretary-general who moved to PAS and was named its Johor election director in June 2026.",
+  "stance": "moderate",
+  "allies": [
+   "Abdul Hadi Awang"
+  ],
+  "wants": "Lead PAS campaign in Johor polls; reconcile PAS and Bersatu",
+  "changed": "UMNO to PAS",
+  "gender": "m",
+  "home": "KTN",
+  "bloc": "malay",
+  "sources": [
+   "https://www.malaymail.com/amp/news/malaysia/2026/06/10/pas-taps-annuar-musa-to-lead-johor-election-campaign/223242",
+   "https://www.thevibes.com/index.php/articles/news/124178/annuar-musa-reveals-failed-mediation-effort-to-prevent-pas-bersatu-split-in-pn"
+  ]
+ },
+ {
+  "name": "Syed Hamid Albar",
+  "party": "UMNO",
+  "status": "active",
+  "post": "UMNO member (rejoined)",
+  "background": "Former foreign and home minister readmitted to UMNO in April 2026 under the Rumah Bangsa initiative.",
+  "stance": "moderate",
+  "allies": [
+   "Hishammuddin Hussein"
+  ],
+  "changed": "Rejoined UMNO April-June 2026",
+  "gender": "m",
+  "bloc": "malay",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/04/17/hishammuddin-khairy-and-syed-hamid-rejoin-umno",
+   "https://www.nst.com.my/amp/news/nation/2026/04/1416613/syed-hamid-albar-mulls-political-comeback-umno"
+  ]
+ },
+ {
+  "name": "Abdul Rahman Dahlan",
+  "party": "UMNO",
+  "status": "active",
+  "post": "UMNO Supreme Council member",
+  "background": "Former minister who quit as Tuaran UMNO chief in April 2026 to make way for younger leaders.",
+  "stance": "technocrat",
+  "wants": "Hand over to younger leaders while staying on the supreme council",
+  "gender": "m",
+  "home": "SBH",
+  "bloc": "sabah",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/04/04/abdul-rahman-dahlan-steps-down-as-tuaran-umno-chief",
+   "https://www.malaymail.com/news/malaysia/2026/04/05/abdul-rahman-dahlan-steps-down-in-tuaran-umno-chief-says-time-to-pass-the-baton/215155"
+  ]
+ },
+ {
+  "name": "Mahdzir Khalid",
+  "party": "UMNO",
+  "status": "active",
+  "post": "Padang Terap UMNO division chief (2023 term)",
+  "background": "Former Kedah menteri besar and rural development minister, UMNO vice-president until 2023.",
+  "stance": "moderate",
+  "gender": "m",
+  "home": "KDH",
+  "bloc": "malay",
+  "sources": [
+   "https://www.malaymail.com/amp/news/malaysia/2023/02/27/mahdzir-khalid-wins-padang-terap-umno-chief-post-uncontested/57122"
+  ]
+ },
+ {
+  "name": "Mustapa Mohamed",
+  "party": "UMNO",
+  "status": "active",
+  "post": "UMNO member (rejoined)",
+  "background": "Veteran former minister and Jeli MP who returned to UMNO after leaving Bersatu, and says he will not contest GE16.",
+  "stance": "technocrat",
+  "changed": "Bersatu back to UMNO, 2026",
+  "gender": "m",
+  "home": "KTN",
+  "bloc": "malay",
+  "sources": [
+   "https://www.nst.com.my/amp/news/nation/2026/08/1504735/i-cant-even-walk-steadily-tok-pa-rules-out-contesting-ge16",
+   "https://www.bharian.com.my/amp/berita/nasional/2026/08/1598081/bhplus"
+  ]
+ },
+ {
+  "name": "Ahmad Shabery Cheek",
+  "party": "UMNO",
+  "status": "active",
+  "post": "FELDA chairman (reappointed 2026)",
+  "background": "Former minister reappointed chairman of FELDA under the Madani government.",
+  "stance": "technocrat",
+  "gender": "m",
+  "home": "TRG",
+  "bloc": "malay",
+  "sources": [
+   "https://thesun.my/news/malaysia-news/felda-reappoints-ahmad-shabery-cheek-as-chairman-in-malaysia-gb14512477/"
+  ]
+ },
+ {
+  "name": "Rais Yatim",
+  "party": "IND",
+  "status": "active",
+  "post": "none",
+  "background": "Veteran former minister and Dewan Negara president.",
+  "stance": "moderate",
+  "changed": "Left Bersatu April 2026 (single secondary source)",
+  "born": 1942,
+  "gender": "m",
+  "home": "NSN",
+  "bloc": "malay",
+  "sources": [
+   "https://ktemoc.blogspot.com/2026/04/its-already-6pm-for-me-rais-says-over.html"
+  ]
+ },
+ {
+  "name": "Mohd Isa Samad",
+  "party": "UMNO",
+  "status": "inactive",
+  "sources": [
+   "https://newswav.com/article/isa-samad-s-tan-sri-title-revoked-A2606_rVApsi"
+  ]
+ },
+ {
+  "name": "Nur Jazlan Mohamed",
+  "party": "UMNO",
+  "status": "active",
+  "post": "Dewan Negara deputy speaker; UMNO Supreme Council member; Pulai UMNO chief",
+  "background": "Reappointed senator and deputy Dewan Negara speaker in July 2026; leads Pulai UMNO.",
+  "stance": "moderate",
+  "allies": [
+   "Onn Hafiz Ghazi"
+  ],
+  "gender": "m",
+  "home": "JHR",
+  "bloc": "malay",
+  "sources": [
+   "https://www.malaymail.com/amp/news/malaysia/2026/07/20/nur-jazlan-returns-as-dewan-negara-deputy-speaker-after-being-reappointed-senator/228283"
+  ]
+ },
+ {
+  "name": "Ab Rauf Yusoh",
+  "party": "UMNO",
+  "status": "active",
+  "post": "Melaka Chief Minister (caretaker pending 14 Nov 2026 state election)",
+  "background": "Tanjung Bidara assemblyman leading BN's Melaka campaign; Zahid says he will back him for another term if BN wins.",
+  "stance": "moderate",
+  "patron": "Ahmad Zahid Hamidi",
+  "wants": "Another term as Melaka Chief Minister",
+  "gender": "m",
+  "home": "MLK",
+  "bloc": "malay",
+  "sources": [
+   "https://www.malaymail.com/amp/news/malaysia/2026/10/31/bn-to-retain-ab-rauf-as-melaka-cm-if-coalition-wins-nov-14-polls-says-zahid/241398",
+   "https://www.thevibes.com/articles/news/129019/zahid-backs-ab-rauf-for-another-term-as-melaka-cm-if-bn-wins"
+  ]
+ },
+ {
+  "name": "Mohd Nassuruddin Daud",
+  "party": "PAS",
+  "status": "active",
+  "post": "Kelantan Menteri Besar",
+  "background": "Meranti assemblyman who has led the PAS-run Kelantan government since August 2023.",
+  "stance": "islamist",
+  "faction": "PAS ulama",
+  "gender": "m",
+  "home": "KTN",
+  "bloc": "malay",
+  "sources": [
+   "https://bernama.com/bm/news.php?id=2605644",
+   "https://en.wikipedia.org/wiki/Mohd_Nassuruddin_Daud"
+  ]
+ },
+ {
+  "name": "Abu Bakar Hamzah",
+  "party": "BERSATU",
+  "status": "active",
+  "stance": "moderate",
+  "wants": "To keep governing Perlis under the state constitution",
+  "gender": "m",
+  "home": "PLS",
+  "bloc": "malay",
+  "sources": [
+   "https://www.thevibes.com/articles/news/128636/perlis-mb-insists-party-suspension-will-not-unseat-him",
+   "https://www.malaymail.com/amp/news/malaysia/2026/10/24/perikatan-seeks-talks-with-perlis-mb-abu-bakar-snookered-by-two-term-bersatu-suspension/240412"
+  ]
+ },
+ {
+  "name": "Musa Aman",
+  "party": "IND",
+  "status": "active",
+  "post": "Yang Dipertua Negeri (Governor) of Sabah, 2025 to 2028",
+  "background": "Former Sabah chief minister, now the state's constitutional head.",
+  "stance": "moderate",
+  "changed": "No longer an active politician; Sabah Governor since 1 Jan 2025.",
+  "gender": "m",
+  "home": "SBH",
+  "bloc": "sabah",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2025/12/31/musa-aman-encourages-sabahans-to-embrace-new-beginnings-in-2026",
+   "https://www.malaymail.com/amp/news/malaysia/2026/03/21/musa-aman-and-hajiji-noor-attend-aidilfitri-prayers-at-sabah-state-mosque/213408"
+  ]
+ },
+ {
+  "name": "Maximus Ongkili",
+  "party": "PBS",
+  "status": "active",
+  "post": "Chairman, Energy Commission of Sabah",
+  "background": "Kota Marudu leader who headed PBS for six years and handed the presidency to Joachim Gunsalam.",
+  "stance": "regionalist",
+  "faction": "PBS",
+  "allies": [
+   "Joachim Gunsalam"
+  ],
+  "changed": "No longer PBS president; Joachim Gunsalam took over (elected unopposed for 2026-2029).",
+  "gender": "m",
+  "home": "SBH",
+  "bloc": "sabah",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Maximus_Ongkili",
+   "https://www.bharian.com.my/amp/berita/politik/2026/09/1652151/dr-joachim-secara-rasmi-ambil-alih-jawatan-presiden-pbs"
+  ]
+ },
+ {
+  "name": "Joniston Bangkuai",
+  "party": "PBS",
+  "status": "active",
+  "post": "Kiulu assemblyman; Sabah assistant minister (tourism, culture, environment) per older sources",
+  "background": "Kiulu assemblyman since 2013 and former Sabah Tourism Board chairman.",
+  "stance": "regionalist",
+  "born": 1962,
+  "gender": "m",
+  "home": "SBH",
+  "bloc": "sabah",
+  "sources": [
+   "https://www.wikiwand.com/en/articles/Joniston_Bangkuai"
+  ]
+ },
+ {
+  "name": "Joachim Gunsalam",
+  "party": "PBS",
+  "status": "active",
+  "post": "PBS president; Sabah Deputy Chief Minister",
+  "background": "Acting PBS head since June 2024, elected unopposed president for 2026-2029 after Maximus Ongkili.",
+  "stance": "regionalist",
+  "allies": [
+   "Maximus Ongkili",
+   "Hajiji Noor"
+  ],
+  "gender": "m",
+  "home": "SBH",
+  "bloc": "sabah",
+  "sources": [
+   "https://bernama.com/en/news.php?id=2591393",
+   "https://www.bharian.com.my/amp/berita/politik/2026/09/1652151/dr-joachim-secara-rasmi-ambil-alih-jawatan-presiden-pbs"
+  ]
+ },
+ {
+  "name": "Baru Bian",
+  "party": "PDP",
+  "status": "active",
+  "post": "Ba'Kelalan assemblyman; PDP Ba'Kelalan division chairman",
+  "background": "Former PKR Sarawak chief, now a Sarawak assemblyman in the PDP, active on indigenous heritage and rural health.",
+  "stance": "regionalist",
+  "gender": "m",
+  "home": "SWK",
+  "bloc": "sarawak",
+  "changed": "Elected PDP Ba'Kelalan division chairman in March 2026.",
+  "sources": [
+   "https://sematongexpress.blogspot.com/2026/03/baru-bian-elected-as-chairman-of-pdp.html",
+   "https://www.sarawaktribune.com/baru-urges-preservation-of-lun-bawang-heritage/"
+  ]
+ },
+ {
+  "name": "John Sikie Tayai",
+  "party": "PRS",
+  "status": "active",
+  "post": "PRS president; Sarawak Minister in the Premier's Department; Kakus assemblyman",
+  "background": "Won the PRS presidency in October 2025 in the party's first contested race, beating Wilson Nyabong Ijang.",
+  "stance": "regionalist",
+  "faction": "GPS",
+  "gender": "m",
+  "home": "SWK",
+  "bloc": "sarawak",
+  "changed": "Replaced Joseph Salang Gandum as PRS president (Oct 2025); James Masing died in 2021.",
+  "sources": [
+   "https://thesun.my/news/malaysia-news/john-sikie-tayai-elected-new-president-of-parti-rakyat-sarawak-ph15126768",
+   "https://www.theborneopost.com/2025/10/19/unofficial-john-sikie-likely-to-lead-prs-as-new-president/"
+  ]
+ },
+ {
+  "name": "Mohd Amar Abdullah",
+  "party": "PAS",
+  "status": "active",
+  "post": "PAS vice-president; Speaker of Kelantan assembly",
+  "background": "Former Kelantan deputy MB who offered himself as a Perikatan PM candidate in September 2025.",
+  "stance": "islamist",
+  "faction": "PAS ulama",
+  "gender": "m",
+  "home": "KTN",
+  "bloc": "malay",
+  "wants": "To be Perikatan's prime ministerial candidate",
+  "sources": [
+   "https://www.malaymail.com/amp/news/malaysia/2025/09/13/pas-veep-mohd-amar-puts-himself-forward-as-perikatan-pm-candidate-after-tuan-ibrahim-says-not-me/191031",
+   "https://en.wikipedia.org/wiki/Mohd_Amar_Abdullah"
+  ]
+ },
+ {
+  "name": "Nik Abduh Nik Abdul Aziz",
+  "party": "PAS",
+  "status": "active",
+  "post": "PAS central committee member; former Bachok MP and PAS Youth chief",
+  "background": "Son of Nik Aziz Nik Mat; attended UMNO's 2026 assembly as Zahid's guest, backing Muslim unity.",
+  "stance": "islamist",
+  "faction": "PAS ulama",
+  "allies": [
+   "Ahmad Zahid Hamidi"
+  ],
+  "gender": "m",
+  "home": "KTN",
+  "bloc": "malay",
+  "sources": [
+   "https://www.bharian.com.my/amp/berita/nasional/2026/09/1628848/bhplus",
+   "https://politikus.sinarproject.org/persons/nik-mohamad-abduh-nik-abdul-aziz"
+  ]
+ },
+ {
+  "name": "Muhammad Khalil Abdul Hadi",
+  "party": "PAS",
+  "status": "active",
+  "post": "Terengganu state exco member; PAS central committee member",
+  "background": "Former PAS Youth chief (2017-2019) who placed fourth in the 2025 central committee polls.",
+  "stance": "islamist",
+  "faction": "PAS ulama",
+  "patron": "Abdul Hadi Awang",
+  "gender": "m",
+  "home": "TRG",
+  "bloc": "malay",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2025/09/16/ahmad-fadhli-and-sanusi-top-pas-central-committee-polls",
+   "https://cavac.at/cavacopedia/Muhammad%20Khalil%20Abdul%20Hadi"
+  ]
+ },
+ {
+  "name": "Nurul Amal Mohd Fauzi",
+  "party": "UMNO",
+  "status": "active",
+  "post": "Puteri UMNO chief",
+  "background": "Puteri wing head pushing for 30 percent women and youth candidates and Puteri seats in Melaka polls.",
+  "stance": "moderate",
+  "wants": "Three to five Melaka seats for Puteri",
+  "gender": "f",
+  "bloc": "malay",
+  "sources": [
+   "https://www.nst.com.my/amp/news/nation/2026/08/1517207/puteri-umno-eyes-three-five-seats-melaka-polls",
+   "https://www.thestar.com.my/news/nation/2026/01/15/why-are-we-sidelined-as-election-candidates-asks-puteri-umno-chief"
+  ]
+ },
+ {
+  "name": "Masidi Manjun",
+  "party": "UMNO",
+  "status": "active",
+  "post": "Sabah Deputy Chief Minister II and Finance Minister; Karanaan assemblyman",
+  "stance": "regionalist",
+  "allies": [
+   "Hajiji Noor"
+  ],
+  "gender": "m",
+  "home": "SBH",
+  "bloc": "sabah",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2025/12/12/sabah-to-have-surplus-budget-for-2026-says-masidi",
+   "https://newswav.com/article/judicial-review-of-election-rejected-masidi-remains-karanaan-assemblyman-A2603_6yyy8z"
+  ]
+ },
+ {
+  "name": "Jagdeep Singh Deo",
+  "party": "DAP",
+  "status": "active",
+  "post": "Penang Deputy Chief Minister II",
+  "background": "Deputy chief minister since August 2023 alongside Mohamad Abdul Hamid; leads state investment delegations.",
+  "stance": "reformist",
+  "allies": [
+   "Chow Kon Yeow"
+  ],
+  "gender": "m",
+  "home": "PNG",
+  "bloc": "indian",
+  "sources": [
+   "https://www.buletinmutiara.com/six-mous-one-vision-penang-deepens-collaboration-with-china-and-india/",
+   "https://en.wikipedia.org/wiki/Jagdeep_Singh_Deo"
+  ]
+ },
+ {
+  "name": "Jamaliah Jamaluddin",
+  "party": "DAP",
+  "status": "active",
+  "post": "Selangor exco (public health, environment); Bandar Utama assemblywoman",
+  "background": "Selangor exco member since August 2023; 2026 status not re-confirmed.",
+  "stance": "reformist",
+  "allies": [
+   "Amirudin Shari"
+  ],
+  "gender": "f",
+  "home": "SGR",
+  "bloc": "malay",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Jamaliah_Jamaluddin",
+   "https://newswav.com/article/selangor-prioritises-flood-victims-welfare-exco-A2511_Q3TZeJ"
+  ]
+ },
+ {
+  "name": "Ng Sze Han",
+  "party": "DAP",
+  "status": "active",
+  "post": "Selangor DAP chairman; Selangor exco (investment, trade, mobility)",
+  "background": "Replaced Gobind Singh Deo as Selangor DAP chairman in November 2024.",
+  "stance": "technocrat",
+  "allies": [
+   "Amirudin Shari"
+  ],
+  "gender": "m",
+  "home": "SGR",
+  "bloc": "chinese",
+  "sources": [
+   "https://www.nst.com.my/amp/news/nation/2024/11/1132469/updated-ng-sze-han-new-selangor-dap-chairman",
+   "https://www.bernama.com/bm/news.php?id=2218870"
+  ]
+ },
+ {
+  "name": "Abdul Karim Hamzah",
+  "party": "PBB",
+  "status": "active",
+  "post": "Sarawak Minister of Tourism, Creative Industry and Performing Arts; Saberkas president",
+  "background": "Lost the PBB vice-presidency in 2025 but kept his ministry; became Saberkas president in March 2026.",
+  "stance": "regionalist",
+  "patron": "Abang Johari Openg",
+  "gender": "m",
+  "home": "SWK",
+  "bloc": "sarawak",
+  "sources": [
+   "https://www.thevibes.com/index.php/articles/news/105014/no-need-for-abdul-karim-to-step-down-as-minister-says-abang-jo",
+   "https://thesun.my/news/malaysia-news/abdul-karim-replaces-abang-johari-as-saberkas-president-yx4132346/"
+  ]
+ },
+ {
+  "name": "Julaihi Narawi",
+  "party": "PBB",
+  "status": "active",
+  "post": "Sarawak Minister of Utility and Telecommunication; PBB vice-president",
+  "background": "Re-elected PBB vice-president; handled Petronas coordination for the Sarawak government.",
+  "stance": "regionalist",
+  "patron": "Abang Johari Openg",
+  "gender": "m",
+  "home": "SWK",
+  "bloc": "sarawak",
+  "sources": [
+   "https://dayakdaily.com/re-elected-pbb-vp-julaihi-pledges-continued-advocacy-for-rural-voices"
+  ]
+ },
+ {
+  "name": "Mohd Na'im Mokhtar",
+  "party": "IND",
+  "status": "active",
+  "post": "Senator; former Religious Affairs Minister",
+  "background": "Non-party former minister dropped from Cabinet in December 2025; a senator on a second term.",
+  "stance": "moderate",
+  "changed": "Dropped from Cabinet 16-17 Dec 2025; replaced by Zulkifli Hasan.",
+  "gender": "m",
+  "bloc": "malay",
+  "sources": [
+   "https://thesun.my/news/malaysia-news/mohd-naim-bids-farewell-to-staff-after-cabinet-reshuffle/",
+   "https://en.wikipedia.org/wiki/Mohd_Na%27im_Mokhtar"
+  ]
+ },
+ {
+  "name": "Zulkifli Hasan",
+  "party": "PKR",
+  "status": "active",
+  "post": "Minister in the PM's Department (Religious Affairs)",
+  "background": "Former deputy religious affairs minister promoted in December 2025 to replace Mohd Na'im Mokhtar.",
+  "stance": "moderate",
+  "patron": "Anwar Ibrahim",
+  "gender": "m",
+  "bloc": "malay",
+  "changed": "Became Religious Affairs Minister 17 Dec 2025.",
+  "sources": [
+   "https://www.nst.com.my/amp/news/nation/2026/08/1510527/zulkifli-hasan-visits-media-prima-strengthen-strategic-media",
+   "https://www.malaymail.com/amp/news/malaysia/2026/02/08/religious-affairs-minister-urges-public-to-refer-religious-matters-to-authorities-to-avoid-confusion/208457"
+  ]
+ },
+ {
+  "name": "Fuziah Salleh",
+  "party": "PKR",
+  "status": "active",
+  "post": "PKR secretary-general; Deputy Minister of Domestic Trade and Cost of Living",
+  "background": "Became PKR secretary-general in 2024 replacing Saifuddin Nasution; commented on Nurul Izzah's leave in 2026.",
+  "stance": "reformist",
+  "patron": "Anwar Ibrahim",
+  "gender": "f",
+  "home": "PHG",
+  "bloc": "malay",
+  "changed": "PKR secretary-general since Sept 2024 (replaced Saifuddin Nasution Ismail).",
+  "sources": [
+   "https://bernama.com/en/news.php?id=2589742",
+   "https://www.thevibes.com/articles/news/126168/pkr-allows-nurul-izzah-open-ended-leave-to-pursue-phd-keeps-door-open-for-return"
+  ]
+ },
+ {
+  "name": "Jaujan Sambakong",
+  "party": "WARISAN",
+  "status": "active",
+  "post": "Sulabayan assemblyman; former Sabah Deputy Chief Minister II",
+  "background": "Won Sulabayan again in 2025 and keeps pressing for Semporna services and the Bum Bum bridge.",
+  "stance": "regionalist",
+  "allies": [
+   "Mohd Shafie Apdal"
+  ],
+  "gender": "m",
+  "home": "SBH",
+  "bloc": "sabah",
+  "sources": [
+   "https://newswav.com/article/jaujan-prioritise-essential-services-waste-management-A2512_mubSmW"
+  ]
+ },
+ {
+  "name": "Ghulamhaidar Khan Bahadar",
+  "party": "GRS",
+  "status": "active",
+  "post": "Kawang assemblyman",
+  "background": "Former Sabah assistant minister; spoke on the 2026 state budget as Kawang assemblyman.",
+  "stance": "regionalist",
+  "gender": "m",
+  "home": "SBH",
+  "bloc": "sabah",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Ghulamhaidar_Khan",
+   "https://www.freemalaysiatoday.com/category/nation/2025/12/03/hajiji-unveils-portfolios-of-sabahs-17-new-assistant-ministers"
+  ]
  }
 ]

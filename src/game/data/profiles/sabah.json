@@ -45,13 +45,17 @@
   "background": "Amanah's long-time president, serving what is reported to be his final term, which runs to 2026.",
   "stance": "moderate",
   "allies": [
-   "Mujahid Yusof Rawa"
+   "Mujahid Yusof Rawa",
+   "Dzulkefly Ahmad",
+   "Adly Zahari"
   ],
   "wants": "a smooth leadership handover and a strong Amanah showing in GE16",
   "sources": [
    "https://www.malaymail.com/news/malaysia/2026/05/08/no-tebuk-atap-in-negeri-sembilan-says-mat-sabu-as-amanah-backs-pkrs-aminuddin-as-mb/219177",
-   "https://www.nst.com.my/amp/news/politics/2023/12/993847/mohamad-sabu-returns-amanah-president-mujahid-his-deputy"
-  ]
+   "https://www.nst.com.my/amp/news/politics/2023/12/993847/mohamad-sabu-returns-amanah-president-mujahid-his-deputy",
+   "https://www.thestar.com.my/news/nation/2023/12/24/mat-sabu-retains-amanah-president-post-mujahid-elected-deputy"
+  ],
+  "faction": "Amanah leadership"
  },
  {
   "name": "Raj Munni Sabu @ Aiman Athirah",
@@ -115,8 +119,10 @@
   "wants": "to succeed Mohamad Sabu as Amanah president",
   "sources": [
    "https://www.malaymail.com/news/malaysia/2026/09/27/amanah-sets-sights-on-18-seats-for-ge16-but-concedes-it-could-lose-all-but-one/236765",
-   "https://www.nst.com.my/amp/news/politics/2023/12/993847/mohamad-sabu-returns-amanah-president-mujahid-his-deputy"
-  ]
+   "https://www.nst.com.my/amp/news/politics/2023/12/993847/mohamad-sabu-returns-amanah-president-mujahid-his-deputy",
+   "https://www.thestar.com.my/news/nation/2023/12/24/mat-sabu-retains-amanah-president-post-mujahid-elected-deputy"
+  ],
+  "faction": "Amanah leadership"
  },
  {
   "name": "Wilfred Madius Tangau",
@@ -219,7 +225,12 @@
   "name": "Lo Su Fui",
   "party": "GRS",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://en.wikipedia.org/wiki/Lo_Su_Fui"
+  ],
+  "post": "Tawau MP",
+  "background": "Tawau MP elected on the GRS ticket in 2022; reported as a PBS deputy president for the Chinese quota.",
+  "stance": "regionalist"
  },
  {
   "name": "Hajiji Noor",
@@ -231,20 +242,39 @@
   "wants": "continuity of the Sabah Maju Jaya development roadmap",
   "sources": [
    "https://www.thestar.com.my/news/nation/2025/11/30/sabah-polls-hajiji-sworn-in-as-chief-minister",
-   "https://www.malaymail.com/amp/news/malaysia/2025/11/30/hajiji-returns-as-sabah-cm-for-second-term-as-grs-emerges-strongest-bloc/200173"
-  ]
+   "https://www.malaymail.com/amp/news/malaysia/2025/11/30/hajiji-returns-as-sabah-cm-for-second-term-as-grs-emerges-strongest-bloc/200173",
+   "https://thesun.my/news/shafie-hajiji-desperate-to-maintain-his-position-ed10462701/"
+  ],
+  "rivals": [
+   "Mohd Shafie Apdal"
+  ],
+  "faction": "GRS"
  },
  {
   "name": "Arthur Joseph Kurup",
   "party": "PBRS",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://en.wikipedia.org/wiki/Arthur_Joseph_Kurup"
+  ],
+  "post": "PBRS president; Minister of Natural Resources and Environmental Sustainability; Sabah BN chairman",
+  "background": "PBRS president since 2023, reported to hold the natural resources ministry from December 2025 and the Sabah BN chairmanship from January 2026.",
+  "stance": "regionalist",
+  "wants": "Lead Sabah BN",
+  "changed": "Reported as Sabah BN chairman (Jan 2026) and natural resources minister (Dec 2025); verify against a major outlet"
  },
  {
   "name": "Wetrom Bahanda",
   "party": "KDM",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2025/09/01/kdm-names-wetrom-as-its-candidate-for-sabah-chief-minister",
+   "https://www.thestar.com.my/news/nation/2025/10/05/wetrom-bahanda-announces-candidacy-for-matunggong-in-sabah-polls"
+  ],
+  "post": "KDM deputy president",
+  "background": "KDM deputy president, named the party's chief minister candidate for the 2025 Sabah election, where he moved to contest Matunggong.",
+  "stance": "regionalist",
+  "wants": "Chief ministership for KDM"
  },
  {
   "name": "Peter Anthony",
@@ -256,24 +286,64 @@
   "name": "Isnaraissah Munirah Majilis @ Fakharudy",
   "party": "WARISAN",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/10/25/munirah-tops-warisan-vice-president-race-junz-and-azis-secure-remaining-slots",
+   "https://en.wikipedia.org/wiki/Isnaraissah_Munirah_Majilis"
+  ],
+  "post": "Kota Belud MP; Warisan vice-president",
+  "background": "Kota Belud MP since 2018 and former deputy minister, who topped the Warisan vice-president race in October 2026.",
+  "stance": "regionalist",
+  "wants": "Warisan leadership role",
+  "changed": "Elected Warisan vice-president, October 2026"
  },
  {
   "name": "Mohd Yusof Apdal",
   "party": "WARISAN",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2025/11/13/political-heirs-among-warisans-line-up-gunning-for-key-seats",
+   "https://newswav.com/article/warisan-consistent-in-fight-for-sabah-rights-yusof-A2510_mJcURU"
+  ],
+  "background": "Warisan figure and younger brother of party president Shafie Apdal; Warisan fielded him as a candidate in the 2025 Sabah election.",
+  "stance": "regionalist",
+  "allies": [
+   "Mohd Shafie Apdal"
+  ]
  },
  {
   "name": "Mohd Shafie Apdal",
   "party": "WARISAN",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/10/13/shafie-leiking-returned-unopposed-as-warisan-top-leaders",
+   "https://thesun.my/local_news/shafie-warisan-doesn-t-rule-out-possible-cooperation-with-umno-in-next-state-polls-IO11869472",
+   "https://thesun.my/news/shafie-hajiji-desperate-to-maintain-his-position-ed10462701/"
+  ],
+  "post": "Warisan president; Semporna MP",
+  "background": "Warisan president, returned unopposed in the October 2026 party elections, and Semporna MP.",
+  "stance": "regionalist",
+  "allies": [
+   "Darell Leiking"
+  ],
+  "wants": "Keep Warisan as an independent Sabah-based force; open to cooperation with others",
+  "rivals": [
+   "Hajiji Noor"
+  ],
+  "faction": "Warisan"
  },
  {
   "name": "Darell Leiking",
   "party": "WARISAN",
   "status": "active",
-  "sources": []
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/10/13/shafie-leiking-returned-unopposed-as-warisan-top-leaders",
+   "https://www.freemalaysiatoday.com/category/nation/2026/04/27/leiking-will-survive-pressure-from-warisan-young-turks-say-analysts"
+  ],
+  "post": "Warisan deputy president",
+  "background": "Warisan deputy president, returned unopposed in October 2026 after being left off the party's 2025 state election slate.",
+  "stance": "regionalist",
+  "allies": [
+   "Mohd Shafie Apdal"
+  ]
  }
 ]

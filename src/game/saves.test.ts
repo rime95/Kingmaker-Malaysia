@@ -34,14 +34,25 @@ describe("old saves", () => {
       expect(m.holderParties).toEqual(old.holderParties);
       expect(m.me.funds).toBe(old.me.funds);
       expect(m.me.capital).toBe(old.me.capital);
-      expect(m.people.map((p) => p.party)).toEqual(old.people.map((p) => p.party));
-      expect(m.people.map((p) => p.loyalty)).toEqual(old.people.map((p) => p.loyalty));
+      expect(m.people.slice(0, old.people.length).map((p) => p.party)).toEqual(old.people.map((p) => p.party));
+      expect(m.people.slice(0, old.people.length).map((p) => p.loyalty)).toEqual(old.people.map((p) => p.loyalty));
       const later = playOn(m, 60);
       expect(later.week).toBe(old.week + 60);
       expect(wz(later).real).toBeGreaterThan(0);
       expect(later.news!.length).toBeGreaterThan(0);
     });
   }
+
+  it("an old save gains the new names as free tokoh, and everyone stays unique", () => {
+    const old = oldSave(27);
+    const trimmed = { ...old, people: old.people.filter((p) => p.name !== "Shahril Hamdan") };
+    const m = migrateGame(JSON.parse(JSON.stringify(trimmed)));
+    const added = m.people.find((p) => p.name === "Shahril Hamdan");
+    expect(added?.tokoh).toBe(true);
+    expect(added?.party).toBe("IND");
+    const real = m.people.filter((p) => p.real).map((p) => p.name);
+    expect(new Set(real).size).toBe(real.length);
+  });
 
   it("nobody is thanked by surprise when an old save first runs", () => {
     const m = migrateGame(oldSave(26));
