@@ -5,7 +5,7 @@ import { COUNCIL_EVERY, WINGS } from "@/game/systems/partyorg";
 import { SEGMENT_LABEL, type Segment } from "@/game/systems/segments";
 import { useGame } from "@/store/gameStore";
 import { fmtRM } from "./common";
-import { RECRUIT, recruitBlocked, recruitTargets, recruitWillingness } from "@/game/systems/growth";
+import { RECRUIT, recruitBlocked, recruitFactors, recruitTargets, recruitWillingness } from "@/game/systems/growth";
 import { coalitionOf } from "@/game/systems/coalitions";
 import { cshort } from "@/game/world";
 
@@ -114,7 +114,7 @@ export function GrowCoalitionCard() {
       <h3 className="eyebrow mb-1">Grow your coalition</h3>
       <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
         Invite a party to join you, MPs and all. Unhappy partners of other coalitions listen most; a coalition&apos;s lead party brings its whole coalition. {RECRUIT.ap} AP,{" "}
-        {RECRUIT.capital} capital, and {fmtRM(RECRUIT.perMp)} for each MP they bring.
+        {RECRUIT.capital} capital, and {fmtRM(RECRUIT.perMp)} for each MP they bring. A refusal only costs the AP.
       </p>
       <ul className="flex flex-col gap-1">
         {rows.map((r) => {
@@ -122,8 +122,16 @@ export function GrowCoalitionCard() {
           const odds = r.w >= RECRUIT.threshold + 0.1 ? "likely" : r.w >= RECRUIT.threshold - 0.1 ? "maybe" : "unlikely";
           return (
             <li key={r.party} className="inset px-2.5 py-1.5 text-xs flex items-center gap-2">
-              <span className="flex-1 min-w-0 truncate">
-                <b>{r.party}</b> <span style={{ color: "var(--muted)" }}>· {r.mps} MPs · {lead ? `merges all of ${cshort(r.from)}` : `from ${cshort(r.from)}`}</span>
+              <span className="flex-1 min-w-0">
+                <span className="block truncate">
+                  <b>{r.party}</b> <span style={{ color: "var(--muted)" }}>· {r.mps} MPs · {lead && game.coalitions[r.from].members.length > 1 ? `merges all of ${cshort(r.from)}` : `from ${cshort(r.from)}`}</span>
+                </span>
+                <span className="block truncate" style={{ color: "var(--ink-2)" }}>
+                  {recruitFactors(game, r.party)
+                    .slice(0, 3)
+                    .map((f) => `${f.value > 0 ? "+" : "−"} ${f.label}`)
+                    .join(" · ")}
+                </span>
               </span>
               <span style={{ color: odds === "likely" ? "var(--good)" : odds === "maybe" ? "var(--accent)" : "var(--muted)" }}>{odds}</span>
               <button className="chip !py-0.5 text-xs" disabled={!!r.why} title={r.why ?? undefined} onClick={() => deep({ kind: "recruit", party: r.party })}>

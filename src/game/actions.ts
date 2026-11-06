@@ -35,6 +35,8 @@ import { UNDERDOG, recruitParty, underdog } from "./systems/growth";
 import { ISSUE, openIssues } from "./systems/issues";
 import { collection, toggleMou } from "./systems/funding";
 import { endPact, proposePact } from "./systems/pacts";
+import { breakPlot } from "./systems/plots";
+import { assignSeat, bestAllocation, bully, forgive, setOpenContest, tame, type BullyMove } from "./systems/partners";
 import { prepMotion, tableMotion, type PrepMove } from "./systems/dewan";
 import { courtChallenge, critique, publishProbe, setShadow, startProbe, streetRally, type Kpi } from "./systems/agenda";
 import { setTheme } from "./systems/message";
@@ -46,7 +48,7 @@ import { seatCounts } from "./state";
 import { hash01 } from "./rng";
 import { careerAfterFormation } from "./progress";
 import { aiRebrand } from "./systems/coalitions";
-import { PEOPLE, byId, favourBlocked, favourOf, formCabinet, meetPerson, mpOf, syncYou, youArePm } from "./systems/people";
+import { PEOPLE, byId, favourBlocked, favourOf, formCabinet, meetPerson, mpOf, remember, syncYou, youArePm } from "./systems/people";
 import { PORTFOLIOS, type PortfolioId } from "./data/people";
 import { BUBBLE_INFO, applyBubble } from "./systems/bubbles";
 import { ASSETS, MAX_LEVEL, assetIncome, newAsset, saleValue, upgradeCost, type AssetType, type CeoKind } from "./systems/business";
@@ -964,6 +966,12 @@ export type DeepOp =
   | { kind: "sack"; id: number }
   | { kind: "mou" }
   | { kind: "recruit"; party: string }
+  | { kind: "bully"; party: string; move: BullyMove }
+  | { kind: "forgive"; party: string }
+  | { kind: "assignSeat"; seat: number; party: string }
+  | { kind: "bestAllocation" }
+  | { kind: "breakPlot" }
+  | { kind: "openContest"; seat: number; other: string | null }
   | ({ kind: "case" } & CaseMove)
   | { kind: "autoGround"; on: boolean }
   | { kind: "bringCamp"; id: number }
@@ -1043,6 +1051,18 @@ export function deepMove(s: GameState, op: DeepOp): ActionResult {
     }
     case "replaceChief":
       return wrap(replaceChief(s, op.seat));
+    case "bully":
+      return wrap(bully(s, op.party, op.move));
+    case "forgive":
+      return wrap(forgive(s, op.party));
+    case "assignSeat":
+      return wrap(assignSeat(s, op.seat, op.party));
+    case "bestAllocation":
+      return wrap(bestAllocation(s));
+    case "breakPlot":
+      return wrap(breakPlot(s));
+    case "openContest":
+      return wrap(setOpenContest(s, op.seat, op.other));
     case "recruit": {
       // Taking in another party's MPs looks like frog-buying to some voters.
       const r = recruitParty(s, op.party);
@@ -1266,15 +1286,17 @@ export interface DewanVote {
 export function dewanVote(s: GameState): DewanVote {
   let partnerSeats = 0;
   let ownSeats = 0;
-  s.holders.forEach((h) => {
+  let tameSeats = 0;
+  s.holders.forEach((h, i) => {
     if (!s.government.includes(h)) return;
-    if (h === s.player) ownSeats++;
-    else partnerSeats++;
+    if (h !== s.player) partnerSeats++;
+    else if (tame(s, s.holderParties[i])) tameSeats++;
+    else ownSeats++;
   });
   const partnerRebels = Math.round(partnerSeats * Math.max(0, (50 - s.me.trust) / 50));
   const ownRebels = Math.round(ownSeats * Math.max(0, (30 - s.me.unity) / 30) * 0.3);
   const rebels = partnerRebels + ownRebels;
-  const yes = partnerSeats + ownSeats - rebels;
+  const yes = partnerSeats + ownSeats + tameSeats - rebels;
   return { yes, no: SEATS.length - yes, rebels, passes: yes >= MAJORITY };
 }
 
@@ -1411,7 +1433,8 @@ export function askFavour(s: GameState, id: number): ActionResult {
   const p = byId(s, id)!;
   const f = favourOf(s, p);
   const me = { ...s.me, unity: clamp(s.me.unity + (f.unity ?? 0)), capital: clamp(s.me.capital + (f.capital ?? 0), 0, 200), trust: clamp(s.me.trust + (f.trust ?? 0)) };
-  const people = s.people.map((x) => (x.id === id ? { ...x, loyalty: x.loyalty - PEOPLE.favourLoyalty, favourWeek: s.week } : x));
+  // Someone who owes you pays it back; otherwise a favour costs goodwill.
+  const people = s.people.map((x) => (x.id !== id ? x : x.owed ? { ...x, owed: x.owed - 1, favourWeek: s.week } : { ...remember(x, -PEOPLE.favourLoyalty, "You called in a favour", s.week), favourWeek: s.week }));
   const career = f.points ? addPoints(s.career, s.week, f.points, `${p.name} brought delegates over`) : s.career;
   return { ok: true, state: { ...s, me, people, career }, message: `${p.name}: ${f.text.split(":")[0].toLowerCase()}.` };
 }
@@ -1440,8 +1463,8 @@ export function appoint(s: GameState, post: PortfolioId, id: number | null): Act
   let partySat = s.partySat;
   const mine = s.coalitions[s.player].members;
   const people = s.people.map((p) => {
-    if (old && p.id === old.id && p.id !== id) return { ...p, loyalty: Math.max(0, p.loyalty - 25) };
-    if (p.id === id) return { ...p, loyalty: Math.min(100, p.loyalty + 15) };
+    if (old && p.id === old.id && p.id !== id) return remember(p, -25, "You sacked me from the cabinet", s.week);
+    if (p.id === id) return remember(p, 15, "You made me a minister", s.week);
     return p;
   });
   const feel = (party: string, d: number) => {

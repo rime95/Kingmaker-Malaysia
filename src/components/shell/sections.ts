@@ -29,6 +29,7 @@ export const SECTIONS: Section[] = [
       { id: "battle", label: () => "Seats & pacts" },
       { id: "nominations", label: () => "Nominations" },
       { id: "rivals", label: () => "Rivals" },
+      { id: "news", label: () => "News" },
     ],
     aliases: { case: "campaign" },
   },

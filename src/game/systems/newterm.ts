@@ -6,6 +6,7 @@
 // All numbers TEMPORARY.
 
 import { PORTFOLIOS, type PortfolioId } from "../data/people";
+import { remember } from "./people";
 import type { GameState, ReportLine } from "../state";
 import { cabinetFairness, formCabinet, youArePm } from "./people";
 import { isMb } from "./stategov";
@@ -87,15 +88,17 @@ export function confirmCabinet(s: GameState): { state: GameState; lines: ReportL
   for (const [party, f] of Object.entries(fair)) {
     if (party === mine[0]) continue;
     const d = f >= 0.9 ? NEW_TERM.fair : Math.round(NEW_TERM.shortchanged * Math.min(1, (0.9 - f) / 0.9));
+    // An obedient partner takes what it's given.
+    if (d < 0 && s.partnerCtl?.[party]?.obedient) continue;
     if (mine.includes(party) || s.government.some((c) => s.coalitions[c].members.includes(party))) partySat[party] = Math.max(0, Math.min(100, (partySat[party] ?? 55) + d));
     if (d <= -5) lines.push({ text: `${party} feels shortchanged in your cabinet.`, tone: "bad" });
   }
   const inCabinet = new Set(Object.values(cabinet));
   const wasIn = new Set(Object.values(t.previous));
   const people = s.people.map((p) => {
-    if (p.chairman && mine.includes(p.party)) return { ...p, loyalty: Math.max(0, Math.min(100, p.loyalty + (inCabinet.has(p.id) ? NEW_TERM.chairmanPost : NEW_TERM.chairmanSnub))) };
+    if (p.chairman && mine.includes(p.party)) return remember(p, inCabinet.has(p.id) ? NEW_TERM.chairmanPost : NEW_TERM.chairmanSnub, inCabinet.has(p.id) ? "You kept me close in your cabinet" : "You left me out of your cabinet", s.week);
     const heavy = (p.rank >= 3 || wasIn.has(p.id)) && !p.retired && p.id !== s.youId && s.government.some((c) => s.coalitions[c].members.includes(p.party));
-    if (heavy && !inCabinet.has(p.id)) return { ...p, loyalty: Math.max(0, p.loyalty + NEW_TERM.dropped) };
+    if (heavy && !inCabinet.has(p.id)) return remember(p, NEW_TERM.dropped, "You left me out of your cabinet", s.week);
     return p;
   });
   const filled = PORTFOLIOS.filter((x) => cabinet[x.id]).length;

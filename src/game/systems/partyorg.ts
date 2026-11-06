@@ -6,6 +6,7 @@
 //   with them) but shows who's in charge. Numbers TEMPORARY.
 
 import { hash01 } from "../rng";
+import { remember } from "./people";
 import type { GameState } from "../state";
 import { mpOf } from "./people";
 import { segValue } from "./segments";
@@ -93,7 +94,7 @@ export function showCause(s: GameState, id: number): { state: GameState; message
     state: {
       ...s,
       me: { ...s.me, capital: s.me.capital - cost, unity: clamp(s.me.unity + DISCIPLINE.showCause.unity) },
-      people: s.people.map((x) => (x.id === id ? { ...x, loyalty: clamp(x.loyalty + DISCIPLINE.showCause.loyalty), ambition: clamp(x.ambition - 5) } : x)),
+      people: s.people.map((x) => (x.id === id ? { ...remember(x, DISCIPLINE.showCause.loyalty, "You put me in my place", s.week), ambition: clamp(x.ambition - 5) } : x)),
     },
     message: `${p.name} gets a show-cause letter and falls into line, for now.`,
   };

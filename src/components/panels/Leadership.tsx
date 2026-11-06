@@ -32,6 +32,7 @@ import { fmtRM } from "../common";
 import { PartyFlag } from "../flags";
 import { Term } from "../Term";
 import { CouncilSection } from "./Council";
+import { PLOT, breakBlocked, plotOf, plotter } from "@/game/systems/plots";
 
 /** Your lieutenants (national posts) and generals (state chiefs), and any rival party's. */
 export function Leadership() {
@@ -72,6 +73,7 @@ export function Leadership() {
         </p>
       </section>
 
+      {yours && <PlotCard />}
       <CouncilSection party={party} yours={yours} />
 
       <section>
@@ -281,5 +283,35 @@ function PostCard({
         </div>
       )}
     </div>
+  );
+}
+
+/** The rival camp's plot against you: how far along it is, and a way to break it. */
+function PlotCard() {
+  const game = useGame((s) => s.game)!;
+  const deep = useGame((s) => s.deep);
+  const who = plotter(game);
+  const p = plotOf(game);
+  if (!who) return null;
+  const why = breakBlocked(game);
+  return (
+    <section className="inset p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="eyebrow">The plot against you</h3>
+        <span className="text-xs tabular-nums" style={{ color: p.strength >= PLOT.warn ? "var(--bad)" : "var(--muted)" }}>
+          {Math.round(p.strength)} / 100
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full mt-1.5" style={{ background: "var(--line)" }}>
+        <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, p.strength)}%`, background: p.strength >= PLOT.warn ? "var(--bad)" : "var(--brass)" }} />
+      </div>
+      <p className="text-xs mt-1.5" style={{ color: "var(--ink-2)" }}>
+        {who.name} has {Math.round(who.share * 100)}% of the divisions, you {Math.round(who.mine * 100)}%.{" "}
+        {who.mine >= who.share ? "With your camp ahead, the plot is fading." : "It grows every month while they lead you. At 100 it pushes one of your appointees off the council, then has to start again."}
+      </p>
+      <button className="chip !py-1 text-xs mt-1.5" disabled={!!why} title={why ?? undefined} onClick={() => deep({ kind: "breakPlot" })}>
+        Break it up · {PLOT.breakAp} AP, {PLOT.breakCapital} capital
+      </button>
+    </section>
   );
 }

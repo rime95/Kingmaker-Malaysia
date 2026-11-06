@@ -6,6 +6,7 @@
 // low trust break some away. All randomness is hash01, so a division is the same however you skip time.
 
 import { hash01 } from "../rng";
+import { tame } from "./partners";
 import type { GameState, ReportLine } from "../state";
 import { addSeg, type SegEffects } from "./segments";
 import { SEATS, cshort, type CoalitionId } from "../world";
@@ -201,6 +202,8 @@ export function division(s: GameState, m: Motion): Division {
   const forGov = tabledByGov(s, m);
   const mine = yourStance(s, m);
   const amend = m.prep.amended ? 0.5 : 1;
+  // MPs who owe you a favour stay with you.
+  const owes = new Set(s.people.filter((p) => p.owed && p.seat !== null).map((p) => p.seat));
   const votes: Vote[] = s.holders.map((c, i) => {
     const h = (k: string) => hash01("division", s.seed, m.id, i, k);
     if (h("absent") < DEWAN.absent) return "absent";
@@ -224,6 +227,8 @@ export function division(s: GameState, m: Motion): Division {
     if (courted && line === wanted) p *= 0.2;
     if (courted && line !== wanted) p += 0.35;
     if (m.prep.spoke && c !== s.player) p += line === wanted ? -0.02 : 0.03;
+    // A partner under your thumb doesn't break the whip.
+    if (c === s.player && (tame(s, s.holderParties[i]) || owes.has(i))) p = 0;
     if (h("rebel") < Math.max(0, p)) return h("how") < 0.6 ? "abstain" : line === "aye" ? "no" : "aye";
     return line;
   });

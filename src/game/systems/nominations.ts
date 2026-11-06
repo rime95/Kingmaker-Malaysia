@@ -8,12 +8,14 @@
 // - Partner parties and other coalitions pick their own candidates. All numbers TEMPORARY.
 
 import { hash01 } from "../rng";
+import { remember } from "./people";
 import { CAMPS, divisionChief } from "./camps";
 import type { GameState, ReportLine } from "../state";
 import { COALITION_INDEX } from "../voter";
 import { SEATS, contestingIn, regionOf } from "../world";
 import { seatCandidate } from "./coalitions";
 import { standsAside } from "./pacts";
+import { settleAllocation, signRivalPacts } from "./partners";
 import { TRAITS, traitVote, traitVotes } from "./profiles";
 import { ageOf, homeOf, leaderOfParty, mpOf, recruitPerson, type Person } from "./people";
 
@@ -391,7 +393,7 @@ export function closeNominations(s: GameState): { state: GameState; lines: Repor
     .filter(({ i, chief }) => chief && chief.seat === null && chief.id !== s.youId && picks[i] !== chief.id && pickedFor({ ...s, nominations: { ...n, picks } }, chief.id) === undefined);
   if (snubbed.length) {
     const ids = new Set(snubbed.map((x) => x.chief!.id));
-    people = people.map((p) => (ids.has(p.id) ? { ...p, loyalty: Math.max(0, p.loyalty + CAMPS.snub) } : p));
+    people = people.map((p) => (ids.has(p.id) ? remember(p, CAMPS.snub, "You passed me over for my own seat", s.week) : p));
     const first = snubbed[0];
     lines.push({ text: snubbed.length === 1 ? `${first.chief!.name}, who runs the ${SEATS[first.i].name} division, wanted the seat and is sulking.` : `${snubbed.length} division chiefs passed over for their own seats are sulking.`, tone: "bad" });
   }
@@ -404,8 +406,16 @@ export function closeNominations(s: GameState): { state: GameState; lines: Repor
 
 /** Weekly: open the window when Parliament is dissolved, close it on nomination day. */
 export function nominationsWeek(s: GameState): { state: GameState; lines: ReportLine[] } {
-  if (s.parliament.status === "campaign" && !s.nominations) return openNominations(syncCalon(s).state);
-  if (s.nominations?.open && s.week >= s.nominations.closesWeek) return closeNominations(s);
+  if (s.parliament.status === "campaign" && !s.nominations) {
+    const pacts = signRivalPacts(s);
+    const opened = openNominations(syncCalon(pacts.state).state);
+    return { state: opened.state, lines: [...pacts.lines, ...opened.lines] };
+  }
+  if (s.nominations?.open && s.week >= s.nominations.closesWeek) {
+    const settled = settleAllocation(s);
+    const closed = closeNominations(settled.state);
+    return { state: closed.state, lines: [...settled.lines, ...closed.lines] };
+  }
   return { state: s, lines: [] };
 }
 

@@ -20,6 +20,12 @@ import { blocOfName, makeManName, makeName, makeWomanName, recruitBloc } from ".
 export const RANKS = ["Branch chief", "Division chief", "Supreme Council", "Vice President", "Deputy President", "President"] as const;
 export const PRESIDENT_RANK = 5;
 
+export interface Memory {
+  week: number;
+  delta: number;
+  reason: string;
+}
+
 export interface Person {
   id: number;
   name: string;
@@ -40,6 +46,13 @@ export interface Person {
   ambition: number;
   /** 0–100: loyalty to you. */
   loyalty: number;
+  /** What they remember of you, newest first: the reasons behind their loyalty. */
+  memory?: Memory[];
+  /** Favours they owe you (a big good turn banks one). */
+  owed?: number;
+  /** What they want from you, and whether they got it (ambitions.ts). */
+  want?: "cabinet" | "council";
+  wantDone?: boolean;
   /** Real person (from the starting snapshot) or generated. */
   real: boolean;
   /** Week they took their current rank. */
@@ -711,12 +724,32 @@ export function meetBlocked(s: GameState, id: number): string | null {
 export function meetPerson(s: GameState, id: number): { state: GameState; message: string } | { error: string } {
   const why = meetBlocked(s, id);
   if (why) return { error: why };
-  const people = s.people.map((p) => (p.id === id ? { ...p, loyalty: Math.min(100, p.loyalty + PEOPLE.meetLoyalty * (1 - p.loyalty / 130)) } : p));
+  const people = s.people.map((p) => (p.id === id ? remember(p, PEOPLE.meetLoyalty * (1 - p.loyalty / 130), "You came to see me", s.week) : p));
   const p = byId(s, id)!;
   return { state: { ...s, people, me: { ...s.me, ap: s.me.ap - 1, funds: s.me.funds - PEOPLE.meetCost } }, message: `You spend an evening with ${p.name}.` };
 }
 
 /** What someone can do for you depends on who they are. */
+/**
+ * A change in someone's loyalty to you, and why: they remember their last six reasons. A big good turn also banks a
+ * favour: someone who owes you does you favours for free, and backs you in votes.
+ */
+export function remember(p: Person, delta: number, reason: string, week: number): Person {
+  const bank = delta >= OWED.banks ? 1 : 0;
+  return {
+    ...p,
+    loyalty: Math.max(0, Math.min(100, p.loyalty + delta)),
+    memory: [{ week, delta: Math.round(delta), reason }, ...(p.memory ?? [])].slice(0, 6),
+    owed: bank ? Math.min(OWED.max, (p.owed ?? 0) + bank) : p.owed,
+  };
+}
+
+export const OWED = {
+  /** A loyalty gain this big banks a favour. */
+  banks: 10,
+  max: 3,
+};
+
 export function favourOf(s: GameState, p: Person): { text: string; unity?: number; capital?: number; trust?: number; points?: number } {
   const mine = s.coalitions[s.player].members;
   if (!mine.includes(p.party)) return p.rank >= 3 ? { text: "Talks up working with you: partner trust +6", trust: 6 } : { text: "Passes you useful gossip: capital +4", capital: 4 };
@@ -729,7 +762,7 @@ export function favourBlocked(s: GameState, id: number): string | null {
   const p = byId(s, id);
   if (!p) return "They have left politics.";
   if (p.id === s.youId) return "That's you.";
-  if (p.loyalty < PEOPLE.favourMinLoyalty) return `They need loyalty ${PEOPLE.favourMinLoyalty}+ to do you a favour.`;
+  if (!p.owed && p.loyalty < PEOPLE.favourMinLoyalty) return `They need loyalty ${PEOPLE.favourMinLoyalty}+ to do you a favour.`;
   if (p.favourWeek !== undefined && s.week - p.favourWeek < PEOPLE.favourCooldown) return "You asked them recently.";
   return null;
 }

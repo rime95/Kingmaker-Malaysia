@@ -17,6 +17,7 @@ import { Leadership } from "../panels/Leadership";
 import { TeamPanel } from "../panels/TeamPanel";
 import { NationPanel } from "../panels/NationPanel";
 import { WawasanPanel } from "../panels/WawasanPanel";
+import { NewsPanel } from "../panels/NewsPanel";
 import { NominationsPanel } from "../panels/NominationsPanel";
 import { SeatCard } from "./SeatCard";
 import { OrderPaper } from "../OrderPaper";
@@ -111,6 +112,7 @@ export function SidePanel() {
           </div>
         )}
         {panel === "wawasan" && <WawasanPanel />}
+        {panel === "news" && <NewsPanel />}
         {panel === "nominations" && <NominationsPanel />}
         {panel === "policy" && <Policy />}
         {panel === "states" && <States />}

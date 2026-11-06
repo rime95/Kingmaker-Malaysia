@@ -25,16 +25,12 @@ export interface Pact {
 export const PACT = {
   ap: 2,
   cost: 300_000,
-  /** Share of a withdrawn vote that follows the pact: coalitions on the same side, and across the aisle. */
-  transferSameSide: 0.65,
+  /** At least this share of a withdrawn vote follows the pact. */
   transferAcross: 0.35,
   /** AI coalitions on the other side of the government sign less often. */
   acrossChance: 0.35,
   /** Weeks before you can ask the same coalition again after a no. */
   cooldown: 8,
-  /** The junior partner gets to stand in this share of the shared seats (where the senior partner can't win alone). */
-  quota: 0.15,
-  quotaMax: 4,
   /** A friendly senior partner will give up this many of its own seats for an unsplit vote. */
   friendTolerance: 2,
   transferBase: 0.45,
@@ -134,8 +130,15 @@ export function endPact(s: GameState, c: CoalitionId): { state: GameState; messa
 }
 
 /** Who stands aside where, for the voter model. */
-export function asideFor(s: Pick<GameState, "pacts" | "player" | "government">): Record<number, StandAside[]> {
+export function asideFor(s: Pick<GameState, "pacts" | "player" | "government" | "rivalPacts">): Record<number, StandAside[]> {
   const out: Record<number, StandAside[]> = {};
+  for (const p of s.rivalPacts ?? []) {
+    for (const [k, out_] of Object.entries(p.seats)) {
+      const to = out_ === p.a ? p.b : p.a;
+      const transfer = Math.max(PACT.transferAcross, Math.min(0.75, PACT.transferBase + (AFFINITY[out_]?.[to] ?? 0) * PACT.transferAffinity));
+      (out[Number(k)] ??= []).push({ out: out_, to, transfer });
+    }
+  }
   for (const p of s.pacts) {
     for (const [k, out_] of Object.entries(p.seats)) {
       const to = out_ === s.player ? p.with : s.player;

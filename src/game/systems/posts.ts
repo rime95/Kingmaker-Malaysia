@@ -10,6 +10,7 @@
 // All numbers TEMPORARY.
 
 import { hash01 } from "../rng";
+import { remember } from "./people";
 import type { CardDef } from "./events";
 import type { GameState, ReportLine } from "../state";
 import { COALITIONS, FT, SEATS, STATES, candidateParty, contestingIn, regionOf } from "../world";
@@ -282,7 +283,7 @@ export function appointPost(s: GameState, key: string, id: number): { state: Gam
       .map((p) => p.id),
   );
   let state = setPeople(s, (p) =>
-    p.id === id ? { ...p, loyalty: clamp(p.loyalty + 10), influence: clamp(p.influence + 3) } : p.id === old ? { ...p, loyalty: clamp(p.loyalty + POSTS.removed) } : passed.has(p.id) ? { ...p, loyalty: clamp(p.loyalty + POSTS.passedOver) } : p,
+    p.id === id ? { ...remember(p, 10, "You gave me a party post", s.week), influence: clamp(p.influence + 3) } : p.id === old ? remember(p, POSTS.removed, "You took my party post away", s.week) : passed.has(p.id) ? remember(p, POSTS.passedOver, "You passed me over for a post", s.week) : p,
   );
   state = { ...state, posts: { ...s.posts, [party]: posts }, me: { ...state.me, capital: state.me.capital - POSTS.appointCapital, unity: clamp(state.me.unity - (old !== undefined ? 1 : 0)) } };
   const was = old !== undefined ? s.people.find((p) => p.id === old)?.name : undefined;
@@ -367,7 +368,7 @@ export function sendOnMission(s: GameState, id: number): { state: GameState; mes
     }
   }
   state = { ...state, me };
-  state = setPeople(state, (x) => (x.id === id ? { ...x, missionWeek: s.week, loyalty: clamp(x.loyalty + (ok ? 6 : -3)), influence: clamp(x.influence + (ok ? 2 : 0)) } : x));
+  state = setPeople(state, (x) => (x.id === id ? { ...remember(x, ok ? 6 : -3, ok ? "The mission you gave me went well" : "The mission you gave me failed", s.week), missionWeek: s.week, influence: clamp(x.influence + (ok ? 2 : 0)) } : x));
   return { state, message: `${p.name} (${postName(key)}) ${what}.` };
 }
 

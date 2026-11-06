@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { goalOf, tiesOf, wantText } from "@/game/systems/ambitions";
+import { profileOf } from "@/game/systems/realProfiles";
 import { appointBlocked } from "@/game/actions";
 import { PORTFOLIOS, type PortfolioId } from "@/game/data/people";
 import { coalitionOf, partyColor } from "@/game/systems/coalitions";
@@ -465,6 +467,43 @@ function LoyaltyDot({ v }: { v: number }) {
   );
 }
 
+/** What someone thinks of you and why, what they want, and who they stand with. */
+function Opinion({ p }: { p: Person }) {
+  const game = useGame((s) => s.game)!;
+  if (p.id === game.youId) return null;
+  const want = goalOf(p);
+  const ties = tiesOf(game, p);
+  const profile = profileOf(p.name);
+  const said = p.loyalty >= 70 ? "Thinks highly of you." : p.loyalty >= 45 ? "Respects you." : p.loyalty >= 25 ? "Is wary of you." : "Dislikes you.";
+  return (
+    <div className="rounded-md px-2 py-1.5" style={{ background: "var(--surface-2)" }}>
+      <div style={{ color: "var(--ink-2)" }}>
+        {said}
+        {p.owed ? ` Owes you ${p.owed} favour${p.owed === 1 ? "" : "s"}, so backs you in votes and helps for free.` : ""}
+      </div>
+      {want && (
+        <div style={{ color: p.wantDone ? "var(--good)" : "var(--brass-hi)" }}>
+          {p.wantDone ? "Got what they wanted: " : "Wants: "}
+          {wantText(p, want)}
+        </div>
+      )}
+      {profile?.background && <div style={{ color: "var(--muted)" }}>{profile.background}</div>}
+      {profile?.stance && <div style={{ color: "var(--muted)" }}>Stance: {profile.stance}{profile.faction ? ` · ${profile.faction}` : ""}</div>}
+      {ties.allies.length > 0 && <div style={{ color: "var(--muted)" }}>Close to {ties.allies.map((x) => x.name).join(", ")}</div>}
+      {ties.rivals.length > 0 && <div style={{ color: "var(--muted)" }}>At odds with {ties.rivals.map((x) => x.name).join(", ")}</div>}
+      {(p.memory ?? []).map((m, i) => (
+        <div key={i}>
+          <span className="tabular-nums font-semibold" style={{ color: m.delta >= 0 ? "var(--good)" : "var(--bad)" }}>
+            {m.delta >= 0 ? "+" : "−"}
+            {Math.abs(m.delta)}
+          </span>{" "}
+          <span style={{ color: "var(--muted)" }}>{m.reason}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PersonCard({ p }: { p: Person }) {
   const game = useGame((s) => s.game)!;
   const { meet, favour, deep, poach } = useGame();
@@ -489,6 +528,7 @@ function PersonCard({ p }: { p: Person }) {
         {!you && <Stat label="Loyalty to you" v={p.loyalty} />}
       </div>
       <CampLine p={p} />
+      <Opinion p={p} />
       <div style={{ color: "var(--muted)" }}>
         {RANKS[p.rank]} since {p.since === 0 ? "before the game" : `week ${p.since + 1}`} · age {ageOf(p, game.week)}
         {p.retired ? " · retiring at the election" : ""}

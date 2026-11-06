@@ -8,7 +8,7 @@
 // All numbers TEMPORARY.
 
 import type { GameState } from "../state";
-import { HIERARCHY_PARTIES, markCouncil, structure, type Person } from "./people";
+import { HIERARCHY_PARTIES, markCouncil, remember, structure, type Person } from "./people";
 import { patrons } from "./camps";
 import { NATIONAL_POSTS, holderOf } from "./posts";
 import { yourParty } from "./nominations";
@@ -120,7 +120,7 @@ export function mergeDuplicates(s: GameState): GameState {
 export function councilTally(s: GameState, party = yourParty(s)): { yours: number; against: number; undecided: number; total: number; carries: boolean } {
   const c = councilOf(s, party);
   const all = [c.president, c.deputy, ...c.vps, ...c.elected, ...c.appointed, ...c.exOfficio.map((x) => x.p)].filter((p): p is Person => !!p);
-  const isYours = (p: Person) => p.id === s.youId || p.camp === s.youId || p.loyalty >= COUNCIL.loyal;
+  const isYours = (p: Person) => p.id === s.youId || p.camp === s.youId || p.loyalty >= COUNCIL.loyal || !!p.owed;
   const isAgainst = (p: Person) => !isYours(p) && ((p.camp != null && p.camp !== s.youId) || p.loyalty < COUNCIL.hostile);
   const yours = all.filter(isYours).length;
   const against = all.filter(isAgainst).length;
@@ -160,7 +160,7 @@ export function appointToCouncil(s: GameState, id: number, drop?: number): { sta
   const p = state.people.find((x) => x.id === id)!;
   state = {
     ...state,
-    people: state.people.map((x) => (x.id === id ? { ...x, rank: 2, council: "appointed" as const, since: s.week, loyalty: clamp(x.loyalty + COUNCIL.appoint.loyalty), camp: x.camp ?? (youLead ? s.youId : x.camp) } : x)),
+    people: state.people.map((x) => (x.id === id ? { ...remember(x, COUNCIL.appoint.loyalty, "You put me on the council", s.week), rank: 2, council: "appointed" as const, since: s.week, camp: x.camp ?? (youLead ? s.youId : x.camp) } : x)),
     me: { ...state.me, capital: state.me.capital - COUNCIL.appoint.capital },
   };
   return { state, message: `${p.name} joins the ${structure(party).council}.${dropped}` };
@@ -186,7 +186,7 @@ export function dropFromCouncil(s: GameState, id: number): { state: GameState; m
   const p = s.people.find((x) => x.id === id)!;
   const state: GameState = {
     ...s,
-    people: s.people.map((x) => (x.id === id ? { ...x, rank: 1, council: undefined, since: s.week, loyalty: clamp(x.loyalty + COUNCIL.drop.loyalty), camp: x.camp === s.youId || x.camp == null ? (rival?.id ?? null) : x.camp } : x)),
+    people: s.people.map((x) => (x.id === id ? { ...remember(x, COUNCIL.drop.loyalty, "You dropped me from the council", s.week), rank: 1, council: undefined, since: s.week, camp: x.camp === s.youId || x.camp == null ? (rival?.id ?? null) : x.camp } : x)),
     councilDrops: recent,
     me: { ...s.me, capital: s.me.capital - COUNCIL.drop.capital, unity: clamp(s.me.unity + (purge ? COUNCIL.purge.unity : COUNCIL.drop.unity)) },
   };

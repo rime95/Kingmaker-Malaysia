@@ -1,0 +1,517 @@
+[
+ {
+  "name": "Muhyiddin Yassin",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Bersatu president; Pagoh MP",
+  "background": "Bersatu founder and president who stepped down as Perikatan Nasional chairman at the start of 2026 but kept the party presidency.",
+  "stance": "conservative",
+  "allies": [
+   "Radzi Md Jidin",
+   "Ahmad Faizal Azumu"
+  ],
+  "rivals": [
+   "Hamzah Zainudin",
+   "Ronald Kiandee"
+  ],
+  "wants": "to keep the Bersatu presidency and hold the party together",
+  "sources": [
+   "https://www.nst.com.my/amp/news/nation/2026/01/1348996/updated-muhyiddin-im-still-bersatu-president-party-loyal-pn",
+   "https://www.thevibes.com/articles/news/119481/senior-bersatu-mps-call-for-muhyiddin-yassin-to-step-down-as-party-president"
+  ]
+ },
+ {
+  "name": "Hamzah Zainudin",
+  "party": "WAWASAN",
+  "status": "active",
+  "post": "Wawasan president; Larut MP",
+  "background": "Former Bersatu deputy president and Opposition Leader, expelled in February 2026 and named president of Parti Wawasan Negara in June.",
+  "stance": "moderate",
+  "faction": "Wawasan",
+  "allies": [
+   "Rais Yatim",
+   "Saifuddin Abdullah",
+   "Wan Ahmad Fayhsal Wan Ahmad Kamal",
+   "Wan Saifulruddin Wan Jan"
+  ],
+  "rivals": [
+   "Muhyiddin Yassin"
+  ],
+  "wants": "to build Wawasan as a new party and keep the Opposition Leader post",
+  "changed": "Expelled from Bersatu Feb 2026; now president of Wawasan",
+  "sources": [
+   "https://www.thevibes.com/articles/news/119484/hamzah-zainudin-sacked-from-bersatu-can-appeal-within-14-days",
+   "https://www.thevibes.com/articles/news/124186/wawasan-unveils-leadership-lineup-featuring-prominent-defected-parliamentarians-and-veterans"
+  ]
+ },
+ {
+  "name": "Ronald Kiandee",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Bersatu vice-president; Beluran MP",
+  "stance": "moderate",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin",
+   "Mas Ermieyati Samsudin"
+  ],
+  "rivals": [
+   "Muhyiddin Yassin"
+  ],
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/03/10/bersatu-vp-ronald-kiandee-suspended-for-two-terms-refuses-to-appeal",
+   "https://www.thestar.com.my/news/nation/2026/02/10/step-down-as-bersatu-president-for-good-of-the-party-kiandee-urges-muhyiddin"
+  ]
+ },
+ {
+  "name": "Radzi Md Jidin",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Bersatu vice-president with acting deputy president duties; Melaka Bersatu chief; Putrajaya MP",
+  "background": "Bersatu vice-president handed interim deputy president duties in February 2026 and made Melaka Bersatu chief; removed as PN election director-general in June.",
+  "stance": "conservative",
+  "allies": [
+   "Muhyiddin Yassin",
+   "Ahmad Faizal Azumu"
+  ],
+  "rivals": [
+   "Hamzah Zainudin"
+  ],
+  "changed": "Acting deputy president duties since Feb 2026; dropped from PN election role Jun 2026",
+  "sources": [
+   "https://www.malaymail.com/news/malaysia/2026/02/14/bersatu-tasks-radzi-ahmad-faizal-to-carry-out-deputy-president-duties/209202",
+   "https://www.thestar.com.my/news/nation/2026/02/25/radzi-jidin-is-melaka-bersatu039s-new-chief"
+  ]
+ },
+ {
+  "name": "Ahmad Faizal Azumu",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Bersatu vice-president with acting deputy president duties; Negeri Sembilan Bersatu chief",
+  "background": "Bersatu vice-president given interim deputy president duties in February 2026 and reported as Negeri Sembilan Bersatu chairman.",
+  "stance": "moderate",
+  "allies": [
+   "Muhyiddin Yassin",
+   "Radzi Md Jidin"
+  ],
+  "rivals": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.malaymail.com/news/malaysia/2026/02/14/bersatu-tasks-radzi-ahmad-faizal-to-carry-out-deputy-president-duties/209202"
+  ]
+ },
+ {
+  "name": "Mas Ermieyati Samsudin",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Masjid Tanah MP; Public Accounts Committee chair",
+  "stance": "moderate",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin",
+   "Ronald Kiandee"
+  ],
+  "rivals": [
+   "Muhyiddin Yassin"
+  ],
+  "sources": [
+   "https://www.nst.com.my/amp/news/nation/2026/03/1394001/bersatu-suspends-womens-chief-mas-ermieyati",
+   "https://www.freemalaysiatoday.com/category/nation/2026/03/10/bersatu-suspends-kiandee"
+  ]
+ },
+ {
+  "name": "Wan Saifulruddin Wan Jan",
+  "party": "WAWASAN",
+  "status": "active",
+  "post": "Wawasan vice-president; Tasek Gelugor MP",
+  "background": "Former Bersatu information chief, sacked from the party in October 2025 and now a vice-president of Wawasan while remaining Tasek Gelugor MP.",
+  "stance": "reformist",
+  "faction": "Wawasan",
+  "allies": [
+   "Hamzah Zainudin",
+   "Saifuddin Abdullah",
+   "Wan Ahmad Fayhsal Wan Ahmad Kamal"
+  ],
+  "rivals": [
+   "Muhyiddin Yassin"
+  ],
+  "wants": "to grow Wawasan by drawing in former Bersatu members",
+  "changed": "Sacked from Bersatu Oct 2025; Wawasan vice-president since Jun 2026",
+  "sources": [
+   "https://www.thevibes.com/articles/news/124186/wawasan-unveils-leadership-lineup-featuring-prominent-defected-parliamentarians-and-veterans",
+   "https://www.nst.com.my/amp/news/nation/2026/08/1502384/wan-saiful-calls-bersatu-members-abandon-sinking-ship-after-negri"
+  ]
+ },
+ {
+  "name": "Saifuddin Abdullah",
+  "party": "WAWASAN",
+  "status": "active",
+  "post": "Wawasan secretary-general; Indera Mahkota MP",
+  "background": "Bersatu member sacked in January 2026 who became secretary-general of Wawasan and a key figure for it in Pahang.",
+  "stance": "moderate",
+  "faction": "Wawasan",
+  "allies": [
+   "Hamzah Zainudin",
+   "Wan Saifulruddin Wan Jan"
+  ],
+  "rivals": [
+   "Muhyiddin Yassin"
+  ],
+  "changed": "Sacked from Bersatu Jan 2026; now Wawasan secretary-general",
+  "sources": [
+   "https://www.thevibes.com/articles/news/124186/wawasan-unveils-leadership-lineup-featuring-prominent-defected-parliamentarians-and-veterans",
+   "https://mothership.sg/2026/01/bersatu-sack-saifuddin-abdullah/"
+  ]
+ },
+ {
+  "name": "Wan Ahmad Fayhsal Wan Ahmad Kamal",
+  "party": "WAWASAN",
+  "status": "active",
+  "post": "Wawasan information chief; Machang MP",
+  "background": "Machang MP expelled from Bersatu in February 2026 and later named Wawasan information chief.",
+  "stance": "reformist",
+  "faction": "Wawasan",
+  "allies": [
+   "Hamzah Zainudin",
+   "Wan Saifulruddin Wan Jan"
+  ],
+  "rivals": [
+   "Muhyiddin Yassin"
+  ],
+  "changed": "Expelled from Bersatu Feb 2026; Wawasan information chief",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/02/13/bersatu-expels-three-more-mps-including-wan-ahmad-fayhsal",
+   "https://www.thevibes.com/articles/news/124186/wawasan-unveils-leadership-lineup-featuring-prominent-defected-parliamentarians-and-veterans"
+  ]
+ },
+ {
+  "name": "Azahari Hasan",
+  "party": "WAWASAN",
+  "status": "active",
+  "post": "Padang Rengas MP; Wawasan central committee member",
+  "background": "Padang Rengas MP expelled from Bersatu in February 2026 and listed on Wawasan's central committee.",
+  "stance": "moderate",
+  "faction": "Wawasan",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "rivals": [
+   "Muhyiddin Yassin"
+  ],
+  "changed": "Expelled from Bersatu Feb 2026; Wawasan",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/02/13/bersatu-expels-three-more-mps-including-wan-ahmad-fayhsal",
+   "https://www.thevibes.com/articles/news/124186/wawasan-unveils-leadership-lineup-featuring-prominent-defected-parliamentarians-and-veterans"
+  ]
+ },
+ {
+  "name": "Fathul Huzir Ayob",
+  "party": "WAWASAN",
+  "status": "active",
+  "post": "Gerik MP; Wawasan central committee member",
+  "background": "Gerik MP expelled from Bersatu in February 2026 and listed on Wawasan's central committee.",
+  "stance": "moderate",
+  "faction": "Wawasan",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "rivals": [
+   "Muhyiddin Yassin"
+  ],
+  "changed": "Expelled from Bersatu Feb 2026; Wawasan",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/02/13/bersatu-expels-three-more-mps-including-wan-ahmad-fayhsal",
+   "https://www.thevibes.com/articles/news/124186/wawasan-unveils-leadership-lineup-featuring-prominent-defected-parliamentarians-and-veterans"
+  ]
+ },
+ {
+  "name": "Suhaimi Abdullah",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Kedah Bersatu chief; Langkawi MP",
+  "background": "Langkawi MP and Kedah Bersatu head who argued the opposition leader should be chosen by PN chiefs.",
+  "stance": "conservative",
+  "allies": [
+   "Muhyiddin Yassin"
+  ],
+  "sources": [
+   "https://www.freemalaysiatoday.com/category/nation/2026/04/15/opposition-leader-post-should-be-decided-by-pn-chiefs-says-bersatu-mp"
+  ]
+ },
+ {
+  "name": "Nazri Abu Hassan",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Merbok MP",
+  "background": "Merbok MP who said in late 2025 that he continued to back Muhyiddin after signing then walking back a letter about two disciplined colleagues.",
+  "stance": "conservative",
+  "allies": [
+   "Muhyiddin Yassin"
+  ],
+  "sources": [
+   "https://www.freemalaysiatoday.com/category/nation/2025/11/03/mp-backtracks-after-signing-letter-to-muhyiddin-on-bersatu-duo"
+  ]
+ },
+ {
+  "name": "Azman Nasrudin",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Padang Serai MP",
+  "background": "Padang Serai MP who won the 2022 by-election for Perikatan Nasional.",
+  "stance": "conservative",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Azman_Nasrudin"
+  ]
+ },
+ {
+  "name": "Zakri Hassan",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Kangar MP",
+  "background": "Kangar MP since 2022, reported among 13 Bersatu MPs backing Hamzah as Opposition Leader.",
+  "stance": "conservative",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.thevibes.com/articles/news/120195/13-bersatuu-mps-support-hamzah-remain-as-opposition-leader",
+   "https://en.wikipedia.org/wiki/Zakri_Hassan"
+  ]
+ },
+ {
+  "name": "Ku Abdul Rahman Ku Ismail",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Kubang Pasu MP",
+  "background": "Kubang Pasu MP since 2022, reported among 13 Bersatu MPs backing Hamzah as Opposition Leader.",
+  "stance": "conservative",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.thevibes.com/articles/news/120195/13-bersatuu-mps-support-hamzah-remain-as-opposition-leader",
+   "https://en.wikipedia.org/wiki/Ku_Abdul_Rahman_Ku_Ismail"
+  ]
+ },
+ {
+  "name": "Roslan Hashim",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Kulim-Bandar Baharu MP",
+  "background": "Kulim-Bandar Baharu MP since 2022, reported among 13 Bersatu MPs backing Hamzah as Opposition Leader.",
+  "stance": "conservative",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.thevibes.com/articles/news/120195/13-bersatuu-mps-support-hamzah-remain-as-opposition-leader",
+   "https://en.wikipedia.org/wiki/Roslan_Hashim"
+  ]
+ },
+ {
+  "name": "Khilir Mohd Nor",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Ketereh MP",
+  "background": "Ketereh MP, reported among 13 Bersatu MPs backing Hamzah as Opposition Leader.",
+  "stance": "conservative",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.thevibes.com/articles/news/120195/13-bersatuu-mps-support-hamzah-remain-as-opposition-leader"
+  ]
+ },
+ {
+  "name": "Ikmal Hisham Abdul Aziz",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Tanah Merah MP",
+  "background": "Tanah Merah MP, reported among 13 Bersatu MPs backing Hamzah as Opposition Leader.",
+  "stance": "conservative",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.thevibes.com/articles/news/120195/13-bersatuu-mps-support-hamzah-remain-as-opposition-leader"
+  ]
+ },
+ {
+  "name": "Rosol Wahid",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Hulu Terengganu MP",
+  "background": "Hulu Terengganu MP, reported among 13 Bersatu MPs backing Hamzah as Opposition Leader.",
+  "stance": "conservative",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.thevibes.com/articles/news/120195/13-bersatuu-mps-support-hamzah-remain-as-opposition-leader"
+  ]
+ },
+ {
+  "name": "Nordin Ahmad Ismail",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Lumut MP",
+  "background": "Lumut MP, reported among 13 Bersatu MPs backing Hamzah as Opposition Leader.",
+  "stance": "conservative",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.thevibes.com/articles/news/120195/13-bersatuu-mps-support-hamzah-remain-as-opposition-leader"
+  ]
+ },
+ {
+  "name": "Abdul Khalib Abdullah",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Rompin MP",
+  "background": "Rompin MP, reported among 13 Bersatu MPs backing Hamzah as Opposition Leader.",
+  "stance": "conservative",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.thevibes.com/articles/news/120195/13-bersatuu-mps-support-hamzah-remain-as-opposition-leader"
+  ]
+ },
+ {
+  "name": "Kalam Salan",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Sabak Bernam MP",
+  "background": "Sabak Bernam MP, reported among 13 Bersatu MPs backing Hamzah as Opposition Leader.",
+  "stance": "conservative",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.thevibes.com/articles/news/120195/13-bersatuu-mps-support-hamzah-remain-as-opposition-leader"
+  ]
+ },
+ {
+  "name": "Muslimin Yahaya",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Sungai Besar MP",
+  "background": "Sungai Besar MP, reported among 13 Bersatu MPs backing Hamzah as Opposition Leader.",
+  "stance": "conservative",
+  "faction": "pro-Hamzah",
+  "allies": [
+   "Hamzah Zainudin"
+  ],
+  "sources": [
+   "https://www.thevibes.com/articles/news/120195/13-bersatuu-mps-support-hamzah-remain-as-opposition-leader"
+  ]
+ },
+ {
+  "name": "Muhammad Islahuddin Abas",
+  "party": "IND",
+  "status": "active",
+  "post": "Mersing MP",
+  "background": "One of six MPs whose Bersatu membership ended in 2024 after backing the PM; sits as an independent.",
+  "stance": "moderate",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2024/07/12/six-ex-bersatu-mps-will-remain-as-independents"
+  ]
+ },
+ {
+  "name": "Zahari Kechik",
+  "party": "IND",
+  "status": "active",
+  "post": "Jeli MP",
+  "background": "One of six MPs whose Bersatu membership ended in 2024 after backing the PM; sits as an independent.",
+  "stance": "moderate",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2024/07/12/six-ex-bersatu-mps-will-remain-as-independents"
+  ]
+ },
+ {
+  "name": "Mohd Azizi Abu Naim",
+  "party": "IND",
+  "status": "active",
+  "post": "Gua Musang MP",
+  "background": "One of six MPs whose Bersatu membership ended in 2024 after backing the PM; sits as an independent.",
+  "stance": "moderate",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2024/07/12/six-ex-bersatu-mps-will-remain-as-independents"
+  ]
+ },
+ {
+  "name": "Syed Abu Hussin Hafiz Syed Abdul Fasal",
+  "party": "IND",
+  "status": "active",
+  "post": "Bukit Gantang MP",
+  "background": "One of six MPs whose Bersatu membership ended in 2024 after backing the PM; sits as an independent.",
+  "stance": "moderate",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2024/07/12/six-ex-bersatu-mps-will-remain-as-independents"
+  ]
+ },
+ {
+  "name": "Iskandar Dzulkarnain Abdul Khalid",
+  "party": "IND",
+  "status": "active",
+  "post": "Kuala Kangsar MP",
+  "background": "One of six MPs whose Bersatu membership ended in 2024 after backing the PM; sits as an independent.",
+  "stance": "moderate",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2024/07/12/six-ex-bersatu-mps-will-remain-as-independents"
+  ]
+ },
+ {
+  "name": "Zulkafperi Hanapi",
+  "party": "IND",
+  "status": "active",
+  "post": "Tanjong Karang MP",
+  "background": "One of six MPs whose Bersatu membership ended in 2024 after backing the PM; sits as an independent.",
+  "stance": "moderate",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2024/07/12/six-ex-bersatu-mps-will-remain-as-independents"
+  ]
+ },
+ {
+  "name": "Suhaili Abdul Rahman",
+  "party": "IND",
+  "status": "active",
+  "post": "Labuan MP",
+  "background": "One of six MPs whose Bersatu membership ended in 2024 after backing the PM; sits as an independent.",
+  "stance": "moderate",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2024/07/12/six-ex-bersatu-mps-will-remain-as-independents"
+  ]
+ },
+ {
+  "name": "Ali Biju",
+  "status": "active",
+  "sources": [
+   "https://www.thevibes.com/articles/news/119276/hamzah-zainudin-faces-mounting-pressure-as-bersatu-disciplinary-probe-raises-stakes-for-opposition"
+  ]
+ },
+ {
+  "name": "Dominic Lau Hoe Chai",
+  "party": "GERAKAN",
+  "status": "active",
+  "post": "Gerakan president",
+  "background": "Gerakan president who says his party acts as a moderating voice for non-Muslim concerns in Perikatan Nasional.",
+  "stance": "moderate",
+  "wants": "a more inclusive PN and limited seat contests in state polls",
+  "sources": [
+   "https://www.nst.com.my/amp/news/nation/2026/03/1402801/updated-gerakan-acts-moderating-force-pn-says-lau",
+   "https://www.thestar.com.my/news/nation/2026/06/14/gerakan-weighs-options-amid-bersatu-pas-split-says-lau"
+  ]
+ }
+]

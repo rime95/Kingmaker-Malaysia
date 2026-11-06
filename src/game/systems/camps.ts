@@ -9,6 +9,7 @@
 // All numbers TEMPORARY.
 
 import { hash01 } from "../rng";
+import { remember } from "./people";
 import type { GameState, ReportLine } from "../state";
 import { SEATS, regionOf } from "../world";
 import { HIERARCHY_PARTIES, PRESIDENT_RANK, homeOf, recruitPerson, type Person } from "./people";
@@ -288,7 +289,7 @@ export function bringIntoCamp(s: GameState, id: number): { state: GameState; mes
   if (why) return { error: why };
   const p = s.people.find((x) => x.id === id)!;
   const old = p.camp != null ? s.people.find((x) => x.id === p.camp) : undefined;
-  const people = s.people.map((x) => (x.id === id ? { ...x, camp: s.youId } : old && x.id === old.id ? { ...x, loyalty: clamp(x.loyalty - 5) } : x));
+  const people = s.people.map((x) => (x.id === id ? { ...x, camp: s.youId } : old && x.id === old.id ? remember(x, -5, "You took one of my people", s.week) : x));
   return {
     state: { ...s, people, me: { ...s.me, ap: s.me.ap - CAMPS.bring.ap, capital: s.me.capital - CAMPS.bring.capital } },
     message: `${p.name} joins your camp${old ? `, leaving ${campName(old)}` : ""}.`,
@@ -325,9 +326,9 @@ export function replaceChief(s: GameState, seat: number): { state: GameState; me
   const newId = pick.id;
   people = people.map((p) =>
     p.id === newId
-      ? { ...p, loyalty: clamp(p.loyalty + CAMPS.replace.fresh), camp: patrons(s, party).some((x) => x.id === s.youId) ? s.youId : p.camp }
+      ? { ...remember(p, CAMPS.replace.fresh, "You made me division chief", s.week), camp: patrons(s, party).some((x) => x.id === s.youId) ? s.youId : p.camp }
       : p.id === old.id
-        ? { ...p, loyalty: clamp(p.loyalty + (old.seat === seat ? CAMPS.replace.mpOusted : CAMPS.replace.ousted)), camp: rival?.id ?? null }
+        ? { ...remember(p, old.seat === seat ? CAMPS.replace.mpOusted : CAMPS.replace.ousted, "You took my division from me", s.week), camp: rival?.id ?? null }
         : p,
   );
   return {

@@ -3,6 +3,7 @@
 // their dates. Scandals are always generic ("an MP from your party"), never about a real person. All numbers TEMPORARY.
 
 import { CARDS, DIFFICULTY } from "../config";
+import { remember } from "./people";
 import { runSeatElection } from "../election";
 import { recordFrom } from "./results";
 import { seatCandidate } from "./coalitions";
@@ -605,7 +606,7 @@ export function applyEffect(s: GameState, e: Effect, card?: CardInstance): { sta
   }
   if (card?.person !== undefined && (e.personLoyalty || e.personInfluence))
     state.people = state.people.map((p) =>
-      p.id === card.person ? { ...p, loyalty: clamp(p.loyalty + (e.personLoyalty ?? 0)), influence: clamp(p.influence + (e.personInfluence ?? 0)) } : p,
+      p.id === card.person ? { ...(e.personLoyalty ? remember(p, e.personLoyalty, CARD_BY_KIND[card.kind]?.title ?? "How you handled it", s.week) : p), influence: clamp(p.influence + (e.personInfluence ?? 0)) } : p,
     );
   if (e.raceStart) {
     const kind = raceOnOffer(state);

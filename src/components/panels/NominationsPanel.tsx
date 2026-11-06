@@ -46,6 +46,7 @@ import { chancePct, useReads } from "../common";
 import { projectAllFor } from "@/game/state";
 import { CoalitionFlag, PartyFlag } from "../flags";
 import { CandidateBoard } from "./CandidateBoard";
+import { CoalitionBoard } from "./CoalitionBoard";
 import { lineup } from "@/game/systems/nominations";
 
 const initials = (name: string) =>
@@ -63,10 +64,13 @@ export function NominationsPanel() {
   const president = game.career.rung >= 6;
   const hasPartners =
     game.pacts.length > 0 || game.coalitions[game.player].members.length > 1;
+  // As leader you allocate your own coalition on its board; only pacts are negotiated.
+  const talks = president ? game.pacts.length > 0 : hasPartners;
 
   return (
     <div className="flex flex-col gap-4">
-      {hasPartners && <SeatTalks />}
+      {president && <CoalitionBoard />}
+      {talks && <SeatTalks />}
       {president ? (
         <PresidentBoard />
       ) : !n ? (
@@ -118,7 +122,8 @@ function SeatTalks() {
   // Claims are judged on each side's own vote, before anyone stands aside.
   const rows = useMemo(() => {
     const proj = projectAllFor({ ...game, pacts: [] });
-    return talkSeats(game, (i) => proj[i].shares);
+    const all = talkSeats(game, (i) => proj[i].shares);
+    return game.career.rung >= 6 ? all.filter((r) => r.kind === "pact") : all;
   }, [game]);
   const blocked = talksBlocked(game);
   const partners = [...new Set(rows.map((r) => `${r.kind}:${r.partner}`))].map(

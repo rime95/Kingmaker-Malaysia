@@ -6,6 +6,7 @@
 // Seat changes give momentum (national buzz); winning or losing a state government moves capital and unity.
 
 import { ASSEMBLY_TERMS, GE, PRN, START_DATE } from "../config";
+import { partnersAfterElection } from "./partners";
 import { runElection, type ElectionResult } from "../election";
 import { recordFrom, standingName } from "./results";
 import { NOMINATION } from "./nominations";
@@ -240,6 +241,7 @@ function holdGeneralElection(s: GameState, inputs: VoterInputs, lines: ReportLin
     ...next,
     nominations: null,
     pacts: [],
+    ...partnersAfterElection(s),
     issuesTaken: {},
     calWeight: (s.calWeight ?? 1) * GE.calFade,
     roots: growRoots(s.roots ?? SEATS.map(() => 0), result.seats.map((r) => { const t = Object.values(r.votes).reduce((a, b) => a + (b ?? 0), 0); return t ? (r.votes[s.player] ?? 0) / t : 0; }), s.player, s.holders.filter((h) => h === s.player).length),

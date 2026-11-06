@@ -95,7 +95,7 @@ export function countParty(s: GameState, party: string, slate: Slate, effort: nu
       if (onSlate.has(c.id)) {
         if (d.camp != null && d.camp === slateCamp) p += 0.25;
         else if (d.camp != null && rivals.some((r) => r.id === d.camp)) p -= 0.2;
-        if (mine) p += (d.loyalty - 50) / 250 + effort / 250;
+        if (mine) p += (d.loyalty - 50) / 250 + effort / 250 + (d.owed ? 0.1 : 0);
       }
       return sum + Math.max(0, Math.min(1, p)) * (0.75 + hash01("pp", s.seed, s.week, party, post, c.id, k) * 0.5);
     }, 0);

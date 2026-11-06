@@ -12,6 +12,7 @@ import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
 import { COALITIONS, COALITION_INFO, PARTIES, SEATS, candidateParty, contestingIn, cshort, seatRegion, setCoalitionNames, type CoalitionId, type Seat } from "../world";
 import { AFFINITY } from "./formation";
+import { dares, dependence, dropDeadPacts, tame } from "./partners";
 
 export interface CoalitionState {
   name: string;
@@ -27,7 +28,7 @@ export const COALITION_RULES = {
   /** Satisfaction drifts toward this each month. */
   rest: 55,
   drift: 0.1,
-  govPerMonth: 3,
+  govPerMonth: 1,
   oppPerMonth: -1,
   /** At or below this, a party in your coalition threatens to walk out (a decision card). */
   warn: 30,
@@ -56,7 +57,7 @@ const START_SAT: Record<string, number> = {
 };
 
 /** Where a party would rather be, beyond what its coalition thinks (−1 to 1). */
-const PARTY_LEAN: Record<string, Partial<Record<CoalitionId, number>>> = {
+export const PARTY_LEAN: Record<string, Partial<Record<CoalitionId, number>>> = {
   MIC: { PN: 0.35 },
   MCA: { PN: -0.3, PH: 0.1 },
   UPKO: { WARISAN: 0.3, GRS: 0.2 },
@@ -220,7 +221,7 @@ export function moveParty(s: GameState, party: string, to: CoalitionId): GameSta
     seatParty[seat.index] = rest;
   }
   const partySat = { ...s.partySat, [party]: 60 };
-  return { ...s, coalitions, holders, seatOffsets, seatParty, partySat, entries };
+  return dropDeadPacts({ ...s, coalitions, holders, seatOffsets, seatParty, partySat, entries });
 }
 
 // --- Monthly turn --------------------------------------------------------------------------------
@@ -250,6 +251,16 @@ export function coalitionsWeek(s: GameState): { state: GameState; lines: ReportL
       const v = state.partySat[party];
       const home = bestHome(state, party);
       if (c === s.player) {
+        if (v > COALITION_RULES.warn) continue;
+        // A partner weighs what it would lose: one that can't survive without you stays, however unhappy.
+        if (!dares(state, party)) {
+          if ((state.cardLast[`stays:${party}`] ?? -99) <= s.week - 26 && !tame(state, party)) {
+            const d = dependence(state, party);
+            lines.push({ text: `${PARTIES[party].name} grumbles, but it would win only ${d.alone} of its ${d.withYou} seats without you. It stays.`, tone: "good" });
+            state = { ...state, cardLast: { ...state.cardLast, [`stays:${party}`]: s.week } };
+          }
+          continue;
+        }
         if (v <= COALITION_RULES.leave && home) {
           lines.push({ text: `${PARTIES[party].name} walks out of ${cshort(c)} and joins ${cshort(home)}. Its MPs cross the floor with it.`, tone: "bad" });
           state = moveParty(state, party, home);

@@ -85,7 +85,7 @@ import type { MapFocus } from "@/components/map/MalaysiaMap";
 
 export type Lens = "holder" | "parties" | "divisions" | "projection" | "support" | "presence" | "pressure" | "ethnic" | "urban" | "result" | "swing";
 /** Side panels that open over the map. */
-export type Panel = "campaign" | "case" | "battle" | "party" | "people" | "leadership" | "team" | "nation" | "wawasan" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis" | "cabinet";
+export type Panel = "campaign" | "case" | "battle" | "party" | "people" | "leadership" | "team" | "nation" | "wawasan" | "news" | "nominations" | "policy" | "states" | "parliament" | "rivals" | "treasury" | "seat" | "orderpaper" | "analysis" | "cabinet";
 
 export interface Toast {
   id: number;

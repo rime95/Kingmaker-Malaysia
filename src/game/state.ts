@@ -31,6 +31,9 @@ import { initPersonal, type Personal } from "./systems/wealth";
 import { candidateStrength, yourParty, type Nominations } from "./systems/nominations";
 import type { SeatRecord } from "./systems/results";
 import { asideFor, type Pact } from "./systems/pacts";
+import { partnerSeatEffects, type PartnerCtl, type RivalPact } from "./systems/partners";
+import type { Plot } from "./systems/plots";
+import type { NewsItem } from "./systems/news";
 import { issueEffect } from "./systems/issues";
 import type { Order } from "./systems/orders";
 import { initDewan, type Dewan } from "./systems/dewan";
@@ -51,7 +54,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 26;
+export const SAVE_VERSION = 27;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -219,6 +222,18 @@ export interface GameState {
   nominations: Nominations | null;
   /** Seat pacts with other coalitions (until the next general election is over). */
   pacts: Pact[];
+  /** Pacts between rival coalitions, signed when an election is called. */
+  rivalPacts: RivalPact[];
+  /** Your hold over your coalition's minor parties. */
+  partnerCtl: Record<string, PartnerCtl>;
+  /** Seats where two of your coalition's parties fight it out. */
+  openSeats: Record<number, [string, string]>;
+  /** The rival camp's plot against you. */
+  plot?: Plot;
+  /** Who already had what they wanted has been noted. */
+  ambitionsSeeded?: boolean;
+  /** The news log, newest first. */
+  news?: NewsItem[];
   /** Seat → local issues you have taken up this term. */
   issuesTaken: Record<number, string[]>;
   /** How much of the GE15 calibration still holds (it fades each election). */
@@ -369,6 +384,9 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
     entries: {},
     nominations: null,
     pacts: [],
+    rivalPacts: [],
+    partnerCtl: {},
+    openSeats: {},
     issuesTaken: {},
     calWeight: 1,
     orders: [],
@@ -498,6 +516,9 @@ export function migrateGame(g: GameState): GameState {
     entries: g.entries ?? {},
     nominations: g.nominations ?? null,
     pacts: g.pacts ?? [],
+    rivalPacts: g.rivalPacts ?? [],
+    partnerCtl: g.partnerCtl ?? {},
+    openSeats: g.openSeats ?? {},
     issuesTaken: g.issuesTaken ?? {},
     calWeight: g.calWeight ?? 1,
     orders: g.orders ?? [],
@@ -657,9 +678,10 @@ export function voterInputs(state: GameState): VoterInputs {
   const policy = policyVoters(state.me.policies, isGovernment(state));
   // Every party's state chiefs and election director (yours and the rivals').
   const posts = state.posts ? postSeatEffects(state) : null;
+  const partners = partnerSeatEffects(state);
   const seatOffsets = state.seatOffsets.map((row, i) => {
     const out = posts ? row.map((v, k) => v + posts[i][k]) : [...row];
-    out[p] += playerSeatEffect(state, i, policy);
+    out[p] += playerSeatEffect(state, i, policy) + (partners.get(i) ?? 0);
     // Your party's named candidate carries a personal vote.
     const pick = state.nominations?.picks[i];
     if (pick !== undefined) out[p] += candidateStrength(state, i, state.people.find((x) => x.id === pick && x.party === yourParty(state)));

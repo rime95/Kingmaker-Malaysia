@@ -33,6 +33,10 @@ import { naturalSupport } from "./voter";
 import { ROLES, pollError, teamDonations, teamRaidMult, teamSalaries, teamUpkeepMult, teamWeek } from "./systems/team";
 import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./systems/budget";
 import { taxTargets } from "./systems/wawasan";
+import { partnersWeek } from "./systems/partners";
+import { plotsMonth } from "./systems/plots";
+import { ambitionsMonth } from "./systems/ambitions";
+import { logNews, newsWeek } from "./systems/news";
 import { CARD_BY_KIND, cardsWeek, makeRoom } from "./systems/events";
 import { rivalsWeek } from "./systems/rivals";
 import { decaySeg } from "./systems/segments";
@@ -228,6 +232,19 @@ export function advanceWeek(input: GameState): GameState {
     next = { ...next, budgetDue: next.week };
     lines.push({ text: gov ? `Budget ${year + 1} is due in the Dewan. Allocate it in the Policy tab.` : `Budget ${year + 1} is being tabled. You can answer with a shadow budget.`, tone: "info" });
   }
+
+  // Your minor partners: a rebel you backed takes over; a party under pressure comes to apologise
+  const bw = partnersWeek(next);
+  next = bw.state;
+  lines.push(...bw.lines);
+  // Plots in your party and feuds in theirs; the week's story
+  const pl = plotsMonth(next);
+  next = pl.state;
+  lines.push(...pl.lines);
+  const am = ambitionsMonth(next);
+  next = am.state;
+  lines.push(...am.lines);
+  lines.push(...newsWeek(next));
 
   // The government's promises; your opposition investigations; the party's wings
   const ag = agendaWeek(next);
@@ -475,6 +492,7 @@ export function advanceWeek(input: GameState): GameState {
   }
 
   next.report = { week: next.week, income, expenses, seatsBefore, seatsAfter, movers, lines };
+  next.news = logNews(next, lines);
   next.history = [...s.history, { week: next.week, funds: Math.round(me.funds), seats: seatsAfter }].slice(-HISTORY_LIMIT);
   // A majority of its own: the Agong appoints its leader at once, with no talks.
   if (next.formation?.outright) next = outrightGovernment(next);

@@ -11,6 +11,7 @@ import { COALITION_INDEX } from "../voter";
 import { PARTIES, SEATS, contestingIn, cshort, seatRegion, type CoalitionId } from "../world";
 import { isPresident } from "./career";
 import { COALITION_RULES, seatCandidate } from "./coalitions";
+import { partyFit } from "./partners";
 
 export const TALKS = {
   /** Goodwill a pact starts with (0–100). */
@@ -86,10 +87,8 @@ function partnerFor(s: GameState, i: number): string | null {
   const [lead, ...rest] = s.coalitions[s.player].members;
   if (!lead || !rest.length) return null;
   const region = seatRegion(SEATS[i]);
-  const local = rest.find((p) => PARTIES[p]?.home === region);
-  if (local) return local;
-  const nat = rest.filter((p) => PARTIES[p]?.home === "national" || PARTIES[p]?.home === "peninsula");
-  return (region === "peninsula" ? nat[0] : null) ?? null;
+  const can = rest.filter((p) => PARTIES[p]?.home === region || PARTIES[p]?.home === "national" || (PARTIES[p]?.home === "peninsula" && region === "peninsula"));
+  return can.sort((a, b) => partyFit(s, SEATS[i], b) - partyFit(s, SEATS[i], a))[0] ?? null;
 }
 
 /** Every seat on the table, with who stands now. `shares` is the projected vote by seat. */
@@ -112,7 +111,8 @@ export function talkSeats(s: GameState, shares: (i: number) => Partial<Record<Co
       const partner = cand !== lead ? cand : partnerFor(s, seat.index);
       if (!partner) continue;
       const hp = s.holders[seat.index] === s.player ? s.holderParties[seat.index] : null;
-      const claim = hp === partner ? 0.75 : hp === lead ? 0.25 : PARTIES[partner]?.home === seatRegion(seat) ? 0.6 : 0.45;
+      const fit = partyFit(s, seat, partner);
+      const claim = hp === partner ? 0.75 : hp === lead ? 0.25 : 0.2 + 0.6 * (fit / Math.max(0.01, fit + partyFit(s, seat, lead)));
       rows.push({ seat: seat.index, kind: "coalition", partner, standing: cand === lead ? "you" : "them", held: hp === lead ? "you" : hp === partner ? "them" : null, claim });
     }
   }
@@ -131,7 +131,7 @@ const setGoodwill = (s: GameState, kind: TalkSeat["kind"], partner: string, v: n
     : { ...s, partySat: { ...s.partySat, [partner]: Math.max(0, Math.min(100, v)) } };
 
 /** Give the seat's flag to a party in your coalition, moving an incumbent's personal vote with it. */
-function carry(s: GameState, i: number, party: string): GameState {
+export function carry(s: GameState, i: number, party: string): GameState {
   const ci = COALITION_INDEX[s.player];
   const before = seatCandidate(s, SEATS[i], s.player);
   const seatOffsets = s.seatOffsets.map((r) => [...r]);

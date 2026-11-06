@@ -4,6 +4,7 @@
 // All numbers TEMPORARY.
 
 import { hash01 } from "../rng";
+import { remember } from "./people";
 import type { GameState } from "../state";
 import { SEATS } from "../world";
 import type { CardDef } from "./events";
@@ -30,7 +31,7 @@ export function celebritySeat(s: GameState): number | null {
   return seats.sort((a, b) => SEATS[b].demo.youth - SEATS[a].demo.youth)[0];
 }
 
-const loyalty = (id: number | undefined, d: number) => (st: GameState) => ({ state: { ...st, people: st.people.map((p) => (p.id === id ? { ...p, loyalty: Math.max(0, Math.min(100, p.loyalty + d)) } : p)) } });
+const loyalty = (id: number | undefined, d: number) => (st: GameState) => ({ state: { ...st, people: st.people.map((p) => (p.id === id ? remember(p, d, d > 0 ? "You backed me over the ticket" : "You crossed me over the ticket", st.week) : p)) } });
 
 export const DIVISION_DEMAND_CARD: CardDef = {
   kind: "divisionDemand",

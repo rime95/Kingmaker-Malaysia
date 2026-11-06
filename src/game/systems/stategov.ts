@@ -10,6 +10,7 @@
 // All numbers TEMPORARY.
 
 import { hash01 } from "../rng";
+import { remember } from "./people";
 import type { CardDef } from "./events";
 import type { CardInstance, GameState, ReportLine } from "../state";
 import { COALITIONS, SEATS, STATE_BY_ID, contestingIn, cshort, type CoalitionId } from "../world";
@@ -408,10 +409,10 @@ export function confirmStateTerm(s: GameState, id?: string): { state: GameState;
   }
   const chief = holderOf(s, yours, chiefKey(regionOf(t.state)));
   const people = s.people.map((p) => {
-    if (p.id === t.mb) return { ...p, loyalty: clamp(p.loyalty + 10), influence: clamp(p.influence + 5) };
+    if (p.id === t.mb) return { ...remember(p, 10, "You made me Menteri Besar", s.week), influence: clamp(p.influence + 5) };
     // Your state chief expected the top job.
-    if (chief && p.id === chief.id && t.mb !== chief.id) return { ...p, loyalty: clamp(p.loyalty - 10) };
-    if (t.exco.includes(p.id)) return { ...p, loyalty: clamp(p.loyalty + 4) };
+    if (chief && p.id === chief.id && t.mb !== chief.id) return remember(p, -10, "You passed me over for Menteri Besar", s.week);
+    if (t.exco.includes(p.id)) return remember(p, 4, "You put me on the state exco", s.week);
     return p;
   });
   const mb = s.people.find((p) => p.id === t.mb);
