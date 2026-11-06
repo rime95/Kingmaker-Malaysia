@@ -47,11 +47,11 @@ export function Game() {
  * Phones: navigation moves to the bottom, panels and the seat card become sheets.
  */
 function Main() {
-  const { panel, selected, analysisOpen, recordOpen, reportOpen, summaryOn } = useGame();
+  const { panel, selected, analysisOpen, recordOpen, reportOpen, summaryOn, skipSummary } = useGame();
   const game = useGame((s) => s.game)!;
   const [savesOpen, setSavesOpen] = useState(false);
   const [docketOpen, setDocketOpen] = useState(false);
-  const overlay = activeOverlay(game, { savesOpen, recordOpen, analysisOpen, summary: reportOpen && summaryOn && !game.night });
+  const overlay = activeOverlay(game, { savesOpen, recordOpen, analysisOpen, summary: reportOpen && (summaryOn || skipSummary) && !game.night });
   const overlayRef = useRef(overlay);
   useEffect(() => {
     overlayRef.current = overlay;

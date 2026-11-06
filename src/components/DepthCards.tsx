@@ -5,7 +5,7 @@ import { COUNCIL_EVERY, WINGS } from "@/game/systems/partyorg";
 import { SEGMENT_LABEL, type Segment } from "@/game/systems/segments";
 import { useGame } from "@/store/gameStore";
 import { fmtRM } from "./common";
-import { RECRUIT, recruitBlocked, recruitFactors, recruitTargets, recruitWillingness } from "@/game/systems/growth";
+import { RECRUIT, recruitBlocked, recruitCost, recruitFactors, recruitTargets, recruitWillingness, talksToWin } from "@/game/systems/growth";
 import { coalitionOf } from "@/game/systems/coalitions";
 import { cshort } from "@/game/world";
 
@@ -106,17 +106,15 @@ export function GrowCoalitionCard() {
   const deep = useGame((s) => s.deep);
   const rows = recruitTargets(game)
     .map((party) => ({ party, from: coalitionOf(game, party), w: recruitWillingness(game, party), why: recruitBlocked(game, party), mps: game.holderParties.filter((p) => p === party).length }))
-    .filter((r) => r.mps > 0)
-    .sort((a, b) => b.w - a.w)
-    .slice(0, 8);
+    .sort((a, b) => b.w - a.w);
   return (
     <section>
       <h3 className="eyebrow mb-1">Grow your coalition</h3>
       <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
-        Invite a party to join you, MPs and all. Unhappy partners of other coalitions listen most; a coalition&apos;s lead party brings its whole coalition. {RECRUIT.ap} AP,{" "}
-        {RECRUIT.capital} capital, and {fmtRM(RECRUIT.perMp)} for each MP they bring. A refusal only costs the AP.
+        Invite any party, MPs and all. A coalition&apos;s lead party brings its whole coalition. Talks cost {RECRUIT.ap} AP and every refusal warms them, so anyone can be won in the end. On a yes you pay {RECRUIT.capital}{" "}
+        capital and {fmtRM(RECRUIT.perMp)} an MP, at most {fmtRM(RECRUIT.maxCost)}.
       </p>
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-1 max-h-96 overflow-y-auto scroll-thin">
         {rows.map((r) => {
           const lead = game.coalitions[r.from].members[0] === r.party;
           const odds = r.w >= RECRUIT.threshold + 0.1 ? "likely" : r.w >= RECRUIT.threshold - 0.1 ? "maybe" : "unlikely";
@@ -133,7 +131,9 @@ export function GrowCoalitionCard() {
                     .join(" · ")}
                 </span>
               </span>
-              <span style={{ color: odds === "likely" ? "var(--good)" : odds === "maybe" ? "var(--accent)" : "var(--muted)" }}>{odds}</span>
+              <span className="flex-none text-right" style={{ color: odds === "likely" ? "var(--good)" : odds === "maybe" ? "var(--accent)" : "var(--muted)" }} title={`${fmtRM(recruitCost(game, r.party))} on a yes`}>
+                {odds === "unlikely" ? `about ${talksToWin(game, r.party)} talks` : odds}
+              </span>
               <button className="chip !py-0.5 text-xs" disabled={!!r.why} title={r.why ?? undefined} onClick={() => deep({ kind: "recruit", party: r.party })}>
                 Invite
               </button>

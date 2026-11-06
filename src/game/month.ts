@@ -6,8 +6,8 @@ import { TURN_WEEKS } from "./config";
 import { advanceWeek } from "./week";
 import { ACTION_BY_ID, applyAction, saturation } from "./actions";
 import { runOrders } from "./systems/orders";
-import { upcoming } from "./calendar";
-import { recentVotes } from "./systems/dewan";
+import { CARD_BY_KIND, CARD_PRIORITY, resolveCard } from "./systems/events";
+import { syncYou } from "./systems/people";
 
 function mergeAmounts(lists: { label: string; amount: number }[][]): { label: string; amount: number }[] {
   const out = new Map<string, number>();
@@ -64,25 +64,64 @@ export function mergeReports(reports: WeekReport[]): WeekReport {
     seatsBefore: reports[0].seatsBefore,
     lines: events,
     weeks: reports.reduce((a, r) => a + (r.weeks ?? 1), 0),
+    handled: reports.flatMap((r) => r.handled ?? []),
   };
 }
 
 /** News that should stop time moving on by itself. */
-export const ALARM = /MACC|in debt|Couldn.t pay|state election|by-election|leadership|retires|Achievement|Objective complete/;
+export const ALARM = /MACC|in debt|Couldn.t pay/;
+
+/** Cards that matter enough to wait for you; the rest can take their default answer when time skips. */
+const important = (kind: string) => (CARD_PRIORITY[kind] ?? 3) <= 1;
 
 /**
- * Does the turn just played leave anything for you? A decision on the docket, a deadline or vote within the next turn,
- * a screen to see (election night, talks, a new cabinet), a campaign under way, or alarming news. If not, it was quiet.
+ * What must stop time: a screen to see, an election or party vote, your Budget as Prime Minister, an important card or
+ * alarming news. `since`: only cards from this week on count (a long skip you asked for passes the ones you put off).
  */
-export function needsYou(s: GameState): boolean {
-  if (s.cards.length || s.budgetDue !== null) return true;
+export function bigMoment(s: GameState, since = -1): boolean {
   if (s.night || s.stateNight || s.stateTalks || s.stateTerms?.length || s.formation || s.newTerm || s.namePending || s.ending) return true;
   if (s.parliament.status === "campaign" || s.nominations?.open) return true;
-  if (Object.values(s.assemblies).some((a) => a.status === "campaign")) return true;
-  if (upcoming(s).some((u) => u.urgent || u.weeks <= TURN_WEEKS)) return true;
-  if (recentVotes(s).length) return true;
+  if (s.race && !s.race.result) return true;
+  if (s.career.rung >= 6 && s.partyPolls && !s.partyPolls.result) return true;
+  if (s.budgetDue !== null && s.parliament.pm === s.player && s.career.rung >= 6) return true;
+  if (s.cards.some((c) => important(c.kind) && c.week >= since)) return true;
   return !!s.report?.lines.some((l) => ALARM.test(l.text));
+}
+
+/** Routine cards take their default answer; what was decided goes in the report. */
+export function handleRoutine(s: GameState): GameState {
+  let state = s;
+  const lines: ReportLine[] = [];
+  const handled: string[] = [];
+  for (const card of s.cards.filter((c) => !important(c.kind))) {
+    const def = CARD_BY_KIND[card.kind];
+    const r = resolveCard(state, card.id, def.defaultChoice, true);
+    if (!r) continue;
+    state = syncYou(r.state, r.lines);
+    lines.push(...r.lines.slice(1));
+    handled.push(`${def.title}: ${def.choices(s, card)[def.defaultChoice].label}`);
+  }
+  if (!handled.length || !state.report) return state;
+  return { ...state, report: { ...state.report, lines: [...state.report.lines, ...lines], handled: [...(state.report.handled ?? []), ...handled] } };
 }
 
 export const advanceTurn = (s: GameState) => advanceWeeks(s, TURN_WEEKS, true);
 export const advanceMonth = (s: GameState) => advanceWeeks(s, 4);
+
+/** Quiet turns play on by themselves, up to this many (12 weeks). */
+export const QUIET_TURNS = 6;
+
+/** Move on up to `weeks`, handling the routine, until a big moment; one merged report. `since`: see `bigMoment`. */
+export function fastForward(s: GameState, weeks: number, since?: number): GameState {
+  let state = handleRoutine(s);
+  const carried = state.report?.handled?.filter((h) => !(s.report?.handled ?? []).includes(h)) ?? [];
+  const reports: WeekReport[] = [];
+  while (state.week - s.week < weeks) {
+    state = handleRoutine(advanceTurn(state));
+    reports.push(state.report!);
+    if (bigMoment(state, since)) break;
+  }
+  if (carried.length) reports[0] = { ...reports[0], handled: [...carried, ...(reports[0].handled ?? [])] };
+  const report = mergeReports(reports);
+  return { ...state, report };
+}

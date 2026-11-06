@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { TURN_WEEKS } from "@/game/config";
 import { openPolls } from "@/game/systems/partypolls";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { TalkSeat } from "@/game/systems/seattalks";
@@ -67,7 +68,8 @@ import {
   type OfferKind,
   type Target,
 } from "@/game/actions";
-import { advanceTurn, advanceWeeks, mergeReports, needsYou } from "@/game/month";
+import { QUIET_TURNS, advanceTurn, fastForward } from "@/game/month";
+import { recentVotes } from "@/game/systems/dewan";
 import { testBoost, testGeneralElection, testSitting } from "@/game/testTools";
 import { toggleOrder } from "@/game/systems/orders";
 import type { PrepMove } from "@/game/systems/dewan";
@@ -124,6 +126,8 @@ interface Store {
   setSummaryOn: (on: boolean) => void;
   /** Ending a turn with nothing for you to do plays on until something is (up to 12 weeks). */
   autoSkip: boolean;
+  /** The next summary shows even if summaries are off: a skip always reports back. */
+  skipSummary: boolean;
   setAutoSkip: (on: boolean) => void;
   /** Decision cards you put off ("decide later") until you open them again. */
   snoozed: number[];
@@ -157,8 +161,7 @@ interface Store {
   quit: () => void;
   simulate: () => void;
   skipWeek: () => void;
-  skipMonth: () => void;
-  skipToEvent: () => void;
+  fastForward: (weeks: number) => void;
   act: (id: string, target: Target) => void;
   claim: (bubbleId: number) => void;
   poll: (seat: number) => void;
@@ -276,6 +279,19 @@ export const useGame = create<Store>()(
         else set({ toast: { id: ++toastId, text: r.error, error: true } });
       };
       const moved = (game: GameState) => set({ game, reportOpen: true, budgetSnoozed: false });
+      // After a skip: one summary, not a pile of alerts for votes that have already happened or are about to.
+      const skipped = (from: GameState, game: GameState) => {
+        if (game.week - from.week <= TURN_WEEKS && !game.report?.handled?.length) return moved(game);
+        const due = game.dewan.motions.filter((m) => !m.result && !m.withdrawn).map((m) => m.id);
+        set({
+          game,
+          reportOpen: true,
+          budgetSnoozed: false,
+          skipSummary: true,
+          voteSeen: [...get().voteSeen, ...due].slice(-40),
+          resultSeen: [...get().resultSeen, ...recentVotes(game).map((v) => v.key)].slice(-60),
+        });
+      };
       return {
         game: null,
         lens: "holder",
@@ -293,6 +309,7 @@ export const useGame = create<Store>()(
         summaryOn: true,
         setSummaryOn: (summaryOn) => set({ summaryOn }),
         autoSkip: true,
+        skipSummary: false,
         setAutoSkip: (autoSkip) => set({ autoSkip }),
         snoozed: [],
         budgetSnoozed: false,
@@ -343,34 +360,19 @@ export const useGame = create<Store>()(
           const g = get().game;
           if (g?.night || g?.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
           if (!g) return;
-          // Quiet turns play on by themselves (up to six turns, 12 weeks) until something needs you.
-          let next = advanceTurn(g);
-          const reports = [next.report!];
-          for (let i = 1; i < 6 && get().autoSkip && !needsYou(next); i++) {
-            next = advanceTurn(next);
-            reports.push(next.report!);
-          }
-          if (reports.length > 1) next = { ...next, report: mergeReports(reports) };
-          moved(next);
-          if (reports.length > 1) set({ toast: { id: ++toastId, text: `Quiet weeks: skipped to ${weekLabel(next.week)}.` } });
+          // Quiet turns play on by themselves, routine decisions and all, until something big needs you.
+          if (!get().autoSkip) return moved(advanceTurn(g));
+          const next = fastForward(g, QUIET_TURNS * TURN_WEEKS);
+          skipped(g, next);
+          if (next.week - g.week > TURN_WEEKS) set({ toast: { id: ++toastId, text: `Quiet weeks: skipped to ${weekLabel(next.week)}.` } });
         },
-        skipMonth: () => {
+        fastForward: (weeks) => {
           const g = get().game;
-          if (g?.night || g?.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
-          if (g) moved(advanceWeeks(g, 4, true));
-        },
-        skipToEvent: () => {
-          let g = get().game;
           if (!g) return;
           if (g.night || g.formation) return set({ toast: { id: ++toastId, text: BLOCKED, error: true } });
-          const start = g.week;
-          // Up to 12 weeks (six turns), stopping at anything that needs you.
-          for (let i = 0; i < 6; i++) {
-            g = advanceTurn(g);
-            if (needsYou(g)) break;
-          }
-          moved(g);
-          set({ toast: { id: ++toastId, text: `Skipped ${g.week - start} week${g.week - start === 1 ? "" : "s"}.` } });
+          const next = fastForward(g, weeks, g.week + 1);
+          skipped(g, next);
+          set({ toast: { id: ++toastId, text: `Skipped ${next.week - g.week} weeks to ${weekLabel(next.week)}.` } });
         },
         act: (id, target) => {
           const g = get().game;
@@ -647,7 +649,7 @@ export const useGame = create<Store>()(
         focusState: (id) => set({ mapFocus: { kind: "state", id, nonce: ++nonce } }),
         setLens: (lens) => set({ lens }),
         openPanel: (panel) => set({ panel: get().panel === panel ? null : panel, popAt: null }),
-        closeReport: () => set({ reportOpen: false }),
+        closeReport: () => set({ reportOpen: false, skipSummary: false }),
         clearToast: () => set({ toast: null }),
       };
     },

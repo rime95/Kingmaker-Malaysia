@@ -55,7 +55,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 29;
+export const SAVE_VERSION = 30;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -76,6 +76,8 @@ export interface WeekReport {
   movers: { seatIndex: number; delta: number }[];
   /** How many weeks this report covers (Skip 1 Month = 4). */
   weeks?: number;
+  /** Routine decisions made for you while time skipped. */
+  handled?: string[];
   lines: ReportLine[];
 }
 
@@ -229,6 +231,8 @@ export interface GameState {
   partnerCtl: Record<string, PartnerCtl>;
   /** Seats where two of your coalition's parties fight it out. */
   openSeats: Record<number, [string, string]>;
+  /** How far talks with each party have come. */
+  partyWarmth?: Record<string, number>;
   /** A Prime Minister's standing boards. */
   craft?: Craft;
   /** The rival camp's plot against you. */

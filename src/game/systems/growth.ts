@@ -87,21 +87,42 @@ export function growRoots(roots: number[], shares: number[], c: CoalitionId, sea
 
 // --- Recruiting parties ---------------------------------------------------------------------------
 
-export const RECRUIT = { ap: 2, capital: 15, perMp: 400_000, minCost: 500_000, cooldown: 12, threshold: 0.35, smallSeats: 30, smallBonus: 0.15, dominantPenalty: 0.4 };
+export const RECRUIT = {
+  ap: 2,
+  capital: 10,
+  perMp: 150_000,
+  minCost: 500_000,
+  maxCost: 5_000_000,
+  cooldown: 8,
+  threshold: 0.25,
+  /** The floor on seats a whole coalition's size is judged against. */
+  smallSeats: 30,
+  /** Short of a majority you need partners: the newcomer's bonus at no seats, fading to nothing at a majority. */
+  needBonus: 0.4,
+  dominantPenalty: 0.4,
+  /** Every refused talk warms them this much, for good. */
+  talkWarmth: 0.12,
+};
 
 const seatsOf = (s: GameState, c: CoalitionId) => s.holders.filter((h) => h === c).length;
 
 /** What it costs to bring a party over: posts, allocations and sweeteners for each of its MPs (a whole coalition for a lead party). */
 export function recruitCost(s: GameState, party: string): number {
   const from = coalitionOf(s, party);
-  const parties = s.coalitions[from].members[0] === party ? s.coalitions[from].members : [party];
+  const parties = isLead(s, party) ? s.coalitions[from].members : [party];
   const mps = s.holderParties.filter((p) => parties.includes(p)).length;
-  return Math.max(RECRUIT.minCost, mps * RECRUIT.perMp);
+  return Math.min(RECRUIT.maxCost, Math.max(RECRUIT.minCost, mps * RECRUIT.perMp));
 }
 
-/** Parties you could invite: anyone outside your coalition (a coalition's lead party brings the whole coalition). */
+/** A coalition's lead party (it brings the coalition with it). Others is no coalition: its parties join on their own. */
+const isLead = (s: GameState, party: string) => {
+  const from = coalitionOf(s, party);
+  return from !== "OTHERS" && s.coalitions[from].members[0] === party;
+};
+
+/** Parties you could invite: every party outside your coalition (a coalition's lead party brings the whole coalition). */
 export function recruitTargets(s: GameState): string[] {
-  return COALITIONS.filter((c) => c !== s.player && c !== "OTHERS").flatMap((c) => s.coalitions[c].members);
+  return COALITIONS.filter((c) => c !== s.player).flatMap((c) => s.coalitions[c].members).filter((p) => p !== "IND");
 }
 
 /** How willing a party is to join you (above the threshold, they say yes). */
@@ -119,21 +140,22 @@ function leadMood(s: GameState, c: CoalitionId): number {
 export function recruitFactors(s: GameState, party: string): { label: string; value: number }[] {
   const from = coalitionOf(s, party);
   const members = s.coalitions[from].members;
-  const lead = members[0] === party;
+  const lead = isLead(s, party);
   const sat = lead ? leadMood(s, from) : (s.partySat[party] ?? 55);
   const mine = Math.max(1, seatsOf(s, s.player));
   const theirs = Math.max(1, seatsOf(s, from));
   const out = [
     // Parties leave because they're unhappy where they are; liking you and your momentum help them decide.
-    { label: sat < 50 ? "unhappy where they are" : "content where they are", value: (50 - sat) / 30 },
+    { label: sat < 50 ? "unhappy where they are" : "content where they are", value: Math.max(-0.4, (50 - sat) / 30) },
     { label: (AFFINITY[from]?.[s.player] ?? 0) >= 0 ? "they like your side" : "they distrust your side", value: (AFFINITY[from]?.[s.player] ?? 0) * 0.5 },
     { label: (PARTY_LEAN[party]?.[s.player] ?? 0) >= 0 ? "a natural home" : "an old grudge", value: (PARTY_LEAN[party]?.[s.player] ?? 0) * 0.5 },
     { label: "your momentum", value: (s.me.momentum ?? 0) / 500 + (edgeOf(s) - 1) * 0.4 },
-    // In a small, rising coalition a newcomer gets the big posts; in a dominant one it gets swallowed.
-    { label: "big posts for a newcomer", value: (mine < RECRUIT.smallSeats ? RECRUIT.smallBonus : 0) + underdog(mine) * UNDERDOG.recruit },
+    { label: "past talks with you", value: (s.partyWarmth?.[party] ?? 0) },
+    // Short of a majority, you need them and a newcomer gets the big posts; in a dominant coalition it gets swallowed.
+    { label: "big posts for a newcomer", value: Math.max(0, RECRUIT.needBonus * (1 - mine / MAJORITY)) + underdog(mine) * UNDERDOG.recruit },
     { label: "they'd be swallowed by your majority", value: mine > MAJORITY ? -(RECRUIT.dominantPenalty + (mine - MAJORITY) / 40) : 0 },
     // A whole coalition merging is a big ask; a party on its own is only joining.
-    { label: "merging a whole coalition is a big ask", value: lead && members.length > 1 ? -(0.25 + Math.max(0, theirs - Math.max(mine, RECRUIT.smallSeats)) / 40) : 0 },
+    { label: "merging a whole coalition is a big ask", value: lead && members.length > 1 ? -(0.25 + Math.max(0, theirs - Math.max(mine, RECRUIT.smallSeats)) / 80) : 0 },
   ];
   return out.filter((f) => Math.abs(f.value) >= 0.01).sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
 }
@@ -142,22 +164,26 @@ export function recruitBlocked(s: GameState, party: string): string | null {
   if (s.career.rung < 6) return "Only the party president does this.";
   if (!recruitTargets(s).includes(party)) return "They're already with you.";
   if (s.me.ap < RECRUIT.ap) return `Needs ${RECRUIT.ap} AP.`;
-  if (s.me.capital < RECRUIT.capital) return `Needs ${RECRUIT.capital} political capital.`;
-  if (s.me.funds < recruitCost(s, party)) return `Needs ${(recruitCost(s, party) / 1e6).toFixed(1)}M.`;
   if ((s.cardLast[`recruit:${party}`] ?? -99) > s.week - RECRUIT.cooldown) return "They said no recently.";
   return null;
 }
+
+/** About how many more talks it takes for a party to say yes (0 if it would now). */
+export const talksToWin = (s: GameState, party: string) => Math.max(0, Math.ceil((RECRUIT.threshold - recruitWillingness(s, party)) / RECRUIT.talkWarmth));
 
 /** Invite a party (or, through its lead party, a whole coalition) to join yours. */
 export function recruitParty(s: GameState, party: string): { state: GameState; message: string } | { error: string } {
   const why = recruitBlocked(s, party);
   if (why) return { error: why };
   const from = coalitionOf(s, party);
-  const lead = s.coalitions[from].members[0] === party;
+  const lead = isLead(s, party);
   // A refusal costs you the talks (the AP), not the money or capital you'd have paid on a deal.
   const talked: GameState = { ...s, me: { ...s.me, ap: s.me.ap - RECRUIT.ap }, cardLast: { ...s.cardLast, [`recruit:${party}`]: s.week } };
   const w = recruitWillingness(s, party) + (hash01("recruit", s.seed, s.week, party) - 0.5) * 0.2;
-  if (w < RECRUIT.threshold) return { state: talked, message: `${PARTIES[party]?.name ?? party} turns you down, for now.` };
+  // Every refused talk leaves them warmer: anyone can be won in the end.
+  if (w < RECRUIT.threshold) return { state: { ...talked, partyWarmth: { ...s.partyWarmth, [party]: (s.partyWarmth?.[party] ?? 0) + RECRUIT.talkWarmth } }, message: `${PARTIES[party]?.name ?? party} turns you down, for now, but the talks went somewhere.` };
+  const fee = recruitCost(s, party);
+  if (s.me.funds < fee || s.me.capital < RECRUIT.capital) return { state: talked, message: `${PARTIES[party]?.name ?? party} is ready to join, but you need RM ${(fee / 1e6).toFixed(1)}M and ${RECRUIT.capital} capital to seal it.` };
   let state: GameState = { ...talked, me: { ...talked.me, capital: talked.me.capital - RECRUIT.capital, funds: talked.me.funds - recruitCost(s, party) } };
   const moving = lead ? [...s.coalitions[from].members] : [party];
   for (const p of moving) state = moveParty(state, p, s.player);

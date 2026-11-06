@@ -3,7 +3,7 @@ import { newGame } from "./state";
 import { testSitting } from "./testTools";
 import { recentVotes } from "./systems/dewan";
 import { holdByElection } from "./systems/events";
-import { needsYou } from "./month";
+import { bigMoment } from "./month";
 import type { ReportLine } from "./state";
 
 describe("votes you see", () => {
@@ -17,8 +17,8 @@ describe("votes you see", () => {
     if (d.kind !== "division") throw new Error("expected a division");
     expect(d.ayes + d.noes + d.abstain + d.absent).toBe(222);
     expect(d.yours).not.toBeNull();
-    // Auto-skip stops so you see it.
-    expect(needsYou({ ...state, cards: [], budgetDue: null })).toBe(true);
+    // A vote alone no longer stops a skip: it goes in the summary.
+    expect(bigMoment({ ...state, cards: [], budgetDue: null })).toBe(false);
   });
 
   it("a by-election held this turn is listed", () => {

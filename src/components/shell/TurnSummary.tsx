@@ -17,18 +17,31 @@ export function TurnSummary() {
   const cash = r.income.reduce((a, l) => a + l.amount, 0) - r.expenses.reduce((a, l) => a + l.amount, 0);
   const momentum = Math.round(game.me.momentum ?? 0);
   const fresh = game.cards.filter((c) => c.week === game.week).length;
+  const handled = r.handled ?? [];
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Turn summary" onClick={closeReport}>
       <div className="modal-card pop-in w-full max-w-lg flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
         <div>
-          <div className="eyebrow">{weeks >= 4 ? "The month" : weeks === 2 ? "The fortnight" : "The week"} to {weekLabel(game.week)}</div>
-          <h2 className="text-2xl">How it went</h2>
+          <div className="eyebrow">{weeks > 4 ? `${weeks} weeks` : weeks === 4 ? "The month" : weeks === 2 ? "The fortnight" : "The week"} to {weekLabel(game.week)}</div>
+          <h2 className="text-2xl">{weeks > 2 ? "While you were away" : "How it went"}</h2>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center">
           <Figure label="Seats if held today" value={`${r.seatsAfter}`} delta={delta} />
           <Figure label="Cash" value={fmtRM(cash)} tone={cash >= 0 ? "var(--good)" : "var(--bad)"} />
           <Figure label="Momentum" value={`${momentum}`} tone={momentum >= 40 ? "var(--brass-hi)" : undefined} />
         </div>
+        {handled.length > 0 && (
+          <div className="inset p-2.5 text-xs">
+            <div className="eyebrow mb-1">
+              Decided for you · {handled.length}
+            </div>
+            <ul className="flex flex-col gap-0.5 max-h-28 overflow-y-auto scroll-thin" style={{ color: "var(--ink-2)" }}>
+              {handled.map((h, i) => (
+                <li key={i}>{h}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="brass-rule" />
         <ReportBody report={r} limit={full ? undefined : 5} figures={false} />
         {fresh > 0 && (

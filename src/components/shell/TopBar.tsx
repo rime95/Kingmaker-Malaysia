@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { careerTitle } from "@/game/progress";
 import { isGovernment, weekLabel } from "@/game/state";
 import { weeksToElection } from "@/game/systems/assemblies";
@@ -32,6 +32,15 @@ const buntingFor = (g: GameState) => {
  * The command bar: who you are, the race to 112 as the latest poll sees it, and your resources. On narrow screens it
  * also holds the docket button and End turn (on wide screens the docket column has them).
  */
+const FAST: [string, number][] = [
+  ["Fast forward 1 month", 4],
+  ["Fast forward 3 months", 13],
+  ["Fast forward 6 months", 26],
+  ["To the next big moment", 52],
+];
+
+const CAPITAL_HELP = "Political capital: your standing and the favours you can call in, up to 200. It pays for political moves: policies, appointments, inviting parties, mega projects, whipping votes. You earn 1 a week, 10 for an objective, a by-election or a state, and more from Wawasan milestones and finished programmes.";
+
 export function TopBar({
   onSaves,
   onDocket,
@@ -178,6 +187,13 @@ export function TopBar({
             {fmtRM(me.funds)}
           </div>
         </div>
+        <div className="text-right" title={CAPITAL_HELP}>
+          <div className="eyebrow !text-[10px] hidden sm:block">Capital</div>
+          <div className="dossier-title text-base num" aria-label={`Political capital ${Math.round(me.capital)}`}>
+            <span className="sm:hidden text-[10px]">Cap </span>
+            {Math.round(me.capital)}
+          </div>
+        </div>
         <div
           className="hidden sm:block"
           title={`${me.ap} of ${me.apMax} action points left`}
@@ -224,8 +240,7 @@ export function TopBar({
 
 function Menu({ onSaves }: { onSaves: () => void }) {
   const {
-    skipMonth,
-    skipToEvent,
+    fastForward,
     simulate,
     quit,
     testTools,
@@ -272,12 +287,9 @@ function Menu({ onSaves }: { onSaves: () => void }) {
       </button>
       {open && (
         <div className="panel absolute right-0 top-full mt-2 w-56 p-1.5 z-50 pop-in">
-          {item(t("skipMonth"), skipMonth)}
-          {item(
-            t("skipEvent"),
-            skipToEvent,
-            "Skips up to 12 weeks, stopping at anything that needs you.",
-          )}
+          {FAST.map(([label, weeks]) => (
+            <Fragment key={label}>{item(label, () => fastForward(weeks), "Routine decisions take their default answer. Stops at anything big: elections, your Budget, crises, a partner walking out. You get one summary at the end.")}</Fragment>
+          ))}
           {item(
             t("testElection"),
             simulate,
@@ -327,9 +339,9 @@ function Menu({ onSaves }: { onSaves: () => void }) {
             "Show how each turn went in a card when it ends.",
           )}
           {item(
-            autoSkip ? "Skip quiet weeks: on" : "Skip quiet weeks: off",
+            autoSkip ? "Skip quiet weeks and routine decisions: on" : "Skip quiet weeks and routine decisions: off",
             () => setAutoSkip(!autoSkip),
-            "When a turn leaves nothing for you to do, time moves on by itself (up to 12 weeks) until something does.",
+            "On: End turn keeps going for up to 12 weeks until something big needs you, and routine decisions take their default answer. Off: every turn stops and you decide every card yourself.",
           )}
           {item("Your record & achievements", () => setRecordOpen(true))}
           {item(
