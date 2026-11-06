@@ -33,6 +33,7 @@ import type { SeatRecord } from "./systems/results";
 import { asideFor, type Pact } from "./systems/pacts";
 import { partnerSeatEffects, type PartnerCtl, type RivalPact } from "./systems/partners";
 import type { Plot } from "./systems/plots";
+import type { Craft } from "./systems/statecraft";
 import type { NewsItem } from "./systems/news";
 import { issueEffect } from "./systems/issues";
 import type { Order } from "./systems/orders";
@@ -228,6 +229,8 @@ export interface GameState {
   partnerCtl: Record<string, PartnerCtl>;
   /** Seats where two of your coalition's parties fight it out. */
   openSeats: Record<number, [string, string]>;
+  /** A Prime Minister's standing boards. */
+  craft?: Craft;
   /** The rival camp's plot against you. */
   plot?: Plot;
   /** Who already had what they wanted has been noted. */

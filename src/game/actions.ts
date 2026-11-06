@@ -36,6 +36,7 @@ import { ISSUE, openIssues } from "./systems/issues";
 import { collection, toggleMou } from "./systems/funding";
 import { endPact, proposePact } from "./systems/pacts";
 import { breakPlot } from "./systems/plots";
+import { appointTop, queueBuild, setMa63, setPlan, setStateWeight, signDeal, startProgramme, visitPartner, type Partner, type PlanId, type TopPost } from "./systems/statecraft";
 import { assignSeat, bestAllocation, bully, forgive, setOpenContest, tame, type BullyMove } from "./systems/partners";
 import { prepMotion, tableMotion, type PrepMove } from "./systems/dewan";
 import { courtChallenge, critique, publishProbe, setShadow, startProbe, streetRally, type Kpi } from "./systems/agenda";
@@ -971,6 +972,14 @@ export type DeepOp =
   | { kind: "assignSeat"; seat: number; party: string }
   | { kind: "bestAllocation" }
   | { kind: "breakPlot" }
+  | { kind: "setPlan"; ids: PlanId[] }
+  | { kind: "startProgramme"; id: string }
+  | { kind: "setStateWeight"; state: string; weight: number }
+  | { kind: "setMa63"; share: number }
+  | { kind: "queueBuild"; sector: string; state: string }
+  | { kind: "appointTop"; post: TopPost; id: number | null }
+  | { kind: "visitPartner"; id: Partner }
+  | { kind: "signDeal"; id: Partner }
   | { kind: "openContest"; seat: number; other: string | null }
   | ({ kind: "case" } & CaseMove)
   | { kind: "autoGround"; on: boolean }
@@ -1061,6 +1070,22 @@ export function deepMove(s: GameState, op: DeepOp): ActionResult {
       return wrap(bestAllocation(s));
     case "breakPlot":
       return wrap(breakPlot(s));
+    case "setPlan":
+      return wrap(setPlan(s, op.ids));
+    case "startProgramme":
+      return wrap(startProgramme(s, op.id));
+    case "setStateWeight":
+      return wrap(setStateWeight(s, op.state, op.weight));
+    case "setMa63":
+      return wrap(setMa63(s, op.share));
+    case "queueBuild":
+      return wrap(queueBuild(s, op.sector, op.state));
+    case "appointTop":
+      return wrap(appointTop(s, op.post, op.id));
+    case "visitPartner":
+      return wrap(visitPartner(s, op.id));
+    case "signDeal":
+      return wrap(signDeal(s, op.id));
     case "openContest":
       return wrap(setOpenContest(s, op.seat, op.other));
     case "recruit": {

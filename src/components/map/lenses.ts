@@ -10,6 +10,7 @@ import type { Rating } from "@/game/voter";
 import { BLOC_LABEL, contestingIn, cshort, majorityBloc, SEATS, type CoalitionId } from "@/game/world";
 import type { Lens } from "@/store/gameStore";
 import { divisionChief } from "@/game/systems/camps";
+import { craftOf } from "@/game/systems/statecraft";
 import { campColorOf, campColors, LEADER_CAMP, RIVAL_COLORS, UNALIGNED, YOUR_CAMP } from "../campColors";
 
 const PARTNER_BRANCH = "#4a6a8a";
@@ -23,6 +24,7 @@ export const LENSES: { id: Lens; label: string; short: string }[] = [
   { id: "support", label: "Your polled vote share", short: "Support" },
   { id: "presence", label: "Your strongholds (service)", short: "Strongholds" },
   { id: "pressure", label: "Hostile rivals at work", short: "Rivals" },
+  { id: "development", label: "State development", short: "Development" },
   { id: "ethnic", label: "Ethnic majority (estimate)", short: "Ethnic" },
   { id: "urban", label: "Urban to rural", short: "Urban" },
   { id: "result", label: "Last war-room simulation", short: "War room" },
@@ -69,6 +71,8 @@ export function lensFill(game: GameState, reads: SeatRead[], lens: Lens, i: numb
       return { fill: coalColor(game.holders[i]) };
     case "parties":
       return { fill: partyColor(game, game.holderParties[i]) };
+    case "development":
+      return { fill: ramp("var(--brass)", (craftOf(game).dev[seat.state] ?? 0) / 90) };
     case "divisions": {
       // Your party's division: its chief's camp (solid where the MP leads it, lighter for an organiser; dashed if hostile).
       const chief = divisionChief(game, i);
@@ -111,6 +115,8 @@ export interface LegendItem {
 export function lensLegend(game: GameState, lens: Lens): { items: LegendItem[]; note?: string } {
   const player = game.player;
   switch (lens) {
+    case "development":
+      return { items: [{ color: ramp("var(--brass)", 0.3), label: "Less developed" }, { color: ramp("var(--brass)", 1), label: "More developed" }], note: "Set each state's money under Govern → Statecraft → States." };
     case "holder":
       return { items: [...new Set(game.holders)].map((c) => ({ color: coalColor(c), label: cshort(c) })) };
     case "parties": {

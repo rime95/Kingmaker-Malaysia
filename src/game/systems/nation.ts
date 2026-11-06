@@ -18,6 +18,7 @@ import type { GameState, ReportLine } from "../state";
 import { SEATS, STATE_BY_ID } from "../world";
 import { byId } from "./people";
 import { edgeOf } from "../config";
+import { craftTargets, topEffect } from "./statecraft";
 import { QOL_START, WAWASAN, budgetCol, incomeUsd, pillarAvg, potentialBoost, qualityOfLife, taxTargets, wawasanWeek, wz, youBuild, type Milestone, type Wawasan } from "./wawasan";
 
 export interface Nation {
@@ -208,19 +209,20 @@ function targets(s: GameState) {
   const wv = wz(s);
   const boost = potentialBoost(wv);
   const tx = taxTargets(s, wv);
+  const cr = craftTargets(s);
 
-  const gdp = 4.2 + m("economy") * 0.4 + (n.fdi - 60) * 0.02 + sum("gdp") + building * 0.08 + (n.stimulus > 0 ? 0.8 : 0) - (n.opr - 2.75) * 0.4 + (pol("infra") === 1 ? 0.3 : 0) + (pol("wage") === 1 ? -0.15 : 0) + boost + tx.growth;
+  const gdp = 4.2 + m("economy") * 0.4 + (n.fdi - 60) * 0.02 + sum("gdp") + building * 0.08 + (n.stimulus > 0 ? 0.8 : 0) - (n.opr - 2.75) * 0.4 + (pol("infra") === 1 ? 0.3 : 0) + (pol("wage") === 1 ? -0.15 : 0) + boost + tx.growth + cr.gdp;
   const fuel = pol("fuel");
   const tax = pol("tax");
   const inflation =
     2.0 + (n.gdp - 4.4 - Math.max(0, boost)) * 0.25 - (n.opr - 2.75) * 0.7 + (n.ringgit - 4.2) * 1.2 + (fuel === 1 ? 0.6 : fuel === 2 ? 1.4 : 0) + (tax === 1 ? 0.3 : tax === 2 ? 0.8 : tax === 3 ? -0.3 : 0) + (pol("wage") === 1 ? 0.2 : 0);
-  const unemployment = 3.2 - (n.gdp - 4.4) * 0.3 + (pol("wage") === 1 ? 0.2 : 0) - building * 0.05;
+  const unemployment = 3.2 - (n.gdp - 4.4) * 0.3 + (pol("wage") === 1 ? 0.2 : 0) - building * 0.05 + cr.unemployment;
   const ringgit = 4.2 + (pillarAvg(wv) - 45) * WAWASAN.ringgitPerPoint + (n.debt - 64) * 0.01 - (n.opr - 2.75) * 0.2 - (n.fdi - 60) * 0.004;
-  const col = 50 + (n.inflation - 2) * 10 + (fuel === 1 ? 6 : fuel === 2 ? 14 : 0) - (pol("cashaid") === 1 ? 6 : pol("cashaid") === 2 ? -6 : 0) - (pol("wage") === 1 ? 4 : 0) - m("housing") * 3 + sum("col") + (youBuild(s) ? budgetCol(wv) : 0);
-  const fdi = 55 + m("trade") * 10 + sum("fdi") + (s.me.integrity - 60) * 0.1 - (n.ringgit > 4.6 ? 5 : 0);
+  const col = 50 + (n.inflation - 2) * 10 + (fuel === 1 ? 6 : fuel === 2 ? 14 : 0) - (pol("cashaid") === 1 ? 6 : pol("cashaid") === 2 ? -6 : 0) - (pol("wage") === 1 ? 4 : 0) - m("housing") * 3 + sum("col") + (youBuild(s) ? budgetCol(wv) : 0) + cr.col;
+  const fdi = 55 + cr.fdi + m("trade") * 10 + sum("fdi") + (s.me.integrity - 60) * 0.1 - (n.ringgit > 4.6 ? 5 : 0);
   const pay = n.civilPay === "raise" ? 3 : n.civilPay === "freeze" ? -3 : 0;
   const approval =
-    50 + (n.gdp - 4.4) * 3 - (n.inflation - 2) * 3 - (n.unemployment - 3.2) * 4 - (n.col - 50) * 0.35 + sum("approval") + pay + (m("health") + m("education") + m("communications")) * 1.5 + m("rural") * 1 + tx.approval + (qualityOfLife(s, wv) - QOL_START) * WAWASAN.approvalPerQol;
+    50 + (n.gdp - 4.4) * 3 - (n.inflation - 2) * 3 - (n.unemployment - 3.2) * 4 - (n.col - 50) * 0.35 + sum("approval") + pay + (m("health") + m("education") + m("communications")) * 1.5 + m("rural") * 1 + tx.approval + cr.approval + (qualityOfLife(s, wv) - QOL_START) * WAWASAN.approvalPerQol;
   return {
     gdp: gdp + w * STEWARD.gdp,
     inflation: inflation + w * STEWARD.inflation,
@@ -266,7 +268,7 @@ export function nationWeek(s: GameState): NationWeek {
   // Crises bite every week they last.
   if (n.crisis) {
     const def = CRISIS_BY_KIND[n.crisis.kind];
-    const home = 1 - ministerEffect(s, "home") * 0.15;
+    const home = 1 - (ministerEffect(s, "home") + topEffect(s, "igp")) * 0.15;
     const k = n.crisis.severity * home * Math.max(0.4, 1 + stewardship(s) * STEWARD.crisis);
     n.gdp += (def.weekly.gdp ?? 0) * k;
     n.inflation += (def.weekly.inflation ?? 0) * k;

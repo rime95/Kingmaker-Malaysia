@@ -1,19 +1,236 @@
 [
-{"name":"Verdon Bahanda","party":"IND","status":"active","post":"MP for Kudat; leader of the Black Wave independents in Sabah","background":"Independent MP who won Kudat in 2022 and later led a group of independents in Sabah's 2025 state polls.","stance":"regionalist","allies":["Wetrom Bahanda"],"wants":"To act as kingmaker in Sabah politics through a bloc of independents","sources":["https://en.wikipedia.org/wiki/Verdon_Bahanda","https://www.thestar.com.my/news/nation/2025/10/16/member-of-bahanda-family-opens-another-flank-in-sabahs-split-political-landscape"]},
-{"name":"Riduan Rubin","party":"KDM","status":"active","post":"MP for Tenom","background":"Won Tenom as an independent in 2022 and is listed with Sabah's KDM party; presses for a larger Sabah share of petroleum revenue.","stance":"regionalist","wants":"A bigger share of oil and gas revenue for Sabah","changed":"Party is KDM rather than independent","sources":["https://en.wikipedia.org/wiki/Riduan_Rubin","https://www.nabalunews.com/post/refine-petroleum-revenue-distribution-with-sabah-says-riduan"]},
-{"name":"Khairy Jamaluddin","party":"UMNO","status":"active","post":"Umno member; media personality","background":"Former Umno Youth chief and minister who was readmitted to Umno in April 2026 under the Rumah Bangsa initiative.","stance":"reformist","allies":["Ong Kian Ming"],"wants":"A seat to contest in the next general election","changed":"Readmitted to Umno in April 2026","sources":["https://www.thestar.com.my/news/nation/2026/04/17/hishammuddin-khairy-and-syed-hamid-rejoin-umno","https://www.malaymail.com/news/malaysia/2026/04/18/im-home-khairy-jamaluddin-returns-to-umno/216724"]},
-{"name":"Lim Kit Siang","party":"DAP","status":"active","post":"DAP veteran leader and adviser","background":"Veteran DAP figure who left electoral politics in 2022 but still comments on party and coalition direction.","stance":"reformist","allies":["Lim Guan Eng"],"wants":"DAP to speed up reforms and the unity government to stay together","sources":["https://www.thevibes.com/articles/news/122039/lim-kit-siang-urges-dap-to-accelerate-reforms-warns-against-dead-refroms-narrative"]},
-{"name":"Mahathir Mohamad","party":"IND","status":"active","post":"Former prime minister; Pejuang founder","background":"Twice prime minister and founder of Pejuang, now an elder statesman aged over 100.","stance":"nationalist","allies":["Mukhriz Mahathir"],"sources":["https://www.pbs.org/newshour/world/i-didnt-make-an-effort-to-live-this-long-malaysias-former-leader-mahathir-mohamad-turns-100"]},
-{"name":"Mukhriz Mahathir","party":"PEJUANG","status":"active","post":"Pejuang president","background":"Leads Pejuang, which was formally accepted into Perikatan Nasional in 2026; has ruled out returning to Umno.","stance":"nationalist","patron":"Mahathir Mohamad","allies":["Mahathir Mohamad"],"wants":"Stronger Malay political unity within Perikatan Nasional","changed":"Pejuang joined Perikatan Nasional in 2026","sources":["https://www.thestar.com.my/news/nation/2026/06/23/pejuang-calls-for-stronger-malay-political-unity-after-formally-accepted-into-pn","https://www.freemalaysiatoday.com/category/nation/2026/03/09/absolutely-not-mukhriz-rules-out-returning-to-umno"]},
-{"name":"Tengku Razaleigh Hamzah","party":"UMNO","status":"active","post":"Umno adviser; Gua Musang division chief","background":"Longtime Umno veteran and Gua Musang figure who speaks out on party direction and its place in the unity government.","stance":"nationalist","wants":"Umno to press harder for Najib's release and to reassess its role in the unity government","sources":["https://www.thestar.com.my/news/nation/2025/12/24/ku-li-calls-on-umno-to-step-up-fight-for-najib039s-freedom","https://www.freemalaysiatoday.com/category/nation/2023/05/14/ku-li-made-umno-adviser-says-source"]},
-{"name":"Tony Pua","party":"IND","status":"active","post":"Political commentator","background":"Former DAP Damansara MP who stayed out of GE15 and now comments publicly on politics.","stance":"reformist","sources":["https://en.wikipedia.org/wiki/Tony_Pua_Kiam_Wee"]},
-{"name":"Ong Kian Ming","party":"IND","status":"active","post":"Academic and commentator","background":"Former Bangi MP and deputy minister who quit DAP on 31 August 2026 and said he will not contest GE16.","stance":"technocrat","allies":["Khairy Jamaluddin"],"wants":"To help Khairy campaign in GE16 rather than contest himself","changed":"Quit DAP in August 2026","sources":["https://www.thestar.com.my/news/nation/2026/08/31/ong-kian-ming-quits-dap-says-will-keep-promise-to-help-khairy-in-ge16","https://malaymail.com/news/malaysia/2026/08/31/ong-kian-ming-quits-dap-after-14-years-rules-out-ge16-run-but-vows-to-campaign-for-khairy/233327"]},
-{"name":"Charles Santiago","party":"DAP","status":"active","post":"Chairman, National Water Services Commission (SPAN)","background":"Former three-term Klang MP, dropped as candidate in 2022, later reappointed head of the water services regulator.","stance":"reformist","sources":["https://www.freemalaysiatoday.com/category/nation/2025/05/14/charges-against-rama-reek-of-political-payback-says-daps-santiago","https://en.wikipedia.org/wiki/Charles_Santiago"]},
-{"name":"Khalid Samad","party":"AMANAH","status":"active","post":"Amanah Federal Territories chief; communications director","background":"Former Federal Territories minister and Shah Alam MP who joined Amanah in 2015.","stance":"moderate","wants":"Amanah to prepare its machinery if seat talks in the unity government fail","sources":["https://www.freemalaysiatoday.com/category/nation/2024/02/14/khalid-samad-appointed-ft-amanah-chief","https://en.wikipedia.org/wiki/Khalid_Abdul_Samad"]},
-{"name":"Maszlee Malik","party":"PKR","status":"active","post":"Puteri Wangsa state assemblyman (Johor)","background":"Former education minister who won the Puteri Wangsa state seat in the July 2026 Johor election.","stance":"reformist","patron":"Anwar Ibrahim","changed":"Now a Johor state assemblyman after the 2026 state polls","sources":["https://en.wikipedia.org/wiki/Maszlee_Malik","https://www.malaysianow.com/news/2026/06/30/in-puteri-wangsa-anwar-loyalist-maszlee-haunted-by-the-past-as-he-fights-uphill-battle-in-mudas-turf"]},
-{"name":"Tian Chua","party":"IND","status":"active","post":"Activist","background":"Former PKR vice president and Batu MP, expelled in 2023 after running as an independent; reported to be eyeing a revival.","stance":"reformist","wants":"Restoration of PKR membership and a possible return to Batu","sources":["https://www.malaymail.com/news/malaysia/2026/08/25/will-tian-chua-contest-batu-again-returning-pkr-veteran-eyes-political-revival/232541","https://www.malaysiakini.com/news/782827"]},
-{"name":"Maria Chin Abdullah","party":"IND","status":"active","post":"Civil society figure","background":"Former Bersih chair and Petaling Jaya MP who continues to speak on civil society and constitutional issues.","stance":"reformist","allies":["Ambiga Sreenevasan"],"sources":["https://www.thestar.com.my/news/nation/2025/12/27/maria-laws-must-comply-with-federal-constitution","https://en.wikipedia.org/wiki/Maria_Chin_Abdullah"]},
-{"name":"Zaid Ibrahim","party":"PAS","status":"active","post":"PAS member","background":"Former law minister who joined PAS in 2026 and hopes to contest GE16, having earlier expressed interest in Langkawi.","stance":"islamist","wants":"A PAS ticket in GE16","changed":"Joined PAS in 2026","sources":["https://www.thestar.com.my/news/nation/2026/06/16/zaid-ibrahim-eyes-political-comeback-hopes-to-be-a-pas-candidate-in-ge16","https://newswav.com/article/zaid-ibrahim-says-he-is-keen-to-contest-langkawi-in-next-ge-A2602_MhBOZe"]},
-{"name":"Khalid Ibrahim","status":"deceased","sources":["https://nst.com.my/amp/news/nation/2022/08/818402/former-selangor-mb-khalid-ibrahim-laid-rest"]},
-{"name":"Noor Hisham Abdullah","party":"IND","status":"active","post":"Retired Director-General of Health","background":"Led the Health Ministry through the pandemic and retired in April 2023 after 35 years of service.","stance":"technocrat","sources":["https://www.thestar.com.my/news/nation/2023/04/20/dr-noor-hisham-clocks-out-after-35-years-of-health-service"]}
+ {
+  "name": "Verdon Bahanda",
+  "party": "IND",
+  "status": "active",
+  "post": "MP for Kudat; leader of the Black Wave independents in Sabah",
+  "background": "Independent MP who won Kudat in 2022 and later led a group of independents in Sabah's 2025 state polls.",
+  "stance": "regionalist",
+  "allies": [
+   "Wetrom Bahanda"
+  ],
+  "wants": "To act as kingmaker in Sabah politics through a bloc of independents",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Verdon_Bahanda",
+   "https://www.thestar.com.my/news/nation/2025/10/16/member-of-bahanda-family-opens-another-flank-in-sabahs-split-political-landscape"
+  ]
+ },
+ {
+  "name": "Riduan Rubin",
+  "party": "KDM",
+  "status": "active",
+  "post": "MP for Tenom",
+  "background": "Won Tenom as an independent in 2022 and is listed with Sabah's KDM party; presses for a larger Sabah share of petroleum revenue.",
+  "stance": "regionalist",
+  "wants": "A bigger share of oil and gas revenue for Sabah",
+  "changed": "Party is KDM rather than independent",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Riduan_Rubin",
+   "https://www.nabalunews.com/post/refine-petroleum-revenue-distribution-with-sabah-says-riduan"
+  ]
+ },
+ {
+  "name": "Khairy Jamaluddin",
+  "party": "UMNO",
+  "status": "active",
+  "post": "Umno member; media personality",
+  "background": "Former Umno Youth chief and minister who was readmitted to Umno in April 2026 under the Rumah Bangsa initiative.",
+  "stance": "reformist",
+  "allies": [
+   "Ong Kian Ming"
+  ],
+  "wants": "A seat to contest in the next general election",
+  "changed": "Readmitted to Umno in April 2026",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/04/17/hishammuddin-khairy-and-syed-hamid-rejoin-umno",
+   "https://www.malaymail.com/news/malaysia/2026/04/18/im-home-khairy-jamaluddin-returns-to-umno/216724"
+  ]
+ },
+ {
+  "name": "Lim Kit Siang",
+  "party": "DAP",
+  "status": "active",
+  "post": "DAP veteran leader and adviser",
+  "background": "Veteran DAP figure who left electoral politics in 2022 but still comments on party and coalition direction.",
+  "stance": "reformist",
+  "allies": [
+   "Lim Guan Eng"
+  ],
+  "wants": "DAP to speed up reforms and the unity government to stay together",
+  "sources": [
+   "https://www.thevibes.com/articles/news/122039/lim-kit-siang-urges-dap-to-accelerate-reforms-warns-against-dead-refroms-narrative"
+  ]
+ },
+ {
+  "name": "Mahathir Mohamad",
+  "party": "IND",
+  "status": "active",
+  "post": "Former prime minister; Pejuang founder",
+  "background": "Twice prime minister and founder of Pejuang, now an elder statesman aged over 100.",
+  "stance": "nationalist",
+  "allies": [
+   "Mukhriz Mahathir"
+  ],
+  "sources": [
+   "https://www.pbs.org/newshour/world/i-didnt-make-an-effort-to-live-this-long-malaysias-former-leader-mahathir-mohamad-turns-100"
+  ]
+ },
+ {
+  "name": "Mukhriz Mahathir",
+  "party": "PEJUANG",
+  "status": "active",
+  "post": "Pejuang president",
+  "background": "Leads Pejuang, which was formally accepted into Perikatan Nasional in 2026; has ruled out returning to Umno.",
+  "stance": "nationalist",
+  "patron": "Mahathir Mohamad",
+  "allies": [
+   "Mahathir Mohamad"
+  ],
+  "wants": "Stronger Malay political unity within Perikatan Nasional",
+  "changed": "Pejuang joined Perikatan Nasional in 2026",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/06/23/pejuang-calls-for-stronger-malay-political-unity-after-formally-accepted-into-pn",
+   "https://www.freemalaysiatoday.com/category/nation/2026/03/09/absolutely-not-mukhriz-rules-out-returning-to-umno"
+  ]
+ },
+ {
+  "name": "Tengku Razaleigh Hamzah",
+  "party": "UMNO",
+  "status": "active",
+  "post": "Umno adviser; Gua Musang division chief",
+  "background": "Longtime Umno veteran and Gua Musang figure who speaks out on party direction and its place in the unity government.",
+  "stance": "nationalist",
+  "wants": "Umno to press harder for Najib's release and to reassess its role in the unity government",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2025/12/24/ku-li-calls-on-umno-to-step-up-fight-for-najib039s-freedom",
+   "https://www.freemalaysiatoday.com/category/nation/2023/05/14/ku-li-made-umno-adviser-says-source"
+  ]
+ },
+ {
+  "name": "Tony Pua",
+  "party": "IND",
+  "status": "active",
+  "post": "Political commentator",
+  "background": "Former DAP Damansara MP who stayed out of GE15 and now comments publicly on politics.",
+  "stance": "reformist",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Tony_Pua_Kiam_Wee"
+  ]
+ },
+ {
+  "name": "Ong Kian Ming",
+  "party": "IND",
+  "status": "active",
+  "post": "Academic and commentator",
+  "background": "Former Bangi MP and deputy minister who quit DAP on 31 August 2026 and said he will not contest GE16.",
+  "stance": "technocrat",
+  "allies": [
+   "Khairy Jamaluddin"
+  ],
+  "wants": "To help Khairy campaign in GE16 rather than contest himself",
+  "changed": "Quit DAP in August 2026",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/08/31/ong-kian-ming-quits-dap-says-will-keep-promise-to-help-khairy-in-ge16",
+   "https://malaymail.com/news/malaysia/2026/08/31/ong-kian-ming-quits-dap-after-14-years-rules-out-ge16-run-but-vows-to-campaign-for-khairy/233327"
+  ]
+ },
+ {
+  "name": "Charles Santiago",
+  "party": "DAP",
+  "status": "active",
+  "post": "Chairman, National Water Services Commission (SPAN)",
+  "background": "Former three-term Klang MP, dropped as candidate in 2022, later reappointed head of the water services regulator.",
+  "stance": "reformist",
+  "sources": [
+   "https://www.freemalaysiatoday.com/category/nation/2025/05/14/charges-against-rama-reek-of-political-payback-says-daps-santiago",
+   "https://en.wikipedia.org/wiki/Charles_Santiago"
+  ]
+ },
+ {
+  "name": "Khalid Samad",
+  "party": "AMANAH",
+  "status": "active",
+  "post": "Amanah Federal Territories chief; communications director",
+  "background": "Former Federal Territories minister and Shah Alam MP who joined Amanah in 2015.",
+  "stance": "moderate",
+  "wants": "Amanah to prepare its machinery if seat talks in the unity government fail",
+  "sources": [
+   "https://www.freemalaysiatoday.com/category/nation/2024/02/14/khalid-samad-appointed-ft-amanah-chief",
+   "https://en.wikipedia.org/wiki/Khalid_Abdul_Samad"
+  ]
+ },
+ {
+  "name": "Maszlee Malik",
+  "party": "PKR",
+  "status": "active",
+  "post": "Puteri Wangsa state assemblyman (Johor)",
+  "background": "Former education minister who won the Puteri Wangsa state seat in the July 2026 Johor election.",
+  "stance": "reformist",
+  "patron": "Anwar Ibrahim",
+  "changed": "Now a Johor state assemblyman after the 2026 state polls",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Maszlee_Malik",
+   "https://www.malaysianow.com/news/2026/06/30/in-puteri-wangsa-anwar-loyalist-maszlee-haunted-by-the-past-as-he-fights-uphill-battle-in-mudas-turf"
+  ]
+ },
+ {
+  "name": "Tian Chua",
+  "party": "IND",
+  "status": "active",
+  "post": "Activist",
+  "background": "Former PKR vice president and Batu MP, expelled in 2023 after running as an independent; reported to be eyeing a revival.",
+  "stance": "reformist",
+  "wants": "Restoration of PKR membership and a possible return to Batu",
+  "sources": [
+   "https://www.malaymail.com/news/malaysia/2026/08/25/will-tian-chua-contest-batu-again-returning-pkr-veteran-eyes-political-revival/232541",
+   "https://www.malaysiakini.com/news/782827"
+  ]
+ },
+ {
+  "name": "Maria Chin Abdullah",
+  "party": "IND",
+  "status": "active",
+  "post": "Civil society figure",
+  "background": "Former Bersih chair and Petaling Jaya MP who continues to speak on civil society and constitutional issues.",
+  "stance": "reformist",
+  "allies": [
+   "Ambiga Sreenevasan"
+  ],
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2025/12/27/maria-laws-must-comply-with-federal-constitution",
+   "https://en.wikipedia.org/wiki/Maria_Chin_Abdullah"
+  ]
+ },
+ {
+  "name": "Zaid Ibrahim",
+  "party": "PAS",
+  "status": "active",
+  "post": "PAS member",
+  "background": "Former law minister who joined PAS in 2026 and hopes to contest GE16, having earlier expressed interest in Langkawi.",
+  "stance": "islamist",
+  "wants": "A PAS ticket in GE16",
+  "changed": "Joined PAS in 2026",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/06/16/zaid-ibrahim-eyes-political-comeback-hopes-to-be-a-pas-candidate-in-ge16",
+   "https://newswav.com/article/zaid-ibrahim-says-he-is-keen-to-contest-langkawi-in-next-ge-A2602_MhBOZe"
+  ]
+ },
+ {
+  "name": "Khalid Ibrahim",
+  "status": "deceased",
+  "sources": [
+   "https://nst.com.my/amp/news/nation/2022/08/818402/former-selangor-mb-khalid-ibrahim-laid-rest"
+  ]
+ },
+ {
+  "name": "Noor Hisham Abdullah",
+  "party": "IND",
+  "status": "active",
+  "post": "Retired Director-General of Health",
+  "background": "Led the Health Ministry through the pandemic and retired in April 2023 after 35 years of service.",
+  "stance": "technocrat",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2023/04/20/dr-noor-hisham-clocks-out-after-35-years-of-health-service"
+  ]
+ }
 ]

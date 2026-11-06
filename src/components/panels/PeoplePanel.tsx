@@ -467,13 +467,46 @@ function LoyaltyDot({ v }: { v: number }) {
   );
 }
 
+/** The researched file on a real politician: real-life details, which don't change the game's roster or parties. */
+function RealFile({ name }: { name: string }) {
+  const f = profileOf(name);
+  if (!f) return null;
+  const line = (label: string, v?: string) => (v ? <div><span style={{ color: "var(--muted)" }}>{label}: </span>{v}</div> : null);
+  return (
+    <details className="rounded-md px-2 py-1.5" style={{ background: "var(--surface-2)" }}>
+      <summary className="cursor-pointer" style={{ color: "var(--ink-2)" }}>In real life</summary>
+      <div className="flex flex-col gap-0.5 mt-1" style={{ color: "var(--ink-2)" }}>
+        {f.background && <div>{f.background}</div>}
+        {line("Post", f.post)}
+        {line("Party today", f.party)}
+        {line("Status", f.status === "active" ? undefined : f.status)}
+        {line("Stance", f.stance)}
+        {line("Faction", f.faction)}
+        {line("Patron", f.patron)}
+        {line("Allies", f.allies?.join(", "))}
+        {line("Rivals", f.rivals?.join(", "))}
+        {line("Wants", f.wants)}
+        {f.sources.length > 0 && (
+          <div className="flex flex-wrap gap-x-2">
+            <span style={{ color: "var(--muted)" }}>Sources:</span>
+            {f.sources.map((u) => (
+              <a key={u} href={u} target="_blank" rel="noreferrer" className="underline">
+                {new URL(u).hostname.replace(/^www\./, "")}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
 /** What someone thinks of you and why, what they want, and who they stand with. */
 function Opinion({ p }: { p: Person }) {
   const game = useGame((s) => s.game)!;
   if (p.id === game.youId) return null;
   const want = goalOf(p);
   const ties = tiesOf(game, p);
-  const profile = profileOf(p.name);
   const said = p.loyalty >= 70 ? "Thinks highly of you." : p.loyalty >= 45 ? "Respects you." : p.loyalty >= 25 ? "Is wary of you." : "Dislikes you.";
   return (
     <div className="rounded-md px-2 py-1.5" style={{ background: "var(--surface-2)" }}>
@@ -487,8 +520,6 @@ function Opinion({ p }: { p: Person }) {
           {wantText(p, want)}
         </div>
       )}
-      {profile?.background && <div style={{ color: "var(--muted)" }}>{profile.background}</div>}
-      {profile?.stance && <div style={{ color: "var(--muted)" }}>Stance: {profile.stance}{profile.faction ? ` · ${profile.faction}` : ""}</div>}
       {ties.allies.length > 0 && <div style={{ color: "var(--muted)" }}>Close to {ties.allies.map((x) => x.name).join(", ")}</div>}
       {ties.rivals.length > 0 && <div style={{ color: "var(--muted)" }}>At odds with {ties.rivals.map((x) => x.name).join(", ")}</div>}
       {(p.memory ?? []).map((m, i) => (
@@ -529,6 +560,7 @@ function PersonCard({ p }: { p: Person }) {
       </div>
       <CampLine p={p} />
       <Opinion p={p} />
+      <RealFile name={p.name} />
       <div style={{ color: "var(--muted)" }}>
         {RANKS[p.rank]} since {p.since === 0 ? "before the game" : `week ${p.since + 1}`} · age {ageOf(p, game.week)}
         {p.retired ? " · retiring at the election" : ""}

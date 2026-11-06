@@ -13,6 +13,7 @@
 
 import type { GameState, ReportLine } from "../state";
 import { WORLD } from "../data/world";
+import { CRAFT, planBoost } from "./statecraft";
 
 export type Pillar = "human" | "infra" | "innov" | "inst";
 
@@ -173,16 +174,16 @@ export function qualityOfLife(s: Pick<GameState, "nation">, w = wz(s)): number {
 export const QOL_START = 0.3 * incomeScore(WAWASAN.startIncome) + 0.25 * WAWASAN.start.human + 0.15 * WAWASAN.start.infra + 0.15 * 45 + 0.15 * WAWASAN.start.inst;
 
 /** Malaysia's Global Power score. */
-export function malaysiaPower(s: Pick<GameState, "nation" | "week">, w = wz(s)): number {
-  return 0.4 * incomeScore(incomeUsd(s, w)) + 0.3 * qualityOfLife(s, w) + 0.2 * w.innov + 0.1 * logScore(gdpUsdBn(s, w), 50, 30000);
+export function malaysiaPower(s: Pick<GameState, "nation" | "week" | "craft">, w = wz(s)): number {
+  return 0.4 * incomeScore(incomeUsd(s, w)) + 0.3 * qualityOfLife(s, w) + 0.2 * w.innov + 0.1 * logScore(gdpUsdBn(s, w), 50, 30000) + (s.craft?.deals.length ?? 0) * CRAFT.relation.dealPower;
 }
 
-export function worldTable(s: Pick<GameState, "nation" | "week">, w = wz(s)): { name: string; flag: string; power: number; you: boolean }[] {
+export function worldTable(s: Pick<GameState, "nation" | "week" | "craft">, w = wz(s)): { name: string; flag: string; power: number; you: boolean }[] {
   const yrs = yearsSince2026(s.week);
   return [...WORLD.map((c) => ({ name: c.name, flag: c.flag, power: c.power + c.drift * yrs, you: false })), { name: "Malaysia", flag: "🇲🇾", power: malaysiaPower(s, w), you: true }].sort((a, b) => b.power - a.power);
 }
 
-export const worldRank = (s: Pick<GameState, "nation" | "week">, w = wz(s)) => worldTable(s, w).findIndex((c) => c.you) + 1;
+export const worldRank = (s: Pick<GameState, "nation" | "week" | "craft">, w = wz(s)) => worldTable(s, w).findIndex((c) => c.you) + 1;
 
 /** The Budget's lasting effect on the cost-of-living target. */
 export const budgetCol = (w: Wawasan) => Object.entries(w.alloc).reduce((t, [id, pts]) => t + (BUILDS[id]?.col ?? 0) * pts, 0);
@@ -198,13 +199,13 @@ export function budgetGains(alloc: Record<string, number>): Record<Pillar, numbe
 }
 
 /** This year's change in each pillar at the current pace (points a year). */
-export function pillarPace(s: Pick<GameState, "nation" | "me" | "parliament" | "player">, w = wz(s)): Record<Pillar, number> {
+export function pillarPace(s: Pick<GameState, "nation" | "me" | "parliament" | "player" | "week" | "craft">, w = wz(s)): Record<Pillar, number> {
   const build = youBuild(s);
   const gains = budgetGains(w.alloc);
   const integ = s.me.integrity >= WAWASAN.integrity.good ? WAWASAN.integrity.gain : s.me.integrity < WAWASAN.integrity.bad ? WAWASAN.integrity.loss : 0;
   const out = {} as Record<Pillar, number>;
   for (const p of ["human", "infra", "innov", "inst"] as Pillar[]) {
-    const g = build ? (gains[p] * WAWASAN.buildMult + (p === "inst" ? integ : 0)) * (1 - w[p] / WAWASAN.fill) : 0;
+    const g = build ? (gains[p] * WAWASAN.buildMult * planBoost(s, p) + (p === "inst" ? integ : 0)) * (1 - w[p] / WAWASAN.fill) : 0;
     out[p] = g - WAWASAN.decay;
   }
   return out;

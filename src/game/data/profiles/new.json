@@ -1,11 +1,142 @@
 [
-{"name":"Shahril Hamdan","party":"IND","status":"inactive","post":"Managing Director, Watchtower Advisory; podcast co-host","background":"Former UMNO information chief and PMO economic director; lost the Alor Gajah seat in 2022 and now works in advisory and media.","stance":"technocrat","born":1985,"gender":"m","bloc":"malay","changed":"No longer holds party or government post; left UMNO information chief role in 2022.","sources":["https://en.wikipedia.org/wiki/Shahril_Sufian_Hamdan","https://jp.weforum.org/people/shahril-sufian-bin-hamdan/"]},
-{"name":"Tengku Zafrul Aziz","party":"PKR","status":"active","post":"PKR political bureau (ex-officio); senior political adviser to the Prime Minister","background":"Former finance and trade minister and appointed senator who left UMNO in 2025 and joined PKR; Senate term ended December 2025.","stance":"technocrat","gender":"m","bloc":"malay","wants":"A Selangor seat to contest in GE16","changed":"Left UMNO in May 2025, joined PKR; no longer a senator.","sources":["https://www.thestar.com.my/news/nation/2025/12/02/zafrul-wraps-up-six-year-tenure-at-dewan-rakyat","https://www.nst.com.my/amp/news/nation/2025/06/1228076/tengku-zafrul-dismisses-election-rumours-after-umno-exit","https://en.wikipedia.org/wiki/Tengku_Zafrul_Aziz"]},
-{"name":"Asyraf Wajdi Dusuki","party":"UMNO","status":"active","post":"UMNO secretary-general; MARA chairman","background":"Former UMNO Youth chief; reappointed MARA chairman for two years from March 2026.","stance":"moderate","gender":"m","bloc":"malay","patron":"Ahmad Zahid Hamidi","sources":["https://www.bharian.com.my/amp/berita/nasional/2026/09/1617507/asyraf-wajdi-tolak-desakan-amk-pkr-letak-jawatan-pengerusi-mara","https://en.wikipedia.org/wiki/Asyraf_Wajdi_Dusuki"]},
-{"name":"Onn Hafiz Ghazi","party":"UMNO","status":"active","post":"Johor Menteri Besar","background":"Machap assemblyman; led BN to a large win in the July 2026 Johor election and was sworn in for a second term.","stance":"moderate","gender":"m","home":"JHR","bloc":"malay","patron":"Ahmad Zahid Hamidi","sources":["https://www.thevibes.com/articles/news/124969/onn-hafiz-ghazi-sworn-in-as-johor-mb-for-second-term-after-bn-landslide-victory","https://www.malaymail.com/amp/news/malaysia/2026/07/18/four-new-faces-six-familiar-names-onn-hafiz-unveils-johor-exco-members-for-his-second-term/228092"]},
-{"name":"Saarani Mohamad","party":"UMNO","status":"active","post":"Perak Menteri Besar","background":"Perak Menteri Besar since 2020; dismissed talk of a snap state election in April 2026.","stance":"moderate","gender":"m","home":"PRK","bloc":"malay","sources":["https://en.wikipedia.org/wiki/Government_of_Perak","https://newswav.com/article/perak-mb-dismisses-state-election-rumours-as-baseless-A2604_Os7G8w"]},
-{"name":"Muhammad Sanusi Md Nor","party":"PAS","status":"active","post":"Kedah Menteri Besar","background":"Kedah Menteri Besar since 2020; declined the PN chairmanship in January 2026 and proposed Ahmad Samsuri Mokhtar instead.","stance":"islamist","gender":"m","home":"KDH","bloc":"malay","allies":["Ahmad Samsuri Mokhtar"],"sources":["https://newswav.com/article/sanusi-rejects-pn-chairman-post-proposes-ahmad-samsuri-A2601_55Vwxs","https://www.utusan.com.my/nasional/2026/06/saya-kurang-kurang-jadi-menteri-dalam-negeri-sanusi/"]},
-{"name":"Azmin Ali","party":"BERSATU","status":"active","post":"Bersatu election director","background":"Appointed Bersatu election director in May 2026; resigned his PN post effective January 2026 and ruled out returning to PKR.","stance":"moderate","gender":"m","bloc":"malay","patron":"Muhyiddin Yassin","wants":"Selangor Perikatan chairmanship (proposed by Bersatu)","sources":["https://www.thestar.com.my/news/nation/2026/05/15/azmin-ali-is-bersatu039s-new-election-director","https://www.nst.com.my/amp/news/nation/2026/08/1518729/azmin-rules-out-pkr-return-vows-stay-bersatu"]},
-{"name":"Zuraida Kamaruddin","party":"PBM","status":"inactive","post":"Parti Bangsa Malaysia leader (claimed)","background":"Former PKR vice-president and plantation minister who left for Bersatu then Parti Bangsa Malaysia; says she will not rejoin PKR for now.","stance":"moderate","gender":"f","bloc":"malay","sources":["https://malaysiakini.com/news/782891","https://www.thestar.com.my/news/nation/2026/04/07/apex-court-dismisses-zuraida039s-review-bid-in-bond-payment-case"]},
-{"name":"Najib Razak","party":"UMNO","status":"inactive","post":"","gender":"m","home":"PHG","bloc":"malay","sources":["https://www.thestar.com.my/news/nation/2026/01/16/zahid-conveys-najib039s-greetings-to-umno-delegates-says-support-for-ex-pm-has-never-wavered","https://www.malaymail.com/amp/news/malaysia/2026/09/11/zahid-says-umno-still-hopes-for-favourable-outcome-after-najib-clemency-deferred/234812"]}
+ {
+  "name": "Shahril Hamdan",
+  "party": "IND",
+  "status": "inactive",
+  "post": "Managing Director, Watchtower Advisory; podcast co-host",
+  "background": "Former UMNO information chief and PMO economic director; lost the Alor Gajah seat in 2022 and now works in advisory and media.",
+  "stance": "technocrat",
+  "born": 1985,
+  "gender": "m",
+  "bloc": "malay",
+  "changed": "No longer holds party or government post; left UMNO information chief role in 2022.",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Shahril_Sufian_Hamdan",
+   "https://jp.weforum.org/people/shahril-sufian-bin-hamdan/"
+  ]
+ },
+ {
+  "name": "Tengku Zafrul Aziz",
+  "party": "PKR",
+  "status": "active",
+  "post": "PKR political bureau (ex-officio); senior political adviser to the Prime Minister",
+  "background": "Former finance and trade minister and appointed senator who left UMNO in 2025 and joined PKR; Senate term ended December 2025.",
+  "stance": "technocrat",
+  "gender": "m",
+  "bloc": "malay",
+  "wants": "A Selangor seat to contest in GE16",
+  "changed": "Left UMNO in May 2025, joined PKR; no longer a senator.",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2025/12/02/zafrul-wraps-up-six-year-tenure-at-dewan-rakyat",
+   "https://www.nst.com.my/amp/news/nation/2025/06/1228076/tengku-zafrul-dismisses-election-rumours-after-umno-exit",
+   "https://en.wikipedia.org/wiki/Tengku_Zafrul_Aziz"
+  ]
+ },
+ {
+  "name": "Asyraf Wajdi Dusuki",
+  "party": "UMNO",
+  "status": "active",
+  "post": "UMNO secretary-general; MARA chairman",
+  "background": "Former UMNO Youth chief; reappointed MARA chairman for two years from March 2026.",
+  "stance": "moderate",
+  "gender": "m",
+  "bloc": "malay",
+  "patron": "Ahmad Zahid Hamidi",
+  "sources": [
+   "https://www.bharian.com.my/amp/berita/nasional/2026/09/1617507/asyraf-wajdi-tolak-desakan-amk-pkr-letak-jawatan-pengerusi-mara",
+   "https://en.wikipedia.org/wiki/Asyraf_Wajdi_Dusuki"
+  ]
+ },
+ {
+  "name": "Onn Hafiz Ghazi",
+  "party": "UMNO",
+  "status": "active",
+  "post": "Johor Menteri Besar",
+  "background": "Machap assemblyman; led BN to a large win in the July 2026 Johor election and was sworn in for a second term.",
+  "stance": "moderate",
+  "gender": "m",
+  "home": "JHR",
+  "bloc": "malay",
+  "patron": "Ahmad Zahid Hamidi",
+  "sources": [
+   "https://www.thevibes.com/articles/news/124969/onn-hafiz-ghazi-sworn-in-as-johor-mb-for-second-term-after-bn-landslide-victory",
+   "https://www.malaymail.com/amp/news/malaysia/2026/07/18/four-new-faces-six-familiar-names-onn-hafiz-unveils-johor-exco-members-for-his-second-term/228092"
+  ]
+ },
+ {
+  "name": "Saarani Mohamad",
+  "party": "UMNO",
+  "status": "active",
+  "post": "Perak Menteri Besar",
+  "background": "Perak Menteri Besar since 2020; dismissed talk of a snap state election in April 2026.",
+  "stance": "moderate",
+  "gender": "m",
+  "home": "PRK",
+  "bloc": "malay",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Government_of_Perak",
+   "https://newswav.com/article/perak-mb-dismisses-state-election-rumours-as-baseless-A2604_Os7G8w"
+  ]
+ },
+ {
+  "name": "Muhammad Sanusi Md Nor",
+  "party": "PAS",
+  "status": "active",
+  "post": "Kedah Menteri Besar",
+  "background": "Kedah Menteri Besar since 2020; declined the PN chairmanship in January 2026 and proposed Ahmad Samsuri Mokhtar instead.",
+  "stance": "islamist",
+  "gender": "m",
+  "home": "KDH",
+  "bloc": "malay",
+  "allies": [
+   "Ahmad Samsuri Mokhtar"
+  ],
+  "sources": [
+   "https://newswav.com/article/sanusi-rejects-pn-chairman-post-proposes-ahmad-samsuri-A2601_55Vwxs",
+   "https://www.utusan.com.my/nasional/2026/06/saya-kurang-kurang-jadi-menteri-dalam-negeri-sanusi/"
+  ]
+ },
+ {
+  "name": "Azmin Ali",
+  "party": "BERSATU",
+  "status": "active",
+  "post": "Bersatu election director",
+  "background": "Appointed Bersatu election director in May 2026; resigned his PN post effective January 2026 and ruled out returning to PKR.",
+  "stance": "moderate",
+  "gender": "m",
+  "bloc": "malay",
+  "patron": "Muhyiddin Yassin",
+  "wants": "Selangor Perikatan chairmanship (proposed by Bersatu)",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/05/15/azmin-ali-is-bersatu039s-new-election-director",
+   "https://www.nst.com.my/amp/news/nation/2026/08/1518729/azmin-rules-out-pkr-return-vows-stay-bersatu"
+  ]
+ },
+ {
+  "name": "Zuraida Kamaruddin",
+  "party": "PBM",
+  "status": "inactive",
+  "post": "Parti Bangsa Malaysia leader (claimed)",
+  "background": "Former PKR vice-president and plantation minister who left for Bersatu then Parti Bangsa Malaysia; says she will not rejoin PKR for now.",
+  "stance": "moderate",
+  "gender": "f",
+  "bloc": "malay",
+  "sources": [
+   "https://malaysiakini.com/news/782891",
+   "https://www.thestar.com.my/news/nation/2026/04/07/apex-court-dismisses-zuraida039s-review-bid-in-bond-payment-case"
+  ]
+ },
+ {
+  "name": "Najib Razak",
+  "party": "UMNO",
+  "status": "inactive",
+  "post": "",
+  "gender": "m",
+  "home": "PHG",
+  "bloc": "malay",
+  "sources": [
+   "https://www.thestar.com.my/news/nation/2026/01/16/zahid-conveys-najib039s-greetings-to-umno-delegates-says-support-for-ex-pm-has-never-wavered",
+   "https://www.malaymail.com/amp/news/malaysia/2026/09/11/zahid-says-umno-still-hopes-for-favourable-outcome-after-najib-clemency-deferred/234812"
+  ]
+ }
 ]

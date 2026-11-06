@@ -35,6 +35,7 @@ import { BUDGET, budgetEnvelope, defaultAllocation, isBudgetWeek } from "./syste
 import { taxTargets } from "./systems/wawasan";
 import { partnersWeek } from "./systems/partners";
 import { plotsMonth } from "./systems/plots";
+import { craftWeek } from "./systems/statecraft";
 import { ambitionsMonth } from "./systems/ambitions";
 import { logNews, newsWeek } from "./systems/news";
 import { CARD_BY_KIND, cardsWeek, makeRoom } from "./systems/events";
@@ -237,6 +238,10 @@ export function advanceWeek(input: GameState): GameState {
   const bw = partnersWeek(next);
   next = bw.state;
   lines.push(...bw.lines);
+  // Your standing boards: programmes, builds, state money
+  const cw = craftWeek(next);
+  next = cw.state;
+  lines.push(...cw.lines);
   // Plots in your party and feuds in theirs; the week's story
   const pl = plotsMonth(next);
   next = pl.state;
