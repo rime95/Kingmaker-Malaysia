@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { goalOf, tiesOf, wantText } from "@/game/systems/ambitions";
 import { profileOf } from "@/game/systems/realProfiles";
+import { adunNote } from "@/game/systems/aduns";
 import { appointBlocked } from "@/game/actions";
 import { PORTFOLIOS, type PortfolioId } from "@/game/data/people";
 import { coalitionOf, partyColor } from "@/game/systems/coalitions";
@@ -45,9 +46,13 @@ export function PeoplePanel() {
     [game.coalitions, game.player, mine],
   );
   const all = partyPeople(game, party);
-  const roster = q
+  const found = q
     ? all.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || (p.seat !== null && SEATS[p.seat].name.toLowerCase().includes(q.toLowerCase())))
     : all;
+  // State assembly members have their own list: there are 600 of them.
+  const isAdun = (p: Person) => p.rank === 0 && p.adun?.dun != null;
+  const roster = found.filter((p) => !isAdun(p));
+  const aduns = found.filter(isAdun);
   const chair = roster.find((p) => p.chairman);
   const groups = [5, 4, 3, 2].map((rank) => ({ rank, people: roster.filter((p) => p.rank === rank && !p.retired && !p.chairman) }));
   const mps = roster.filter((p) => p.rank <= 1 && p.seat !== null);
@@ -131,6 +136,16 @@ export function PeoplePanel() {
           </summary>
           <div className="mt-2">
             <PeopleList people={others} open={open} onOpen={setOpen} />
+          </div>
+        </details>
+      )}
+      {view === "list" && aduns.length > 0 && (
+        <details className="inset px-3 py-2" open={!!q}>
+          <summary className="text-xs font-semibold cursor-pointer" style={{ color: "var(--ink-2)" }}>
+            State assembly members ({aduns.length})
+          </summary>
+          <div className="mt-2">
+            <PeopleList people={aduns} open={open} onOpen={setOpen} />
           </div>
         </details>
       )}
@@ -545,6 +560,7 @@ function PersonCard({ p }: { p: Person }) {
   const f = favourOf(game, p);
   const post = postOfPerson(game, p);
   const mbState = Object.keys(game.stateGov).find((id) => game.stateGov[id].mb === p.id);
+  const note = adunNote(game, p);
   return (
     <div className="px-2.5 pb-2.5 flex flex-col gap-2 text-xs">
       <div style={{ color: "var(--ink-2)" }}>
@@ -552,6 +568,7 @@ function PersonCard({ p }: { p: Person }) {
         {post ? ` · ${postName(post)}` : ""}
         {mbState ? ` · ${mbTitle(mbState)} of ${STATE_BY_ID[mbState].name}` : ""}
       </div>
+      {note && <div style={{ color: "var(--muted)" }}>{note}</div>}
       <div className="grid grid-cols-2 gap-x-3 gap-y-1">
         <Stat label="Standing" v={p.influence} />
         <Stat label="Competence" v={p.competence} />

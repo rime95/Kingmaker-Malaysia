@@ -14,7 +14,7 @@ import { TOKOH } from "../data/tokoh";
 import { AFFINITY } from "./formation";
 import { coalitionOf } from "./coalitions";
 import { patrons } from "./camps";
-import { PRESIDENT_RANK, recruitPerson, type Person } from "./people";
+import { PRESIDENT_RANK, realBorn, recruitPerson, type Person } from "./people";
 import { yourParty } from "./nominations";
 
 export const COURT = {
@@ -39,11 +39,12 @@ export function makeTokoh(s: Pick<GameState, "seed" | "week" | "player" | "coali
   const year = 2026 + Math.floor(s.week / 52);
   return TOKOH.filter((t) => !s.people.some((p) => p.name === t.name)).map((t, k) => {
     const base = recruitPerson(nextId + k, "IND", s.seed, s.week, s);
-    const age = year - t.born;
+    const born = realBorn(t.name);
+    const age = year - born;
     return {
       ...base,
       name: t.name,
-      born: t.born,
+      born,
       home: t.home,
       real: true,
       rank: 1,

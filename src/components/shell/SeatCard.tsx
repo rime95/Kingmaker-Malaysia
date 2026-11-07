@@ -22,6 +22,7 @@ import { chancePct, fmt, fmtRM, pct, useReads } from "../common";
 import { coalColor } from "../map/lenses";
 import { Icon } from "./icons";
 import { CoalitionFlag } from "../flags";
+import { adunOf } from "@/game/systems/aduns";
 
 const SEAT_ACTIONS = ["ground", "ceramah", "walkabout", "issue", "service", "machinery", "handout"];
 
@@ -177,6 +178,7 @@ export function SeatCard({ embedded = false }: { embedded?: boolean }) {
                   <span key={d.index} className="inline-flex items-center gap-1 mr-2">
                     <CoalitionFlag game={game} c={game.dunHolders[d.index]} size={10} />
                     {d.code} {d.name}
+                    {adunOf(game, d.index) && <span style={{ color: "var(--muted)" }}>({adunOf(game, d.index)!.name})</span>}
                   </span>
                 ))}
               </div>

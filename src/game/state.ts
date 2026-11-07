@@ -18,6 +18,7 @@ import type { Ending } from "./systems/legacy";
 import { autoPosts, migrateHomes, postSeatEffects, pullTable, type Posts } from "./systems/posts";
 import { initCamps, syncDivisions, type Divisions } from "./systems/camps";
 import { makeTokoh } from "./systems/tokoh";
+import { initAduns, seedExcoRecords } from "./systems/aduns";
 import { growCouncils, mergeDuplicates } from "./systems/council";
 import type { PartyPolls } from "./systems/partypolls";
 import { syncStateGov, type StateGov, type StateNight, type StateTalks, type StateTerm } from "./systems/stategov";
@@ -55,7 +56,7 @@ import { COALITIONS, COALITION_INFO, SUPERMAJORITY, SEATS, contestingIn, type Co
 
 export { machineryBase, serviceBase, weekDate, weekLabel, weeksToDissolution } from "./bases";
 
-export const SAVE_VERSION = 30;
+export const SAVE_VERSION = 31;
 
 /** The unity government as of the October 2026 snapshot. */
 export const START_GOVERNMENT: CoalitionId[] = COALITIONS.filter((c) => COALITION_INFO[c].inGovernment);
@@ -443,7 +444,8 @@ export function newGame(player: CoalitionId, seed = Date.now() % 2147483647, opt
   if (state.settings.scenario === "underdog") {
     state.me = { ...state.me, funds: Math.round(state.me.funds * 0.25), members: Math.round(state.me.members * 0.6), unity: 40, trust: 40 };
   }
-  Object.assign(state, syncStateGov(autoPosts(state)));
+  // Chiefs first, so state assembly members don't change who leads the parties at the start.
+  Object.assign(state, seedExcoRecords(syncStateGov(initAduns(autoPosts(state)))));
   Object.assign(state, initCamps(syncDivisions(state)));
   // Well-known figures with no party, waiting to be courted.
   {
@@ -567,7 +569,7 @@ export function migrateGame(g: GameState): GameState {
   migrated.postBase = g.postBase ?? {};
   // Saves before version 23: real MPs' ages, and wing chiefs who fit (women for Wanita and Puteri, the young for Youth).
   if ((g.version ?? 0) < 23 && migrated.people.length) {
-    migrated.people = fixRealAges(migrated.people, migrated.week);
+    migrated.people = fixRealAges(migrated.people);
     Object.assign(migrated, autoPosts(migrated));
   }
   // Saves before version 25: real politicians stay on longer, and the tokoh arrive.
@@ -591,6 +593,12 @@ export function migrateGame(g: GameState): GameState {
   // Saves before version 26: councils grow to each party's own structure.
   if ((g.version ?? 0) < 26 && migrated.people.length) Object.assign(migrated, growCouncils(mergeDuplicates(migrated)));
   if ((g.version ?? 0) < 24 && migrated.people.length) Object.assign(migrated, initCamps(syncDivisions(migrated)));
+  // Saves before version 31: real ages; every state seat gets its member; governments in office stay until their next election.
+  if ((g.version ?? 0) < 31 && migrated.people.length) {
+    const year = weekDate(migrated.week).getFullYear();
+    migrated.people = fixRealAges(migrated.people).map((p) => (p.real ? { ...p, retireAge: realRetireAge(p, year, migrated.seed) } : p));
+    Object.assign(migrated, initAduns(migrated));
+  }
   if (!g.posts || !g.stateGov) {
     Object.assign(migrated, syncStateGov(autoPosts(migrated)));
     migrated.postBase = pullTable(migrated);

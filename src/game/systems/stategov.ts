@@ -18,7 +18,8 @@ import { AFFINITY } from "./formation";
 import { ASSEMBLY_STATES, countSeats, stateRule } from "./assemblies";
 import { DUNS, DUNS_BY_STATE } from "./dun";
 import { seatCandidate } from "./coalitions";
-import { chiefKey, holderOf, homeOf, postPool, regionOf, setTalksHook } from "./posts";
+import { adunsAfterPolls } from "./aduns";
+import { chiefKey, holderOf, regionOf, setTalksHook } from "./posts";
 import type { Person } from "./people";
 
 export interface StateGov {
@@ -35,6 +36,8 @@ export interface StateGov {
   actionWeek: number | null;
   /** Set by an election or talks: the ruler stands until the next state election. */
   settled: boolean;
+  /** The team this government replaced. */
+  outgoing?: { mb: number | null; exco: number[] };
 }
 
 /** The MB and exco you are drawing up for a state you won. */
@@ -103,10 +106,13 @@ export const stateSeats = (s: Pick<GameState, "dunHolders">, id: string) => coun
 /** Seats per party among the ruling coalitions' assembly members. */
 function partySeatsIn(s: GameState, id: string, coalitions: CoalitionId[]): Record<string, number> {
   const out: Record<string, number> = {};
+  const members = new Set(coalitions.flatMap((c) => s.coalitions[c].members));
+  const sitting = new Map(s.people.filter((p) => p.adun?.state === id && p.adun.dun !== null).map((p) => [p.adun!.dun!, p.party]));
   for (const d of DUNS_BY_STATE[id]) {
     const h = s.dunHolders[d];
     if (!coalitions.includes(h)) continue;
-    const p = seatCandidate(s, SEATS[DUNS[d].parent], h);
+    const adun = sitting.get(d);
+    const p = adun && members.has(adun) ? adun : seatCandidate(s, SEATS[DUNS[d].parent], h);
     out[p] = (out[p] ?? 0) + 1;
   }
   return out;
@@ -130,16 +136,18 @@ function busy(s: GameState, except?: string): Set<number> {
 
 export const isMb = (s: Pick<GameState, "stateGov">, id: number) => Object.values(s.stateGov ?? {}).some((g) => g.mb === id);
 
-/** Who can serve in a state's government: active members of the ruling coalitions' parties, free of other posts. */
+/** Who can serve in a state's government: the ruling parties' assembly members there and their state chiefs, free of other posts. */
 export function stateGovPool(s: GameState, id: string, coalitions: CoalitionId[]): Person[] {
   const taken = busy(s, id);
   const parties = new Set(coalitions.flatMap((c) => s.coalitions[c].members));
+  const chiefs = new Set([...parties].map((party) => s.posts?.[party]?.[chiefKey(regionOf(id))]));
   return s.people
-    .filter((p) => parties.has(p.party) && !p.retired && p.id !== s.youId && p.rank >= 1 && !taken.has(p.id))
-    .sort((a, b) => fit(b, id) - fit(a, id));
+    .filter((p) => parties.has(p.party) && !p.retired && p.id !== s.youId && !taken.has(p.id) && ((p.adun?.state === id && p.adun.dun !== null) || chiefs.has(p.id)))
+    .sort((a, b) => fit(b) - fit(a));
 }
 
-const fit = (p: Person, id: string) => p.competence + p.influence * 0.4 + (homeOf(p) === regionOf(id) ? 60 : 0);
+/** How strong a pick someone is: their ability, their standing and their record in the state. */
+const fit = (p: Person) => p.competence + p.influence * 0.4 + (p.adun ? p.adun.terms * 4 + p.adun.excoTerms * 6 + p.adun.mbTerms * 10 : 0);
 
 /** The MB the party would choose: its state chief, else its best local figure. */
 function partyMb(s: GameState, id: string, party: string, pool: Person[]): number | null {
@@ -176,7 +184,8 @@ function formStateGov(s: GameState, id: string, ruler: CoalitionId, partners: Co
   const party = leadParty(s, id, ruler);
   const pool = stateGovPool(s, id, [ruler, ...partners]);
   const mb = partyMb(s, id, party, pool);
-  return { ruler, partners, party, mb, exco: autoExco(s, id, [ruler, ...partners], mb, pool), funds, actionWeek: null, settled };
+  const prev = s.stateGov?.[id];
+  return { ruler, partners, party, mb, exco: autoExco(s, id, [ruler, ...partners], mb, pool), funds, actionWeek: null, settled, outgoing: prev ? { mb: prev.mb, exco: prev.exco } : undefined };
 }
 
 /** Keeps every state government current: a new ruler forms a new government; anyone who left is replaced. */
@@ -268,7 +277,7 @@ function aiDeal(s: GameState, id: string, exclude: CoalitionId[], player: Coalit
 export function afterStatePolls(s: GameState, polled: string[], prevDun: GameState["dunHolders"]): { state: GameState; lines: ReportLine[] } {
   const lines: ReportLine[] = [];
   if (!polled.length) return { state: s, lines };
-  let state = s;
+  let state = adunsAfterPolls(s, polled);
   for (const id of polled) state = settle(state, id, lines);
   state = syncStateGov(state);
   const mine = polled.filter((id) => state.stateGov[id].settled && state.stateGov[id].ruler === state.player && state.stateTalks?.state !== id);
@@ -352,12 +361,14 @@ export function openStateTerm(s: GameState, id: string, offers: Partial<Record<C
   return { ...s, stateTerms: [...(s.stateTerms ?? []), { state: id, mb: g.mb, exco }] };
 }
 
-/** Three names for MB: the ruling party's best, and your own party's best if it is a different party. */
+/** Three names for MB: the party's state chief, the outgoing MB, its strongest members, and your own party's best if different. */
 export function mbShortlist(s: GameState, id: string): Person[] {
   const g = s.stateGov[id];
   const pool = stateGovPool(s, id, [g.ruler, ...g.partners]);
   const yours = s.coalitions[s.player].members[0];
-  const lead = pool.filter((p) => p.party === g.party).slice(0, 3);
+  const chief = s.posts?.[g.party]?.[chiefKey(regionOf(id))];
+  const named = [chief, g.outgoing?.mb].map((x) => pool.find((p) => p.id === x && p.party === g.party)).filter((p): p is Person => !!p);
+  const lead = [...new Set([...named, ...pool.filter((p) => p.party === g.party)])];
   const own = g.party === yours ? [] : pool.filter((p) => p.party === yours).slice(0, 1);
   return [...lead.slice(0, own.length ? 2 : 3), ...own];
 }
@@ -513,7 +524,8 @@ function mbBreaksAway(s: GameState, id: string): { state: GameState; lines: Repo
   const mine = DUNS_BY_STATE[id].filter((d) => s.dunHolders[d] === s.player);
   const take = new Set(mine.filter((d) => hash01("breakaway", s.seed, s.week, d) < 0.3));
   const dunHolders = s.dunHolders.map((h, d) => (take.has(d) ? ("OTHERS" as CoalitionId) : h));
-  let state: GameState = { ...s, dunHolders, people: s.people.map((p) => (p.id === mb?.id ? { ...p, loyalty: 0 } : p)) };
+  // Those who walk out sit as independents.
+  let state: GameState = { ...s, dunHolders, people: s.people.map((p) => (p.id === mb?.id ? { ...p, loyalty: 0 } : p.adun?.dun != null && take.has(p.adun.dun) ? { ...p, party: "IND" } : p)) };
   const lines: ReportLine[] = [{ text: `${mb?.name ?? "The MB"} breaks away with ${take.size} assembly members in ${STATE_BY_ID[id].name}.`, tone: "bad" }];
   const seats = stateSeats(state, id);
   const total = DUNS_BY_STATE[id].length;

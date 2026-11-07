@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { adunNote } from "@/game/systems/aduns";
 import { STATEGOV, excoFairness, inviteChance, mbShortlist, mbTitle, stateGovPool, stateSeats, talksOptions, talksSeats } from "@/game/systems/stategov";
 import { DUNS_BY_STATE } from "@/game/systems/dun";
-import { chiefKey, holderOf, homeOf, missionBlocked, regionOf } from "@/game/systems/posts";
+import { chiefKey, holderOf, missionBlocked, regionOf } from "@/game/systems/posts";
 import type { Person } from "@/game/systems/people";
 import { useGame } from "@/store/gameStore";
 import { PARTIES, STATE_BY_ID, cshort } from "@/game/world";
@@ -42,8 +43,8 @@ export function StateTerm() {
           <div className="text-xs font-bold tracking-[0.3em] tv-gold">ISTANA · {name.toUpperCase()}</div>
           <h2 className="text-2xl md:text-3xl font-black">Form the {name} government</h2>
           <p className="text-sm max-w-xl" style={{ color: "var(--ink-2)" }}>
-            Name the <Term word={title} /> and an exco of {STATEGOV.exco}. Partners judge their share of the
-            exco; your state chief expects the top job.
+            Name the <Term word={title} /> and an exco of {STATEGOV.exco} from the assembly members who won here. Partners judge
+            their share of the exco; your state chief expects the top job.
           </p>
         </header>
 
@@ -54,13 +55,13 @@ export function StateTerm() {
               <div className="grid gap-2 sm:grid-cols-3">
                 {shortlist.map((p) => (
                   <button key={p.id} className="inset text-left px-2.5 py-2" style={t.mb === p.id ? { boxShadow: "0 0 0 2px var(--gold)" } : undefined} onClick={() => draftState(t.state, { mb: p.id })}>
-                    <Who p={p} region={regionOf(t.state)} />
+                    <Who p={p} />
                   </button>
                 ))}
               </div>
               {mb && !shortlist.some((p) => p.id === mb.id) && (
                 <div className="text-xs">
-                  Now: <Who p={mb} region={regionOf(t.state)} />
+                  Now: <Who p={mb} />
                 </div>
               )}
             </section>
@@ -76,7 +77,7 @@ export function StateTerm() {
                 return p ? (
                   <div key={id} className="inset px-2.5 py-1.5 flex items-center gap-2">
                     <div className="flex-1 min-w-0">
-                      <Who p={p} region={regionOf(t.state)} />
+                      <Who p={p} />
                     </div>
                     <button className="btn btn-ghost" onClick={() => draftState(t.state, { remove: id })}>
                       Drop
@@ -97,7 +98,7 @@ export function StateTerm() {
                     {free.slice(0, 40).map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.party} · {p.name} · competence {Math.round(p.competence)}
-                        {homeOf(p) === regionOf(t.state) ? " · local" : ""}
+                        {p.adun?.terms ? ` · ${p.adun.terms} term${p.adun.terms === 1 ? "" : "s"}` : ""}
                       </option>
                     ))}
                   </select>
@@ -151,16 +152,21 @@ export function StateTerm() {
   );
 }
 
-function Who({ p, region }: { p: Person; region: string }) {
-  const local = homeOf(p) === region;
+function Who({ p }: { p: Person }) {
+  const game = useGame((s) => s.game)!;
+  const note = adunNote(game, p);
   return (
-    <span className="flex items-center gap-2 text-xs min-w-0">
-      <PartyFlag id={p.party} size={11} />
-      <span className="font-semibold truncate">{p.name}</span>
-      <span className="whitespace-nowrap" style={{ color: "var(--muted)" }}>
-        comp {Math.round(p.competence)} · trust {Math.round(p.loyalty)}
-        {local ? " · local" : " · outsider"}
+    <span className="flex flex-col gap-0.5 text-xs min-w-0">
+      <span className="flex items-start gap-1.5 min-w-0">
+        <span className="flex-none mt-0.5">
+          <PartyFlag id={p.party} size={11} />
+        </span>
+        <span className="font-semibold break-words min-w-0">{p.name}</span>
       </span>
+      <span style={{ color: "var(--ink-2)" }}>
+        {p.party} · competence {Math.round(p.competence)} · trust {Math.round(p.loyalty)}
+      </span>
+      {note && <span style={{ color: "var(--muted)" }}>{note}</span>}
     </span>
   );
 }

@@ -46,6 +46,13 @@ export interface Parliament {
   lastPollWeek: number | null;
 }
 
+/** The Parliament now sitting and the year of its term. */
+export function termOf(s: Pick<GameState, "parliament" | "geCount" | "week">): { number: number; year: number; of: number } {
+  const of = Math.round(GE.termWeeks / 52);
+  const start = s.parliament.deadlineWeek - GE.termWeeks;
+  return { number: s.geCount, year: Math.min(of, Math.max(1, Math.floor((s.week - start) / 52) + 1)), of };
+}
+
 /** Week number of a date (weeks since the game started, rounded down). */
 export function weekOf(date: string): number {
   const ms = new Date(`${date}T00:00:00`).getTime() - new Date(`${START_DATE}T00:00:00`).getTime();

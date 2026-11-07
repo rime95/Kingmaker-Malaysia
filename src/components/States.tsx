@@ -16,6 +16,7 @@ import { STATEGOV, STATE_POWERS, mbTitle, statePowerBlocked, type StatePower } f
 import { chiefKey, holderOf as postHolder, homeOf, regionOf } from "@/game/systems/posts";
 import { fmtRM } from "@/game/money";
 import { Term } from "./Term";
+import { adunOf } from "@/game/systems/aduns";
 
 function useDunProjections(): DunProjection[] {
   const game = useGame((s) => s.game);
@@ -208,6 +209,7 @@ function StateDetail({ id, proj }: { id: string; proj: DunProjection[] }) {
             {DUNS[hover.d].code} {DUNS[hover.d].name}
           </div>
           <div>Held by {cshort(game.dunHolders[hover.d])}</div>
+          {adunOf(game, hover.d) && <div>ADUN: {adunOf(game, hover.d)!.name}</div>}
           <div style={{ color: "var(--muted)" }}>
             Today: {cshort(proj[hover.d].leader)} by {pct(proj[hover.d].margin, 1)}
           </div>

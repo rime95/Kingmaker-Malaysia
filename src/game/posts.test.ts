@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { BIRTHS } from "./data/births";
+import { realBorn } from "./systems/people";
 import { newGame, projectAllFor, type GameState } from "./state";
 import { advanceWeek } from "./week";
 import { NATIONAL_POSTS, appointPost, autoPosts, chiefKey, holderOf, postPool, sendOnMission, wingRest } from "./systems/posts";
@@ -101,15 +103,14 @@ describe("wing chiefs", () => {
 });
 
 describe("real ages", () => {
-  it("known MPs have their real birth years; other real MPs are at least 45", async () => {
+  it("known MPs have their real birth years; anyone without a sourced year is young", async () => {
     const { MP_BORN } = await import("./data/people");
     const { ageOf } = await import("./systems/people");
     const g = newGame("PH", 4);
     const wa = g.people.find((p) => p.name === "Wan Azizah Wan Ismail")!;
     expect(wa.born).toBe(MP_BORN["Wan Azizah Wan Ismail"]);
     for (const n of Object.keys(MP_BORN)) expect(g.people.some((p) => p.name === n), n).toBe(true);
-    const young = g.people.filter((p) => p.real && p.seat !== null && ageOf(p, g.week) < 45 && !MP_BORN[p.name]);
-    // Only roster figures (with real birth years of their own) may be under 45.
-    expect(young.every((p) => p.rank >= 2)).toBe(true);
+    const unknown = g.people.filter((p) => p.real && realBorn(p.name) === p.born && 2026 - p.born < 35);
+    expect(unknown.every((p) => BIRTHS[p.name] || MP_BORN[p.name])).toBe(true);
   });
 });

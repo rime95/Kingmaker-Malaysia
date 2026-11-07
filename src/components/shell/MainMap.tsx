@@ -17,6 +17,7 @@ import { byId, mpOf } from "@/game/systems/people";
 import { MalaysiaMap, type MapMarker } from "../map/MalaysiaMap";
 import { coalColor, lensFill } from "../map/lenses";
 import { CoalitionFlag } from "../flags";
+import { adunOf } from "@/game/systems/aduns";
 
 /** The full-screen map behind everything: coloured by the current lens, with bubbles and rival pulses. */
 export function MainMap() {
@@ -157,6 +158,7 @@ function SeatTip({ i, x, y, reads }: { i: number; x: number; y: number; reads: S
 function DunTip({ i, x, y }: { i: number; x: number; y: number }) {
   const game = useGame((s) => s.game)!;
   const d = DUNS[i];
+  const adun = adunOf(game, i);
   return (
     <Tip x={x} y={y}>
       <div className="font-semibold">
@@ -169,6 +171,7 @@ function DunTip({ i, x, y }: { i: number; x: number; y: number }) {
         <CoalitionFlag game={game} c={game.dunHolders[i]} size={10} />
         {cshort(game.dunHolders[i])}
       </div>
+      {adun && <div style={{ color: "var(--ink-2)" }}>ADUN: {adun.name} ({adun.party})</div>}
     </Tip>
   );
 }

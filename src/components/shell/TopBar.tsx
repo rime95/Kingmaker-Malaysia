@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { careerTitle } from "@/game/progress";
 import { isGovernment, weekLabel } from "@/game/state";
-import { weeksToElection } from "@/game/systems/assemblies";
+import { termOf, weeksToElection } from "@/game/systems/assemblies";
 import { useGame } from "@/store/gameStore";
 import {
   COALITIONS,
@@ -39,6 +39,8 @@ const FAST: [string, number][] = [
   ["To the next big moment", 52],
 ];
 
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+
 const CAPITAL_HELP = "Political capital: your standing and the favours you can call in, up to 200. It pays for political moves: policies, appointments, inviting parties, mega projects, whipping votes. You earn 1 a week, 10 for an objective, a by-election or a state, and more from Wawasan milestones and finished programmes.";
 
 export function TopBar({
@@ -68,8 +70,17 @@ export function TopBar({
   const me = game.me;
   const pending = game.cards.length + (game.budgetDue !== null ? 1 : 0);
   const gov = isGovernment(game);
+  const term = termOf(game);
+  const campaign = game.parliament.status === "campaign";
+  const termLine = campaign ? "Parliament dissolved" : `${ordinal(term.number)} Parliament, year ${term.year} of ${term.of}`;
+  const termHelp = campaign
+    ? `Polling day is ${weekLabel(game.parliament.pollWeek ?? game.week)}.`
+    : `The ${ordinal(term.number)} Parliament must dissolve by ${weekLabel(game.parliament.deadlineWeek)}, ${Math.max(0, game.parliament.deadlineWeek - game.week)} weeks from now.`;
   return (
-    <header className="command-bar panel px-2.5 sm:px-3 py-2 flex items-center gap-2 sm:gap-4 relative">
+    <header className="command-bar panel px-2.5 sm:px-3 py-2 flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-1 sm:gap-4 relative">
+      <div className="sm:hidden order-last w-full text-[11px] num" style={{ color: "var(--ink-2)" }} title={termHelp}>
+        {weekLabel(game.week)} · {campaign ? "Parliament dissolved" : `Year ${term.year} of ${term.of}, ${ordinal(term.number)} Parliament`}
+      </div>
       {game.parliament.status === "campaign" && (
         <Bunting ids={buntingFor(game)} />
       )}
@@ -90,6 +101,9 @@ export function TopBar({
             style={{ color: "var(--ink-2)" }}
           >
             {game.career.name} · {careerTitle(game)}
+          </div>
+          <div className="hidden sm:block text-[11px] mt-0.5 num whitespace-nowrap" style={{ color: "var(--ink-2)" }} title={termHelp}>
+            {weekLabel(game.week)} · {campaign ? `polls on ${weekLabel(game.parliament.pollWeek ?? game.week)}` : termLine}
           </div>
         </div>
       </div>

@@ -9,6 +9,8 @@
 // Real people start with neutral, game-only numbers; scandal cards never name them (see events.ts). All numbers TEMPORARY.
 
 import { MP_BORN, PORTFOLIOS, ROSTERS, ROSTER_HOME, START_CABINET, type PortfolioId, type RosterEntry } from "../data/people";
+import { BIRTHS } from "../data/births";
+import { TOKOH } from "../data/tokoh";
 import { structureOf } from "../data/structures";
 import { weekDate } from "../bases";
 import { hash01 } from "../rng";
@@ -24,6 +26,16 @@ export interface Memory {
   week: number;
   delta: number;
   reason: string;
+}
+
+/** Someone's record in a state assembly (aduns.ts). */
+export interface AdunRecord {
+  state: string;
+  /** The state seat they hold now; null once they've left it (or never held one). */
+  dun: number | null;
+  terms: number;
+  excoTerms: number;
+  mbTerms: number;
 }
 
 export interface Person {
@@ -77,6 +89,8 @@ export interface Person {
   council?: "elected" | "appointed";
   /** The patron whose camp they follow (camps.ts), or null when unaligned. */
   camp?: number | null;
+  /** Their state assembly record. */
+  adun?: AdunRecord;
 }
 
 export const PEOPLE = {
@@ -148,12 +162,15 @@ export function markCouncil(people: Person[], party: string) {
   }
 }
 
-/** Saves from before real birth years: known MPs get theirs; other real MPs are at least 45. */
-export function fixRealAges(people: Person[], week: number): Person[] {
-  const year = yearOf(week);
-  return people.map((p) => (!p.real ? p : MP_BORN[p.name] ? { ...p, born: MP_BORN[p.name] } : year - p.born < 45 && !ROSTER_NAMES.has(p.name) ? { ...p, born: year - 45 - Math.floor(r(0, "fixage", p.id) * 10) } : p));
-}
-const ROSTER_NAMES = new Set(Object.values(ROSTERS).flatMap((ro) => [ro.president, ro.deputy, ...(ro.vps ?? []), ...(ro.council ?? [])].filter((e): e is RosterEntry => !!e).map((e) => e[0])));
+const ROSTER_BORN: Record<string, number> = Object.fromEntries(Object.values(ROSTERS).flatMap((ro) => [ro.president, ro.deputy, ...(ro.vps ?? []), ...(ro.council ?? [])].filter((e): e is RosterEntry => !!e).map((e) => [e[0], e[2]])));
+// 1965 was only ever a placeholder in the tokoh data.
+const TOKOH_BORN: Record<string, number> = Object.fromEntries(TOKOH.filter((t) => t.born !== 1965).map((t) => [t.name, t.born]));
+
+/** A real politician's birth year: the sourced year, else the one on file, else a young age (35 to 50 in 2026). */
+export const realBorn = (name: string) => BIRTHS[name]?.[0] ?? MP_BORN[name] ?? ROSTER_BORN[name] ?? TOKOH_BORN[name] ?? 2026 - 35 - Math.floor(hash01("youngage", name) * 16);
+
+/** Corrects real politicians' ages in a save: nothing else about them changes. */
+export const fixRealAges = (people: Person[]): Person[] => people.map((p) => (p.real ? { ...p, born: realBorn(p.name) } : p));
 
 /** Where someone is from: set when they enter the game, and kept for life (losing a seat doesn't move them). */
 export function homeOf(p: Pick<Person, "home" | "seat" | "name" | "party" | "id">): string {
@@ -243,8 +260,12 @@ export function initPeople(s: Pick<GameState, "seed" | "week" | "player" | "coal
     roster.vps?.forEach((e) => place(party, e, 3));
     roster.council?.forEach((e) => place(party, e, 2));
   }
-  // Real politicians stay on: well into their eighties, and at least five more years (the very old, a few).
-  for (const p of people) if (p.real) p.retireAge = realRetireAge(p, year, seed);
+  // Real ages. Real politicians stay on: well into their eighties, and at least five more years (the very old, a few).
+  for (const p of people) {
+    if (!p.real) continue;
+    p.born = realBorn(p.name);
+    p.retireAge = realRetireAge(p, year, seed);
+  }
   // Fill the pyramid from the top down with the party's most senior MPs, then generated members.
   for (const party of HIERARCHY_PARTIES) {
     const slots = slotsFor(party);
@@ -284,7 +305,7 @@ export const postOf = (s: Pick<GameState, "cabinet">, id: number): PortfolioId[]
 
 /** Title for a person, e.g. "Vice President, UMNO · Minister of Health · MP for Kuala Selangor". */
 export function titleOf(s: Pick<GameState, "cabinet">, p: Person): string {
-  const parts = [`${p.retired ? "Former leader" : p.chairman ? "Party Chairman" : RANKS[p.rank]}, ${p.party}`];
+  const parts = [`${p.retired ? "Former leader" : p.chairman ? "Party Chairman" : p.rank === 0 && p.adun?.dun != null ? "ADUN" : RANKS[p.rank]}, ${p.party}`];
   const posts = postOf(s, p.id);
   if (posts.length) parts.push(posts.map((k) => PORTFOLIOS.find((x) => x.id === k)!.name).join(", "));
   if (p.seat !== null) parts.push(`MP for ${SEATS[p.seat].name}`);
