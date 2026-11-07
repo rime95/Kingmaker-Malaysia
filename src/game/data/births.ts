@@ -2,6 +2,9 @@
 // these change nobody's party or post.
 
 export const BIRTHS: Record<string, [number, string]> = {
+  "Akmal Saleh": [1988, "https://en.wikipedia.org/wiki/Muhamad_Akmal_Saleh"],
+  "Onn Hafiz Ghazi": [1979, "https://en.wikipedia.org/wiki/Onn_Hafiz_Ghazi"],
+  "Young Syefura Othman": [1989, "https://en.wikipedia.org/wiki/Young_Syefura_Othman"],
   "Aaron Ago Dagang": [1958, "https://en.wikipedia.org/wiki/Aaron_Ago_Dagang"],
   "Ab Latiff Ab Rahman": [1971, "https://en.wikipedia.org/wiki/Abdul_Latiff_Abdul_Rahman"],
   "Ab Rauf Yusoh": [1961, "https://en.wikipedia.org/wiki/Ab_Rauf_Yusoh"],

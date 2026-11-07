@@ -113,8 +113,9 @@ describe("real ages", () => {
     const g = newGame("PH", 2);
     const age = (name: string) => 2026 - g.people.find((p) => p.name === name)!.born;
     expect(age("Syed Saddiq Syed Abdul Rahman")).toBe(34);
-    expect(age("Young Syefura Othman")).toBeLessThanOrEqual(50);
-    expect(age("Akmal Saleh")).toBeLessThanOrEqual(50);
+    expect(age("Young Syefura Othman")).toBe(37);
+    expect(age("Akmal Saleh")).toBe(38);
+    expect(age("Onn Hafiz Ghazi")).toBe(47);
     expect(g.people.filter((p) => p.tokoh && p.born === 1965 && !realBorn(p.name)).length).toBe(0);
     expect(g.people.filter((p) => p.real && 2026 - p.born > 70 && !BIRTHS[p.name] && !MP_BORN[p.name]).length).toBeLessThan(10);
   });
