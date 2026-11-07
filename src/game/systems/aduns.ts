@@ -96,7 +96,8 @@ export function adunsAfterPolls(s: GameState, polled: string[]): GameState {
       const party = seatCandidate(s, SEATS[DUNS[d].parent], s.dunHolders[d]);
       const cur = held.get(d);
       const stands = !!cur && !cur.retired && ageOf(cur, s.week) < ADUN.retireAge && hash01("adunstay", s.seed, s.week, d) >= ADUN.standDown;
-      if (cur && stands && cur.party === party) {
+      // A sitting member keeps a seat their coalition held, whichever partner has the parliamentary seat above it.
+      if (cur && stands && s.coalitions[s.dunHolders[d]].members.includes(cur.party)) {
         people.set(cur.id, { ...cur, influence: Math.min(100, cur.influence + ADUN.termInfluence), adun: { ...cur.adun!, terms: cur.adun!.terms + 1 } });
         continue;
       }

@@ -37,7 +37,7 @@ import { collection, toggleMou } from "./systems/funding";
 import { endPact, proposePact } from "./systems/pacts";
 import { breakPlot } from "./systems/plots";
 import { appointTop, queueBuild, setMa63, setPlan, setStateWeight, signDeal, startProgramme, visitPartner, type Partner, type PlanId, type TopPost } from "./systems/statecraft";
-import { assignSeat, bestAllocation, bully, forgive, setOpenContest, tame, type BullyMove } from "./systems/partners";
+import { assignSeat, bestAllocation, bully, forgive, giveState, setOpenContest, tame, type BullyMove } from "./systems/partners";
 import { prepMotion, tableMotion, type PrepMove } from "./systems/dewan";
 import { courtChallenge, critique, publishProbe, setShadow, startProbe, streetRally, type Kpi } from "./systems/agenda";
 import { setTheme } from "./systems/message";
@@ -970,6 +970,7 @@ export type DeepOp =
   | { kind: "bully"; party: string; move: BullyMove }
   | { kind: "forgive"; party: string }
   | { kind: "assignSeat"; seat: number; party: string }
+  | { kind: "giveState"; state: string; party: string }
   | { kind: "bestAllocation" }
   | { kind: "breakPlot" }
   | { kind: "setPlan"; ids: PlanId[] }
@@ -1066,6 +1067,8 @@ export function deepMove(s: GameState, op: DeepOp): ActionResult {
       return wrap(forgive(s, op.party));
     case "assignSeat":
       return wrap(assignSeat(s, op.seat, op.party));
+    case "giveState":
+      return wrap(giveState(s, op.state, op.party));
     case "bestAllocation":
       return wrap(bestAllocation(s));
     case "breakPlot":

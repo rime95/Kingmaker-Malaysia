@@ -5,7 +5,7 @@ import { isPresident } from "@/game/systems/career";
 import { seatCandidate } from "@/game/systems/coalitions";
 import { yourParty } from "@/game/systems/nominations";
 import { standsAside } from "@/game/systems/pacts";
-import { BULLY, assignBlocked, coalitionSeats, shares } from "@/game/systems/partners";
+import { BULLY, assignBlocked, coalitionSeats, shares, stateSeatsFor } from "@/game/systems/partners";
 import { useGame } from "@/store/gameStore";
 import { SEATS, STATE_BY_ID, contestingIn, cshort, type Seat } from "@/game/world";
 
@@ -26,7 +26,9 @@ export function CoalitionSeats() {
   const lead = yourParty(game);
   const rows = useMemo(() => shares(game), [game]);
   const seats = useMemo(() => coalitionSeats(game), [game]);
-  const [filter, setFilter] = useState<string>(lead);
+  const [picked, setFilter] = useState<string>(lead);
+  // A party that has left the coalition can't stay selected.
+  const filter = picked === "All" || members.includes(picked) ? picked : lead;
   const [q, setQ] = useState("");
   const blocked = assignBlocked(game);
   const needle = q.trim().toLowerCase();
@@ -61,13 +63,13 @@ export function CoalitionSeats() {
       ) : (
         <>
           <p className="text-xs" style={{ color: "var(--muted)" }}>
-            You lead the coalition, so you pick the party in each seat. It&apos;s free. To give away one of your seats, find it and choose a partner. You can do the same by clicking a seat on the map.
+            You lead the coalition, so you pick the party in each seat. It&apos;s free. To give away one of your seats, find it and choose a partner, or click a seat on the map. The numbers show seats given / fair share.
           </p>
           <div className="flex flex-wrap items-center gap-1.5">
             <div className="flex gap-1 flex-wrap">
               {["All", ...members].map((p) => (
                 <button key={p} className="chip !py-0.5 text-xs" aria-pressed={!needle && filter === p} onClick={() => { setFilter(p); setQ(""); }}>
-                  {p} {p === "All" ? seats.length : (rows.find((r) => r.party === p)?.given ?? 0)}
+                  {p} {p === "All" ? seats.length : `${rows.find((r) => r.party === p)?.given ?? 0}/${rows.find((r) => r.party === p)?.fair ?? 0}`}
                 </button>
               ))}
             </div>
@@ -76,6 +78,7 @@ export function CoalitionSeats() {
               Best for the coalition
             </button>
           </div>
+          <GiveState disabled={!!blocked} />
           {blocked && (
             <p className="text-xs" style={{ color: "var(--muted)" }}>
               {blocked}
@@ -102,6 +105,43 @@ export function CoalitionSeats() {
         </>
       )}
     </section>
+  );
+}
+
+/** Hand every coalition seat in a state to one party. */
+function GiveState({ disabled }: { disabled: boolean }) {
+  const game = useGame((s) => s.game)!;
+  const deep = useGame((s) => s.deep);
+  const members = game.coalitions[game.player].members;
+  const states = useMemo(() => [...new Set(coalitionSeats(game).map((s) => s.state))].sort((a, b) => STATE_BY_ID[a].name.localeCompare(STATE_BY_ID[b].name)), [game]);
+  const [state, setState] = useState("");
+  const [picked, setParty] = useState(members[1]);
+  const party = members.includes(picked) ? picked : members[1];
+  const moving = state ? stateSeatsFor(game, state, party) : [];
+  const yours = moving.filter((s) => game.holders[s.index] === game.player).length;
+  return (
+    <div className="inset px-2.5 py-1.5 text-xs flex flex-wrap items-center gap-2">
+      <span className="font-semibold">Give a whole state</span>
+      <select className="chip !py-0.5 text-xs" value={state} disabled={disabled} aria-label="State to give" onChange={(e) => setState(e.target.value)}>
+        <option value="">Choose a state</option>
+        {states.map((id) => (
+          <option key={id} value={id}>
+            {STATE_BY_ID[id].name}
+          </option>
+        ))}
+      </select>
+      <select className="chip !py-0.5 text-xs" value={party} disabled={disabled} aria-label="Party to give the state to" onChange={(e) => setParty(e.target.value)}>
+        {members.map((p) => (
+          <option key={p} value={p}>
+            to {p}
+          </option>
+        ))}
+      </select>
+      <button className="chip !py-0.5 text-xs" disabled={disabled || !moving.length} onClick={() => deep({ kind: "giveState", state, party })}>
+        {state ? `Give ${moving.length} seat${moving.length === 1 ? "" : "s"}` : "Give"}
+      </button>
+      {yours > 0 && <span style={{ color: "var(--muted)" }}>{yours} held by your coalition&apos;s MPs</span>}
+    </div>
   );
 }
 

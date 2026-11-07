@@ -17,9 +17,9 @@ export function CoalitionBoard() {
   return (
     <section className="inset p-3 flex flex-col gap-3">
       <div>
-        <h3 className="eyebrow">Your coalition</h3>
+        <h3 className="eyebrow">Your partners</h3>
         <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
-          You can lean on any partner that needs you. It&apos;s free, once every {BULLY.cooldown} weeks a move. To choose who stands where, go to Campaign → Seats.
+          You can lean on any partner that needs you. It&apos;s free, once every {BULLY.cooldown} weeks a move.
         </p>
       </div>
 

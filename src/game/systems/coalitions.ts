@@ -222,7 +222,9 @@ export function moveParty(s: GameState, party: string, to: CoalitionId): GameSta
   }
   const partySat = { ...s.partySat, [party]: 60 };
   const brought = SEATS.filter((seat) => s.holderParties[seat.index] === party).map((seat) => seat.index);
-  return dropDeadPacts(pactsAfterMove({ ...s, coalitions, holders, seatOffsets, seatParty, partySat, entries }, brought, to));
+  // A friendly contest it was part of is over.
+  const openSeats = Object.fromEntries(Object.entries(s.openSeats ?? {}).filter(([, v]) => !v.includes(party))) as GameState["openSeats"];
+  return dropDeadPacts(pactsAfterMove({ ...s, coalitions, holders, seatOffsets, seatParty, partySat, entries, openSeats }, brought, to));
 }
 
 // --- Monthly turn --------------------------------------------------------------------------------

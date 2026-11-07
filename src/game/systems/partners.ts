@@ -10,12 +10,12 @@
 
 import { hash01 } from "../rng";
 import { projectAllFor, type GameState, type ReportLine } from "../state";
-import { COALITIONS, PARTIES, SEATS, contestingIn, cshort, seatRegion, type CoalitionId, type Seat } from "../world";
+import { COALITIONS, PARTIES, SEATS, STATE_BY_ID, contestingIn, cshort, seatRegion, type CoalitionId, type Seat } from "../world";
 import { AFFINITY } from "./formation";
 import { byId, type Person } from "./people";
 import { isPresident } from "./career";
 import { bestHome, moveParty, seatCandidate } from "./coalitions";
-import { yourParty } from "./nominations";
+import { refreshPicks, yourParty } from "./nominations";
 import { standsAside } from "./pacts";
 import { carry, talksBlocked } from "./seattalks";
 
@@ -205,9 +205,31 @@ export function assignSeat(s: GameState, seat: number, party: string): { state: 
   if (!s.coalitions[s.player].members.includes(party)) return { error: "That party isn't in your coalition." };
   if (seat === s.career.homeSeat && party !== yourParty(s)) return { error: "That is your own seat: you stand there." };
   if (standsAside(s, seat, s.player)) return { error: `You stand aside in ${SEATS[seat].name} under a pact.` };
+  if (ctlOf(s, party).ros) return { error: `${party}'s registration is held up: it can't stand.` };
   const rest = { ...s.openSeats };
   delete rest[seat];
-  return { state: carry({ ...s, openSeats: rest }, seat, party), message: `${party} stands in ${SEATS[seat].name}.` };
+  return { state: refreshPicks(carry({ ...s, openSeats: rest }, seat, party)), message: `${party} stands in ${SEATS[seat].name}.` };
+}
+
+/** The coalition's seats in a state that would move to this party. Your own seat stays yours. */
+export const stateSeatsFor = (s: GameState, state: string, party: string) => coalitionSeats(s).filter((seat) => seat.state === state && seat.index !== s.career.homeSeat && seatCandidate(s, seat, s.player) !== party);
+
+/** Give every coalition seat in a state to one party. */
+export function giveState(s: GameState, state: string, party: string): { state: GameState; message: string } | { error: string } {
+  const why = assignBlocked(s);
+  if (why) return { error: why };
+  if (!s.coalitions[s.player].members.includes(party)) return { error: "That party isn't in your coalition." };
+  if (ctlOf(s, party).ros) return { error: `${party}'s registration is held up: it can't stand.` };
+  const seats = stateSeatsFor(s, state, party);
+  const name = STATE_BY_ID[state]?.name ?? state;
+  if (!seats.length) return { error: `${party} already stands in every coalition seat in ${name}.` };
+  const openSeats = { ...s.openSeats };
+  let next: GameState = s;
+  for (const seat of seats) {
+    delete openSeats[seat.index];
+    next = carry(next, seat.index, party);
+  }
+  return { state: refreshPicks({ ...next, openSeats }), message: `${party} stands in ${seats.length} more seat${seats.length === 1 ? "" : "s"} in ${name}.` };
 }
 
 /** The coalition's clear mismatches put right: sitting MPs stay, and a seat moves only to a party that plainly suits it better. */
@@ -218,7 +240,7 @@ export function bestAllocation(s: GameState): { state: GameState; message: strin
   let state = s;
   let moved = 0;
   for (const seat of coalitionSeats(s)) {
-    if (seat.index === s.career.homeSeat) continue;
+    if (seat.index === s.career.homeSeat || s.openSeats?.[seat.index]) continue;
     const best = [...members].sort((a, b) => partyFit(s, seat, b) - partyFit(s, seat, a))[0];
     const cur = seatCandidate(state, seat, s.player);
     // Only a clear mismatch moves: the usual line-up stands where it fits well enough.
@@ -226,7 +248,7 @@ export function bestAllocation(s: GameState): { state: GameState; message: strin
     state = carry(state, seat.index, best);
     moved++;
   }
-  return moved ? { state, message: `${moved} seat${moved === 1 ? "" : "s"} reallocated to the party that suits each best.` } : { error: "Every seat already suits its party." };
+  return moved ? { state: refreshPicks(state), message: `${moved} seat${moved === 1 ? "" : "s"} reallocated to the party that suits each best.` } : { error: "Every seat already suits its party." };
 }
 
 /** Let two partners fight it out in a seat (`other` null ends the contest). The stronger of the two carries the flag. */
@@ -239,8 +261,9 @@ export function setOpenContest(s: GameState, seat: number, other: string | null)
   if (!other) return { state: { ...s, openSeats: rest }, message: `The contest in ${SEATS[seat].name} is off.` };
   const cur = seatCandidate(s, SEATS[seat], s.player);
   if (other === cur || !s.coalitions[s.player].members.includes(other)) return { error: "Pick another party in your coalition." };
-  const lead = partyFit(s, SEATS[seat], other) > partyFit(s, SEATS[seat], cur) ? other : cur;
-  return { state: carry({ ...s, openSeats: { ...rest, [seat]: [cur, other] } }, seat, lead), message: `${cur} and ${other} fight it out in ${SEATS[seat].name}. The coalition's vote there takes a small hit.` };
+  // You keep the flag in your own seat.
+  const lead = seat !== s.career.homeSeat && partyFit(s, SEATS[seat], other) > partyFit(s, SEATS[seat], cur) ? other : cur;
+  return { state: refreshPicks(carry({ ...s, openSeats: { ...rest, [seat]: [cur, other] } }, seat, lead)), message: `${cur} and ${other} fight it out in ${SEATS[seat].name}. The coalition's vote there takes a small hit.` };
 }
 
 /** Log-odds per seat for your coalition from pulled machinery and open contests. */
@@ -261,6 +284,8 @@ export function settleAllocation(s: GameState): { state: GameState; lines: Repor
   const lead = yourParty(s);
   for (const party of partnersOf(s).filter((p) => ctlOf(s, p).ros)) {
     for (const seat of coalitionSeats(state)) if (seatCandidate(state, seat, s.player) === party) state = carry(state, seat.index, lead);
+    const openSeats = Object.fromEntries(Object.entries(state.openSeats ?? {}).filter(([, v]) => !v.includes(party))) as GameState["openSeats"];
+    state = refreshPicks({ ...state, openSeats });
     lines.push({ text: `${party} can't stand under its own name: its registration is held up, and ${lead} takes its seats.`, tone: "good" });
   }
   for (const row of shares(state)) {

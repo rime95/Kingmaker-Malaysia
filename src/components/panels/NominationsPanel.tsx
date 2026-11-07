@@ -38,7 +38,6 @@ import {
 import { chancePct, useReads } from "../common";
 import { CoalitionFlag, PartyFlag } from "../flags";
 import { CandidateBoard } from "./CandidateBoard";
-import { CoalitionBoard } from "./CoalitionBoard";
 import { lineup } from "@/game/systems/nominations";
 
 const initials = (name: string) =>
@@ -59,7 +58,6 @@ export function NominationsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      {president && <CoalitionBoard />}
       {president ? (
         <PresidentBoard />
       ) : !n ? (

@@ -404,6 +404,26 @@ export function closeNominations(s: GameState): { state: GameState; lines: Repor
   return { state: { ...s, people, seatOffsets, entries, career: nextCareer, calon: {}, nominations: { ...n, open: false, picks } }, lines };
 }
 
+/** Seats changed hands in the coalition during the window: names leave the seats you gave up, and seats you gained get one. */
+export function refreshPicks(s: GameState): GameState {
+  const n = s.nominations;
+  if (!n?.open) return s;
+  const seats = partySeats(s);
+  const mine = new Set(seats);
+  const picks: Record<number, number> = {};
+  for (const [k, id] of Object.entries(n.picks)) if (mine.has(Number(k))) picks[Number(k)] = id;
+  let state: GameState = { ...s, nominations: { ...n, picks } };
+  for (const seat of seats) {
+    if (picks[seat] !== undefined) continue;
+    const taken = new Set(Object.values(picks));
+    const best = shortlist(state, seat, 8).find((p) => !taken.has(p.id) && (p.seat === null || p.seat === seat));
+    if (!best) continue;
+    picks[seat] = best.id;
+    state = { ...state, nominations: { ...n, picks } };
+  }
+  return state;
+}
+
 /** Weekly: open the window when Parliament is dissolved, close it on nomination day. */
 export function nominationsWeek(s: GameState): { state: GameState; lines: ReportLine[] } {
   if (s.parliament.status === "campaign" && !s.nominations) {
