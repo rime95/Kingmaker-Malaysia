@@ -5,6 +5,8 @@ import { useGame } from "@/store/gameStore";
 import { winChance } from "@/game/systems/polls";
 import { SEATS, STATE_BY_ID, contestingIn, cshort } from "@/game/world";
 import { PactsCard } from "../PactsCard";
+import { PactTalks } from "../PactTalks";
+import { CoalitionSeats } from "./CoalitionSeats";
 import { chancePct, useReads } from "../common";
 
 /** Where the election will be decided: seats you could take, seats you could lose, and pacts to stop splitting the vote. */
@@ -55,6 +57,9 @@ export function BattlePanel() {
 
   return (
     <div className="flex flex-col gap-5">
+      <CoalitionSeats />
+      <PactsCard />
+      <PactTalks />
       {list("Seats you could take", "Best chances first. Click one to fly there and act.", lists.targets)}
       {list("Seats you could lose", "Your own seats, shakiest first.", lists.risk)}
       <section>
@@ -78,7 +83,6 @@ export function BattlePanel() {
           </ul>
         )}
       </section>
-      <PactsCard />
     </div>
   );
 }

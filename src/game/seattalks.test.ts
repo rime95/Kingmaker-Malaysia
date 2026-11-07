@@ -47,21 +47,21 @@ describe("seat talks", () => {
   it("claiming costs goodwill, conceding earns it, and a partner refuses once goodwill runs out", () => {
     const g = newGame("MUDA", 3, { name: "Adam Rahman" });
     let s: GameState = { ...g, pacts: [{ with: "PH", since: 0, seats: pactSeats(g, "PH"), goodwill: TALKS.goodwill }] };
-    const rows = talkSeats(s, shares(s)).filter((r) => r.kind === "pact");
+    const rows = talkSeats(s, shares(s));
     const theirs = rows.filter((r) => r.standing === "them");
     const r1 = claimSeat(s, theirs[0]);
     if ("error" in r1) throw new Error(r1.error);
     expect(r1.state.pacts[0].goodwill!).toBeLessThan(TALKS.goodwill);
     expect(r1.state.pacts[0].seats[theirs[0].seat]).toBe("PH");
     s = r1.state;
-    const mine = talkSeats(s, shares(s)).filter((r) => r.kind === "pact" && r.standing === "you");
+    const mine = talkSeats(s, shares(s)).filter((r) => r.standing === "you");
     const r2 = concedeSeat(s, mine[0]);
     if ("error" in r2) throw new Error(r2.error);
     expect(r2.state.pacts[0].goodwill!).toBeGreaterThan(s.pacts[0].goodwill!);
     // Keep claiming until they say no.
     let t = r2.state;
     let refused = false;
-    for (const r of talkSeats(t, shares(t)).filter((x) => x.kind === "pact" && x.standing === "them")) {
+    for (const r of talkSeats(t, shares(t)).filter((x) => x.standing === "them")) {
       const res = claimSeat(t, r);
       if ("error" in res) {
         refused = true;
@@ -100,8 +100,11 @@ describe("who becomes Prime Minister", () => {
 
   it("every seat in talks is one your coalition contests", () => {
     const g = newGame("MUDA", 3, { name: "Adam Rahman" });
-    const s = moveParty(g, "PKR", "MUDA");
-    for (const r of talkSeats(s, shares(s))) expect(contestingIn(SEATS[r.seat], s.entries)).toContain("MUDA");
+    const moved = moveParty(g, "PKR", "MUDA");
+    const s: GameState = { ...moved, pacts: [{ with: "PN", since: 0, seats: pactSeats(moved, "PN"), goodwill: TALKS.goodwill }] };
+    const rows = talkSeats(s, shares(s));
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) expect(contestingIn(SEATS[r.seat], s.entries)).toContain("MUDA");
   });
 });
 

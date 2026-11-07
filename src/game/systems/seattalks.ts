@@ -1,17 +1,15 @@
-// Seat talks: before an election, partners agree who stands where. Two kinds of partner share seats with you:
-// - Parties inside your own coalition (who carries the coalition's flag in each seat), and
-// - Coalitions you have a pact with (who stands aside where).
-// The starting split is fair: each side keeps the seats it holds, and the open seats are shared in proportion to each
-// side's vote, each taking the seats where it is relatively strongest. You can then claim a seat (it costs goodwill,
-// more where their claim is strong, and they refuse if goodwill runs out) or concede one (goodwill, at a small cost to
-// your own warlords' patience). Talks lock on nomination day. All numbers TEMPORARY.
+// Pact talks: after a pact is signed, who stands where in the seats both coalitions contest. The starting split is fair:
+// each side keeps the seats it holds, and the open seats are shared in proportion to each side's vote, each taking the
+// seats where it is relatively strongest. You can then claim a seat (it costs goodwill, more where their claim is strong,
+// and they refuse if goodwill runs out) or stand aside in one (goodwill, at a small cost to your own warlords' patience).
+// Talks lock on nomination day. All numbers TEMPORARY.
+// Pacts are only ever with other coalitions. Who carries your own coalition's flag in a seat is your call (partners.ts).
 
 import type { GameState } from "../state";
 import { COALITION_INDEX } from "../voter";
-import { PARTIES, SEATS, contestingIn, cshort, seatRegion, type CoalitionId } from "../world";
+import { SEATS, contestingIn, cshort, type CoalitionId } from "../world";
 import { isPresident } from "./career";
 import { COALITION_RULES, seatCandidate } from "./coalitions";
-import { partyFit } from "./partners";
 
 export const TALKS = {
   /** Goodwill a pact starts with (0–100). */
@@ -31,9 +29,8 @@ export const TALKS = {
 /** One seat on the table. */
 export interface TalkSeat {
   seat: number;
-  kind: "pact" | "coalition";
-  /** The pact coalition, or the partner party inside your coalition. */
-  partner: string;
+  /** The coalition the pact is with. */
+  partner: CoalitionId;
   /** Who carries the flag here now. */
   standing: "you" | "them";
   /** Who holds the seat today. */
@@ -76,20 +73,8 @@ export function fairSplit(s: Pick<GameState, "holders" | "player" | "entries">, 
   return out;
 }
 
-/** Goodwill with a pact partner (or a coalition partner party's satisfaction). */
-export function goodwillWith(s: GameState, kind: TalkSeat["kind"], partner: string): number {
-  if (kind === "pact") return s.pacts.find((p) => p.with === partner)?.goodwill ?? TALKS.goodwill;
-  return s.partySat[partner] ?? 50;
-}
-
-/** Your coalition's partner party with the best claim on a seat you carry: one from the region, else the biggest. */
-function partnerFor(s: GameState, i: number): string | null {
-  const [lead, ...rest] = s.coalitions[s.player].members;
-  if (!lead || !rest.length) return null;
-  const region = seatRegion(SEATS[i]);
-  const can = rest.filter((p) => PARTIES[p]?.home === region || PARTIES[p]?.home === "national" || (PARTIES[p]?.home === "peninsula" && region === "peninsula"));
-  return can.sort((a, b) => partyFit(s, SEATS[i], b) - partyFit(s, SEATS[i], a))[0] ?? null;
-}
+/** Goodwill with a pact partner. */
+export const goodwillWith = (s: GameState, partner: CoalitionId): number => s.pacts.find((p) => p.with === partner)?.goodwill ?? TALKS.goodwill;
 
 /** Every seat on the table, with who stands now. `shares` is the projected vote by seat. */
 export function talkSeats(s: GameState, shares: (i: number) => Partial<Record<CoalitionId, number>>): TalkSeat[] {
@@ -100,20 +85,7 @@ export function talkSeats(s: GameState, shares: (i: number) => Partial<Record<Co
       const sh = shares(i);
       const a = sh[s.player] ?? 0;
       const b = sh[p.with] ?? 0;
-      rows.push({ seat: i, kind: "pact", partner: p.with, standing: out === s.player ? "them" : "you", held: s.holders[i] === s.player ? "you" : s.holders[i] === p.with ? "them" : null, claim: b / Math.max(1e-6, a + b) });
-    }
-  }
-  const lead = s.coalitions[s.player].members[0];
-  if (s.coalitions[s.player].members.length > 1) {
-    for (const seat of SEATS) {
-      if (!contestingIn(seat, s.entries).includes(s.player)) continue;
-      const cand = seatCandidate(s, seat, s.player);
-      const partner = cand !== lead ? cand : partnerFor(s, seat.index);
-      if (!partner) continue;
-      const hp = s.holders[seat.index] === s.player ? s.holderParties[seat.index] : null;
-      const fit = partyFit(s, seat, partner);
-      const claim = hp === partner ? 0.75 : hp === lead ? 0.25 : 0.2 + 0.6 * (fit / Math.max(0.01, fit + partyFit(s, seat, lead)));
-      rows.push({ seat: seat.index, kind: "coalition", partner, standing: cand === lead ? "you" : "them", held: hp === lead ? "you" : hp === partner ? "them" : null, claim });
+      rows.push({ seat: i, partner: p.with, standing: out === s.player ? "them" : "you", held: s.holders[i] === s.player ? "you" : s.holders[i] === p.with ? "them" : null, claim: b / Math.max(1e-6, a + b) });
     }
   }
   return rows;
@@ -125,10 +97,7 @@ export function talksBlocked(s: GameState): string | null {
   return null;
 }
 
-const setGoodwill = (s: GameState, kind: TalkSeat["kind"], partner: string, v: number): GameState =>
-  kind === "pact"
-    ? { ...s, pacts: s.pacts.map((p) => (p.with === partner ? { ...p, goodwill: Math.max(0, Math.min(100, v)) } : p)) }
-    : { ...s, partySat: { ...s.partySat, [partner]: Math.max(0, Math.min(100, v)) } };
+const setGoodwill = (s: GameState, partner: CoalitionId, v: number): GameState => ({ ...s, pacts: s.pacts.map((p) => (p.with === partner ? { ...p, goodwill: Math.max(0, Math.min(100, v)) } : p)) });
 
 /** Give the seat's flag to a party in your coalition, moving an incumbent's personal vote with it. */
 export function carry(s: GameState, i: number, party: string): GameState {
@@ -141,33 +110,29 @@ export function carry(s: GameState, i: number, party: string): GameState {
   return { ...s, seatOffsets, seatParty: { ...s.seatParty, [i]: { ...s.seatParty[i], [s.player]: party } } };
 }
 
-const label = (r: TalkSeat) => (r.kind === "pact" ? cshort(r.partner as CoalitionId) : r.partner);
-
-/** Claim a seat for your party. */
+/** Claim a seat from the other coalition. */
 export function claimSeat(s: GameState, r: TalkSeat): { state: GameState; message: string } | { error: string } {
   const why = talksBlocked(s);
   if (why) return { error: why };
   if (r.standing === "you") return { error: "You already stand there." };
   const cost = TALKS.claimBase + r.claim * TALKS.claimStrength + (r.held === "them" ? TALKS.claimHeld : 0);
-  const gw = goodwillWith(s, r.kind, r.partner);
+  const gw = goodwillWith(s, r.partner);
   const name = SEATS[r.seat].name;
-  if (gw - cost < TALKS.floor) return { error: `${label(r)} refuses: ${r.held === "them" ? `they hold ${name}` : `their claim on ${name} is strong`} and goodwill is too low (${Math.round(gw)}). Concede a seat elsewhere first.` };
-  let state = setGoodwill(s, r.kind, r.partner, gw - cost);
-  if (r.kind === "pact") state = { ...state, pacts: state.pacts.map((p) => (p.with === r.partner ? { ...p, seats: { ...p.seats, [r.seat]: r.partner as CoalitionId } } : p)) };
-  else state = carry(state, r.seat, s.coalitions[s.player].members[0]);
-  return { state, message: `You claim ${name}. ${label(r)} agrees, grudgingly (goodwill −${Math.round(cost)}).` };
+  if (gw - cost < TALKS.floor) return { error: `${cshort(r.partner)} refuses: ${r.held === "them" ? `they hold ${name}` : `their claim on ${name} is strong`} and goodwill is too low (${Math.round(gw)}). Concede a seat elsewhere first.` };
+  let state = setGoodwill(s, r.partner, gw - cost);
+  state = { ...state, pacts: state.pacts.map((p) => (p.with === r.partner ? { ...p, seats: { ...p.seats, [r.seat]: r.partner } } : p)) };
+  return { state, message: `You claim ${name}. ${cshort(r.partner)} agrees, grudgingly (goodwill −${Math.round(cost)}).` };
 }
 
-/** Concede a seat to your partner. */
+/** Stand aside for the other coalition in a seat. */
 export function concedeSeat(s: GameState, r: TalkSeat): { state: GameState; message: string } | { error: string } {
   const why = talksBlocked(s);
   if (why) return { error: why };
   if (r.standing === "them") return { error: "They already stand there." };
   if (r.seat === s.career.homeSeat) return { error: "That is your own seat: you stand there." };
   const gain = TALKS.concedeBase + (1 - r.claim) * TALKS.concedeStrength;
-  let state = setGoodwill(s, r.kind, r.partner, goodwillWith(s, r.kind, r.partner) + gain);
-  if (r.kind === "pact") state = { ...state, pacts: state.pacts.map((p) => (p.with === r.partner ? { ...p, seats: { ...p.seats, [r.seat]: s.player } } : p)) };
-  else state = carry(state, r.seat, r.partner);
+  let state = setGoodwill(s, r.partner, goodwillWith(s, r.partner) + gain);
+  state = { ...state, pacts: state.pacts.map((p) => (p.with === r.partner ? { ...p, seats: { ...p.seats, [r.seat]: s.player } } : p)) };
   state = { ...state, me: { ...state.me, unity: Math.max(0, state.me.unity - TALKS.concedeUnity) } };
-  return { state, message: `You give ${SEATS[r.seat].name} to ${label(r)} (goodwill +${Math.round(gain)}). Your division chief there is not pleased.` };
+  return { state, message: `You stand aside in ${SEATS[r.seat].name} for ${cshort(r.partner)} (goodwill +${Math.round(gain)}). Your division chief there is not pleased.` };
 }

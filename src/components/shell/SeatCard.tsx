@@ -22,6 +22,7 @@ import { chancePct, fmt, fmtRM, pct, useReads } from "../common";
 import { coalColor } from "../map/lenses";
 import { Icon } from "./icons";
 import { CoalitionFlag } from "../flags";
+import { WhoStands } from "../panels/CoalitionSeats";
 import { adunOf } from "@/game/systems/aduns";
 
 const SEAT_ACTIONS = ["ground", "ceramah", "walkabout", "issue", "service", "machinery", "handout"];
@@ -101,6 +102,8 @@ export function SeatCard({ embedded = false }: { embedded?: boolean }) {
             Seat pact: <b>{cshort(aside.out)}</b> stands aside here for <b>{cshort(aside.to)}</b>.
           </p>
         )}
+
+        <WhoStands seat={i} />
 
         {contests ? (
           <section>

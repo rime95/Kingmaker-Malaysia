@@ -16,6 +16,7 @@ import { campName, divisionChief } from "@/game/systems/camps";
 import { lineup, partySeats } from "@/game/systems/nominations";
 import { campColorOf, campColors } from "../campColors";
 import { ActionCard } from "../ActionCard";
+import { WhoStands } from "../panels/CoalitionSeats";
 import { chancePct, fmtRM, pct, useReads } from "../common";
 import { SeatIssues } from "./SeatBits";
 import { Icon } from "./icons";
@@ -123,6 +124,8 @@ export function SeatPopover() {
             {aside.out === game.player ? " Joint ceramah here moves more of your voters behind them." : ""}
           </p>
         )}
+
+        <WhoStands seat={i} />
 
         <StateLine seat={i} />
 

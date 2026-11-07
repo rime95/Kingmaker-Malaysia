@@ -352,7 +352,6 @@ export function advanceWeek(input: GameState): GameState {
     const celeb = celebritySeat(next);
     if (celeb !== null && next.cards.length < 4 && hash01("celebcard", next.seed, next.week) < 0.5 && (next.cardLast.celebrity ?? -99) < next.week - 40) addCard("celebrity", undefined, undefined, celeb);
   }
-  if (next.cards.length < 4 && next.parliament.status === "campaign" && next.coalitions[next.player].members.length > 1 && (next.cardLast.seatTalks ?? -99) < next.week - 12) addCard("seatTalks");
 
   // People: age, standing, retirements and successions
   const ppl = peopleMonth(next);

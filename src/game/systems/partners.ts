@@ -204,6 +204,7 @@ export function assignSeat(s: GameState, seat: number, party: string): { state: 
   if (why) return { error: why };
   if (!s.coalitions[s.player].members.includes(party)) return { error: "That party isn't in your coalition." };
   if (seat === s.career.homeSeat && party !== yourParty(s)) return { error: "That is your own seat: you stand there." };
+  if (standsAside(s, seat, s.player)) return { error: `You stand aside in ${SEATS[seat].name} under a pact.` };
   const rest = { ...s.openSeats };
   delete rest[seat];
   return { state: carry({ ...s, openSeats: rest }, seat, party), message: `${party} stands in ${SEATS[seat].name}.` };
@@ -232,6 +233,7 @@ export function bestAllocation(s: GameState): { state: GameState; message: strin
 export function setOpenContest(s: GameState, seat: number, other: string | null): { state: GameState; message: string } | { error: string } {
   const why = assignBlocked(s);
   if (why) return { error: why };
+  if (standsAside(s, seat, s.player)) return { error: `You stand aside in ${SEATS[seat].name} under a pact.` };
   const rest = { ...s.openSeats };
   delete rest[seat];
   if (!other) return { state: { ...s, openSeats: rest }, message: `The contest in ${SEATS[seat].name} is off.` };
@@ -485,6 +487,12 @@ export function signRivalPacts(s: GameState): { state: GameState; lines: ReportL
 }
 
 /** Pacts with a coalition that has no parties left are over. */
+/** A party changed coalition, bringing these seats: its new side no longer stands aside against its own MPs. */
+export function pactsAfterMove<T extends Pick<GameState, "pacts" | "rivalPacts">>(s: T, seats: number[], to: CoalitionId): T {
+  const keep = <P extends { seats: Record<number, CoalitionId> }>(p: P): P => ({ ...p, seats: Object.fromEntries(Object.entries(p.seats).filter(([k, out]) => !(out === to && seats.includes(Number(k))))) as Record<number, CoalitionId> });
+  return { ...s, pacts: s.pacts.map(keep), rivalPacts: (s.rivalPacts ?? []).map(keep) };
+}
+
 export function dropDeadPacts<T extends Pick<GameState, "pacts" | "rivalPacts" | "coalitions">>(s: T): T {
   const alive = (c: CoalitionId) => s.coalitions[c].members.length > 0;
   return { ...s, pacts: s.pacts.filter((p) => alive(p.with)), rivalPacts: (s.rivalPacts ?? []).filter((p) => alive(p.a) && alive(p.b)) };

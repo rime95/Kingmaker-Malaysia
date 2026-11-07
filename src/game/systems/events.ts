@@ -478,7 +478,7 @@ export const NOMINATIONS_CARD: CardDef = {
   defaultChoice: 1,
 };
 
-/** Seat-allocation talks inside your coalition once Parliament is dissolved. */
+/** No longer raised (you set your coalition's seats yourself): kept so a save holding this card still loads. */
 export const SEAT_TALKS_CARD: CardDef = {
   kind: "seatTalks",
   title: "Seat talks with your partners",

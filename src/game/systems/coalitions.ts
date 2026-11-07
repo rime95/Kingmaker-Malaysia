@@ -12,7 +12,7 @@ import { hash01 } from "../rng";
 import type { GameState, ReportLine } from "../state";
 import { COALITIONS, COALITION_INFO, PARTIES, SEATS, candidateParty, contestingIn, cshort, seatRegion, setCoalitionNames, type CoalitionId, type Seat } from "../world";
 import { AFFINITY } from "./formation";
-import { dares, dependence, dropDeadPacts, tame } from "./partners";
+import { dares, dependence, dropDeadPacts, pactsAfterMove, tame } from "./partners";
 
 export interface CoalitionState {
   name: string;
@@ -210,7 +210,7 @@ export function moveParty(s: GameState, party: string, to: CoalitionId): GameSta
     if (!contestingIn(seat, entries).includes(to)) entries[seat.index] = [...(entries[seat.index] ?? []), to];
     const contests = contestingIn(seat, entries);
     seatOffsets[seat.index][fi] -= COALITION_RULES.personalVote;
-    // It carries the new coalition's flag where it holds the seat; elsewhere the lead party stands (seat talks can change it).
+    // It carries the new coalition's flag where it holds the seat; elsewhere the lead party stands (the coalition's leader can change it).
     if (contests.includes(to)) {
       // Its local base campaigns for the new coalition everywhere it stood.
       seatOffsets[seat.index][ti] += COALITION_RULES.personalVote;
@@ -221,7 +221,8 @@ export function moveParty(s: GameState, party: string, to: CoalitionId): GameSta
     seatParty[seat.index] = rest;
   }
   const partySat = { ...s.partySat, [party]: 60 };
-  return dropDeadPacts({ ...s, coalitions, holders, seatOffsets, seatParty, partySat, entries });
+  const brought = SEATS.filter((seat) => s.holderParties[seat.index] === party).map((seat) => seat.index);
+  return dropDeadPacts(pactsAfterMove({ ...s, coalitions, holders, seatOffsets, seatParty, partySat, entries }, brought, to));
 }
 
 // --- Monthly turn --------------------------------------------------------------------------------

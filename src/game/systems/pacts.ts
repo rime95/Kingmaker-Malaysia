@@ -1,5 +1,6 @@
-// Seat pacts: two coalitions agree not to split the vote. In the seats both contest, each side keeps what it holds and
-// the open seats are shared fairly by vote (see seattalks.ts, where you can then claim or concede seats); most of the
+// Seat pacts: two separate coalitions agree not to split the vote. Pacts decide which coalition stands aside, never which
+// party in your own coalition stands (that is yours to set: partners.ts). In the seats both contest, each side keeps what
+// it holds and the open seats are shared fairly by vote (see seattalks.ts, where you can then claim seats or stand aside); most of the
 // withdrawn side's voters follow the deal. This is how Malaysian oppositions win: one-on-one fights.
 // A pact runs until the next general election is over. AI coalitions sign when it wins them seats.
 
